@@ -248,7 +248,7 @@ const AnnualExpensesPage = () => {
             </div>
           </Card>
 
-          <Card title="Monthly Savings Needed" className="summary-card">
+          <Card title="Monthly Savings Plan" className="summary-card">
             <div className="summary-amount info">
               {formatCurrency(Object.values(accountSavingsPlan).reduce((total, amount) => total + amount, 0))}
             </div>

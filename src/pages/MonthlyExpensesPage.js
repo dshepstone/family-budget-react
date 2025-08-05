@@ -3,10 +3,9 @@ import React, { useState } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import CategoryManager from '../components/CategoryManager';
 import ExpenseItem from '../components/ExpenseItem';
 import { EXPENSE_CATEGORIES, DEFAULT_ACCOUNTS } from '../utils/constants';
-import { formatCurrency, parseAmount } from '../utils/formatters';
+import { parseAmount } from '../utils/formatters';
 
 const MonthlyExpensesPage = () => {
   const { state, actions, calculations, formatCurrency: formatCurrencyUtil } = useBudget();
@@ -182,7 +181,7 @@ const MonthlyExpensesPage = () => {
       {/* Summary Cards */}
       <div className="summary-section">
         <div className="summary-grid">
-          <Card title="Monthly Expenses Total" className="summary-card">
+          <Card title="Total Monthly Expenses" className="summary-card">
             <div className="summary-amount expense">
               {formatCurrencyUtil(totalMonthlyExpenses)}
             </div>
@@ -191,7 +190,7 @@ const MonthlyExpensesPage = () => {
             </div>
           </Card>
 
-          <Card title="Account Allocation" className="summary-card">
+          <Card title="Funds to Set Aside by Account" className="summary-card">
             <div className="account-breakdown">
               {Object.entries(accountSummary).map(([account, total]) => (
                 <div key={account} className="account-item">

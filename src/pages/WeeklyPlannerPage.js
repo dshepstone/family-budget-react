@@ -261,7 +261,7 @@ const WeeklyPlannerPage = () => {
             </div>
           </Card>
 
-          <Card title="Net Weekly Flow" className="summary-card">
+          <Card title="Net Weekly Flow (Surplus/Deficit)" className="summary-card">
             <div className={`summary-amount ${getNetWeeklyFlow() >= 0 ? 'positive' : 'negative'}`}>
               {formatCurrency(getNetWeeklyFlow())}
             </div>
