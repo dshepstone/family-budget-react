@@ -1,0 +1,324 @@
+/* src/styles/themes.css */
+
+/* Light Theme (Default) */
+:root {
+  /* Primary Colors */
+  --primary: #3498db;
+  --primary-dark: #2980b9;
+  --primary-light: #5dade2;
+  --primary-alpha: rgba(52, 152, 219, 0.2);
+
+  /* Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+
+  /* Text Colors */
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --text-muted: #95a5a6;
+
+  /* Card and Surface Colors */
+  --card-bg: #ffffff;
+  --card-border: #e9ecef;
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Navigation Colors */
+  --nav-bg: #34495e;
+  --nav-text: #ffffff;
+  --nav-active-bg: rgba(255, 255, 255, 0.15);
+  --nav-active-border: #3498db;
+
+  /* Header Colors */
+  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-text: #ffffff;
+
+  /* Status Colors */
+  --success: #27ae60;
+  --success-light: #2ecc71;
+  --success-bg: #d5f4e6;
+  
+  --warning: #f39c12;
+  --warning-light: #f1c40f;
+  --warning-bg: #fef9e7;
+  
+  --danger: #e74c3c;
+  --danger-light: #ec7063;
+  --danger-bg: #fadbd8;
+  
+  --info: #3498db;
+  --info-light: #5dade2;
+  --info-bg: #d6eaf8;
+
+  /* Form Colors */
+  --input-bg: #ffffff;
+  --input-border: #bdc3c7;
+  --input-focus: #3498db;
+  --input-error: #e74c3c;
+
+  /* Button Colors */
+  --btn-primary-bg: #3498db;
+  --btn-primary-hover: #2980b9;
+  --btn-primary-text: #ffffff;
+  
+  --btn-secondary-bg: #95a5a6;
+  --btn-secondary-hover: #7f8c8d;
+  --btn-secondary-text: #ffffff;
+  
+  --btn-success-bg: #27ae60;
+  --btn-success-hover: #229954;
+  --btn-success-text: #ffffff;
+  
+  --btn-danger-bg: #e74c3c;
+  --btn-danger-hover: #c0392b;
+  --btn-danger-text: #ffffff;
+
+  /* Table Colors */
+  --table-header-bg: #34495e;
+  --table-header-text: #ffffff;
+  --table-row-hover: #f8f9fa;
+
+  /* Border Colors */
+  --border-light: #e9ecef;
+  --border-medium: #bdc3c7;
+  --border-dark: #7f8c8d;
+
+  /* Hover and Focus States */
+  --hover-bg: #f8f9fa;
+  --focus-ring: rgba(52, 152, 219, 0.3);
+
+  /* Disabled States */
+  --disabled-bg: #e9ecef;
+  --disabled-text: #95a5a6;
+  --disabled-border: #bdc3c7;
+
+  /* Amount Colors (Financial) */
+  --amount-positive: #27ae60;
+  --amount-negative: #e74c3c;
+  --amount-neutral: #7f8c8d;
+  --amount-income: #2ecc71;
+  --amount-expense: #e67e22;
+
+  /* Chart Colors */
+  --chart-grid: rgba(0, 0, 0, 0.1);
+  --chart-text: #7f8c8d;
+  --chart-tooltip-bg: #2c3e50;
+  --chart-tooltip-text: #ffffff;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  /* Primary Colors */
+  --primary: #5dade2;
+  --primary-dark: #3498db;
+  --primary-light: #85c1e9;
+  --primary-alpha: rgba(93, 173, 226, 0.2);
+
+  /* Background Colors */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3d3d3d;
+
+  /* Text Colors */
+  --text-primary: #ecf0f1;
+  --text-secondary: #bdc3c7;
+  --text-muted: #95a5a6;
+
+  /* Card and Surface Colors */
+  --card-bg: #2d2d2d;
+  --card-border: #4d4d4d;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* Navigation Colors */
+  --nav-bg: #212529;
+  --nav-text: #ecf0f1;
+  --nav-active-bg: rgba(93, 173, 226, 0.2);
+  --nav-active-border: #5dade2;
+
+  /* Header Colors */
+  --header-bg: linear-gradient(135deg, #4a6fa5 0%, #5a4b7c 100%);
+  --header-text: #ecf0f1;
+
+  /* Status Colors */
+  --success: #2ecc71;
+  --success-light: #58d68d;
+  --success-bg: rgba(46, 204, 113, 0.2);
+  
+  --warning: #f1c40f;
+  --warning-light: #f4d03f;
+  --warning-bg: rgba(241, 196, 15, 0.2);
+  
+  --danger: #ec7063;
+  --danger-light: #f1948a;
+  --danger-bg: rgba(236, 112, 99, 0.2);
+  
+  --info: #5dade2;
+  --info-light: #85c1e9;
+  --info-bg: rgba(93, 173, 226, 0.2);
+
+  /* Form Colors */
+  --input-bg: #3d3d3d;
+  --input-border: #5d5d5d;
+  --input-focus: #5dade2;
+  --input-error: #ec7063;
+
+  /* Button Colors */
+  --btn-primary-bg: #5dade2;
+  --btn-primary-hover: #3498db;
+  --btn-primary-text: #1a1a1a;
+  
+  --btn-secondary-bg: #6c757d;
+  --btn-secondary-hover: #5a6268;
+  --btn-secondary-text: #ecf0f1;
+  
+  --btn-success-bg: #2ecc71;
+  --btn-success-hover: #27ae60;
+  --btn-success-text: #1a1a1a;
+  
+  --btn-danger-bg: #ec7063;
+  --btn-danger-hover: #e74c3c;
+  --btn-danger-text: #ffffff;
+
+  /* Table Colors */
+  --table-header-bg: #212529;
+  --table-header-text: #ecf0f1;
+  --table-row-hover: #3d3d3d;
+
+  /* Border Colors */
+  --border-light: #4d4d4d;
+  --border-medium: #5d5d5d;
+  --border-dark: #6d6d6d;
+
+  /* Hover and Focus States */
+  --hover-bg: #3d3d3d;
+  --focus-ring: rgba(93, 173, 226, 0.3);
+
+  /* Disabled States */
+  --disabled-bg: #4d4d4d;
+  --disabled-text: #7f8c8d;
+  --disabled-border: #5d5d5d;
+
+  /* Amount Colors (Financial) */
+  --amount-positive: #2ecc71;
+  --amount-negative: #ec7063;
+  --amount-neutral: #bdc3c7;
+  --amount-income: #58d68d;
+  --amount-expense: #f39c12;
+
+  /* Chart Colors */
+  --chart-grid: rgba(255, 255, 255, 0.1);
+  --chart-text: #bdc3c7;
+  --chart-tooltip-bg: #ecf0f1;
+  --chart-tooltip-text: #2c3e50;
+}
+
+/* High Contrast Theme */
+[data-theme="high-contrast"] {
+  --primary: #0066cc;
+  --primary-dark: #004499;
+  --primary-light: #3388dd;
+
+  --bg-primary: #ffffff;
+  --bg-secondary: #f0f0f0;
+  --bg-tertiary: #e0e0e0;
+
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-muted: #666666;
+
+  --card-bg: #ffffff;
+  --card-border: #000000;
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+
+  --success: #006600;
+  --warning: #cc6600;
+  --danger: #cc0000;
+  --info: #0066cc;
+
+  --input-bg: #ffffff;
+  --input-border: #000000;
+  --input-focus: #0066cc;
+
+  --border-light: #666666;
+  --border-medium: #333333;
+  --border-dark: #000000;
+}
+
+/* Theme Transitions */
+* {
+  transition: 
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Theme-specific Component Adjustments */
+[data-theme="dark"] .nav-btn {
+  color: var(--nav-text);
+}
+
+[data-theme="dark"] .nav-btn:hover {
+  background-color: rgba(93, 173, 226, 0.1);
+}
+
+[data-theme="dark"] .summary-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-dark);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-medium);
+}
+
+/* Selection Colors */
+::selection {
+  background-color: var(--primary-alpha);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background-color: var(--primary-alpha);
+  color: var(--text-primary);
+}

@@ -1,0 +1,67 @@
+{
+  "name": "family-budget-react",
+  "version": "2.0.0",
+  "description": "A comprehensive React-based family budget management application with real-time calculations, import/export capabilities, and modular architecture.",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "recharts": "^2.8.0",
+    "lodash": "^4.17.21",
+    "papaparse": "^5.4.1",
+    "mathjs": "^11.11.0",
+    "web-vitals": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.195",
+    "@types/papaparse": "^5.3.7",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-console": "warn",
+      "react-hooks/exhaustive-deps": "warn"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "homepage": ".",
+  "keywords": [
+    "budget",
+    "finance",
+    "family",
+    "react",
+    "personal-finance",
+    "expense-tracker",
+    "money-management",
+    "financial-planning"
+  ],
+  "author": "Budget App Team",
+  "license": "MIT"
+}
