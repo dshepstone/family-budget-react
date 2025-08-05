@@ -7,11 +7,15 @@ import Input from '../components/ui/Input';
 import { currencyCalculator } from '../plugins/calculators/CurrencyCalculator';
 import { formatDate } from '../utils/formatters';
 
+const WEEK_COUNT = 5;
+
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
+  const initArray = (arr = []) =>
+    Array.from({ length: WEEK_COUNT }, (_, i) => arr[i] || 0);
   const [weeklyData, setWeeklyData] = useState({
-    weeklyIncome: [0, 0, 0, 0],
-    weeklyExpenses: [0, 0, 0, 0],
+    weeklyIncome: Array(WEEK_COUNT).fill(0),
+    weeklyExpenses: Array(WEEK_COUNT).fill(0),
     monthlyTargets: {}
   });
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -21,8 +25,8 @@ const WeeklyPlannerPage = () => {
   useEffect(() => {
     if (state.data.plannerState) {
       setWeeklyData({
-        weeklyIncome: state.data.plannerState.weeklyIncome || [0, 0, 0, 0],
-        weeklyExpenses: state.data.plannerState.weeklyExpenses || [0, 0, 0, 0],
+        weeklyIncome: initArray(state.data.plannerState.weeklyIncome),
+        weeklyExpenses: initArray(state.data.plannerState.weeklyExpenses),
         monthlyTargets: state.data.plannerState.monthlyTargets || {}
       });
     }
@@ -56,22 +60,28 @@ const WeeklyPlannerPage = () => {
 
   const autoDistributeIncome = () => {
     const totalMonthlyIncome = calculations.getTotalIncome();
-    const weeklyAmount = currencyCalculator.divide(totalMonthlyIncome, 4);
-    
+    const weeklyAmount = currencyCalculator.divide(
+      totalMonthlyIncome,
+      WEEK_COUNT
+    );
+
     const newData = {
       ...weeklyData,
-      weeklyIncome: [weeklyAmount, weeklyAmount, weeklyAmount, weeklyAmount]
+      weeklyIncome: Array(WEEK_COUNT).fill(weeklyAmount)
     };
     savePlannerData(newData);
   };
 
   const autoDistributeExpenses = () => {
     const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();
-    const weeklyAmount = currencyCalculator.divide(totalMonthlyExpenses, 4);
-    
+    const weeklyAmount = currencyCalculator.divide(
+      totalMonthlyExpenses,
+      WEEK_COUNT
+    );
+
     const newData = {
       ...weeklyData,
-      weeklyExpenses: [weeklyAmount, weeklyAmount, weeklyAmount, weeklyAmount]
+      weeklyExpenses: Array(WEEK_COUNT).fill(weeklyAmount)
     };
     savePlannerData(newData);
   };
@@ -79,8 +89,8 @@ const WeeklyPlannerPage = () => {
   const resetPlanner = () => {
     if (window.confirm('Reset all weekly planning data?')) {
       const newData = {
-        weeklyIncome: [0, 0, 0, 0],
-        weeklyExpenses: [0, 0, 0, 0],
+        weeklyIncome: Array(WEEK_COUNT).fill(0),
+        weeklyExpenses: Array(WEEK_COUNT).fill(0),
         monthlyTargets: {}
       };
       savePlannerData(newData);
@@ -158,25 +168,24 @@ const WeeklyPlannerPage = () => {
   // Get current month dates
   const getMonthWeeks = () => {
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
     const weeks = [];
-    
+
     let weekStart = new Date(firstDay);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start on Sunday
-    
-    for (let i = 0; i < 4; i++) {
+
+    for (let i = 0; i < WEEK_COUNT; i++) {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
-      
+
       weeks.push({
         start: new Date(weekStart),
         end: new Date(weekEnd),
         number: i + 1
       });
-      
+
       weekStart.setDate(weekStart.getDate() + 7);
     }
-    
+
     return weeks;
   };
 
@@ -239,7 +248,7 @@ const WeeklyPlannerPage = () => {
               {formatCurrency(getTotalWeeklyIncome())}
             </div>
             <div className="summary-details">
-              Planned across 4 weeks
+              Planned across {WEEK_COUNT} weeks
             </div>
           </Card>
 
@@ -262,8 +271,8 @@ const WeeklyPlannerPage = () => {
           </Card>
 
           <Card title="Month-End Position" className="summary-card">
-            <div className={`summary-amount ${cumulativeFlows[3] >= 0 ? 'positive' : 'negative'}`}>
-              {formatCurrency(cumulativeFlows[3] || 0)}
+            <div className={`summary-amount ${cumulativeFlows[WEEK_COUNT - 1] >= 0 ? 'positive' : 'negative'}`}>
+              {formatCurrency(cumulativeFlows[WEEK_COUNT - 1] || 0)}
             </div>
             <div className="summary-details">
               Projected end balance
