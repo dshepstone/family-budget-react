@@ -6,6 +6,12 @@ export const ACTIONS = {
   UPDATE_INCOME: 'UPDATE_INCOME',
   UPDATE_MONTHLY_EXPENSE: 'UPDATE_MONTHLY_EXPENSE',
   UPDATE_ANNUAL_EXPENSE: 'UPDATE_ANNUAL_EXPENSE',
+  REMOVE_MONTHLY_EXPENSE: 'REMOVE_MONTHLY_EXPENSE',
+  REMOVE_ANNUAL_EXPENSE: 'REMOVE_ANNUAL_EXPENSE',
+  ADD_MONTHLY_CATEGORY: 'ADD_MONTHLY_CATEGORY',
+  REMOVE_MONTHLY_CATEGORY: 'REMOVE_MONTHLY_CATEGORY',
+  ADD_ANNUAL_CATEGORY: 'ADD_ANNUAL_CATEGORY',
+  REMOVE_ANNUAL_CATEGORY: 'REMOVE_ANNUAL_CATEGORY',
   UPDATE_PLANNER: 'UPDATE_PLANNER',
   UPDATE_EXPENSE_STATUS: 'UPDATE_EXPENSE_STATUS',
   SYNC_WEEKLY_TO_MONTHLY: 'SYNC_WEEKLY_TO_MONTHLY',
@@ -108,6 +114,96 @@ export function budgetReducer(state, action) {
         newAnnual[action.category].push(action.payload);
       }
 
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          annual: newAnnual
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.REMOVE_MONTHLY_EXPENSE: {
+      const newMonthly = { ...state.data.monthly };
+      if (newMonthly[action.category]) {
+        newMonthly[action.category] = newMonthly[action.category].filter(
+          (_, idx) => idx !== action.index
+        );
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          monthly: newMonthly
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.REMOVE_ANNUAL_EXPENSE: {
+      const newAnnual = { ...state.data.annual };
+      if (newAnnual[action.category]) {
+        newAnnual[action.category] = newAnnual[action.category].filter(
+          (_, idx) => idx !== action.index
+        );
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          annual: newAnnual
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.ADD_MONTHLY_CATEGORY: {
+      const newMonthly = { ...state.data.monthly };
+      if (!newMonthly[action.categoryKey]) {
+        newMonthly[action.categoryKey] = [];
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          monthly: newMonthly
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.REMOVE_MONTHLY_CATEGORY: {
+      const newMonthly = { ...state.data.monthly };
+      delete newMonthly[action.categoryKey];
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          monthly: newMonthly
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.ADD_ANNUAL_CATEGORY: {
+      const newAnnual = { ...state.data.annual };
+      if (!newAnnual[action.categoryKey]) {
+        newAnnual[action.categoryKey] = [];
+      }
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          annual: newAnnual
+        },
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.REMOVE_ANNUAL_CATEGORY: {
+      const newAnnual = { ...state.data.annual };
+      delete newAnnual[action.categoryKey];
       return {
         ...state,
         data: {

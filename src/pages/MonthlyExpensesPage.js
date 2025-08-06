@@ -2,12 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 
-const CATEGORIES = [
-  'housing', 'taxes', 'utilities', 'insurance', 'banking',
-  'loans', 'credit', 'subscriptions', 'food', 'transportation',
-  'medical', 'personal', 'shopping', 'dog', 'maintenance', 'gifts'
-];
-
 const CATEGORY_NAMES = {
   housing: 'Housing',
   taxes: 'Taxes',
@@ -36,22 +30,6 @@ const MonthlyExpensesPage = () => {
     const entry = state.data.plannerState?.[expenseName];
     return entry?.[statusType]?.[currentWeek - 1] || false;
   };
-
-  // Initialize empty categories if they don't exist
-  useEffect(() => {
-    const hasMonthlyData = state.data.monthly && Object.keys(state.data.monthly).length > 0;
-
-    if (!hasMonthlyData) {
-      const initialData = {};
-      CATEGORIES.forEach(category => {
-        initialData[category] = [];
-      });
-
-      // Update the monthly data in context
-      const updatedData = { ...state.data, monthly: initialData };
-      actions.updateMonthlyExpense('housing', { name: '', actual: 0, projected: 0, date: '', account: '', paid: false, transferred: false }, 0);
-    }
-  }, []);
 
   // Auto-populate planner when monthly data changes
   useEffect(() => {
@@ -128,17 +106,21 @@ const MonthlyExpensesPage = () => {
 
   // Remove expense from category
   const removeExpense = (categoryKey, expenseIndex) => {
-    const category = state.data.monthly[categoryKey] || [];
-    const updatedCategory = category.filter((_, index) => index !== expenseIndex);
+    actions.removeMonthlyExpense(categoryKey, expenseIndex);
+  };
 
-    // Update the entire category
-    updatedCategory.forEach((expense, index) => {
-      actions.updateMonthlyExpense(categoryKey, expense, index);
-    });
+  // Add a new category
+  const addCategory = () => {
+    const name = prompt('Enter new category name');
+    if (name && !state.data.monthly[name]) {
+      actions.addMonthlyCategory(name);
+    }
+  };
 
-    // If we removed all expenses, ensure category still exists as empty array
-    if (updatedCategory.length === 0) {
-      actions.updateMonthlyExpense(categoryKey, { name: '', actual: 0 }, 0);
+  // Remove an entire category
+  const removeCategory = (categoryKey) => {
+    if (window.confirm(`Remove category "${categoryKey}"?`)) {
+      actions.removeMonthlyCategory(categoryKey);
     }
   };
 
@@ -165,7 +147,7 @@ const MonthlyExpensesPage = () => {
   const resetFunding = () => {
     if (!window.confirm('Reset all projected amounts to $0.00?')) return;
 
-    CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.monthly || {}).forEach(categoryKey => {
       const category = state.data.monthly[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -179,7 +161,7 @@ const MonthlyExpensesPage = () => {
   const resetStatuses = () => {
     if (!window.confirm('Reset all payment and transfer statuses?')) return;
 
-    CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.monthly || {}).forEach(categoryKey => {
       const category = state.data.monthly[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -359,10 +341,6 @@ const MonthlyExpensesPage = () => {
 
         .subcategory:hover {
           background-color: #f8f9fa;
-        }
-
-        .subcategory.zero-value {
-          opacity: 0.6;
         }
 
         .date-input {
@@ -659,9 +637,8 @@ const MonthlyExpensesPage = () => {
 
       {/* Expense Categories */}
       <div id="monthly-expense-categories">
-        {CATEGORIES.map(categoryKey => {
-          const categoryName = CATEGORY_NAMES[categoryKey];
-          const expenses = state.data.monthly?.[categoryKey] || [];
+        {Object.entries(state.data.monthly || {}).map(([categoryKey, expenses]) => {
+          const categoryName = CATEGORY_NAMES[categoryKey] || categoryKey;
           const categoryTotal = getCategoryTotal(categoryKey);
 
           return (
@@ -670,11 +647,10 @@ const MonthlyExpensesPage = () => {
                 <span className="category-name">{categoryName}</span>
                 <div className="category-controls">
                   <span className="category-total">{formatCurrency(categoryTotal)}</span>
-                  <button
-                    className="add-item-btn"
-                    onClick={() => addExpense(categoryKey)}
-                  >
-                    +
+                  <button className="add-item-btn" onClick={() => addExpense(categoryKey)}>+
+                  </button>
+                  <button className="remove-category-btn" onClick={() => removeCategory(categoryKey)} title="Delete Category">
+                    ×
                   </button>
                 </div>
               </div>
@@ -702,7 +678,7 @@ const MonthlyExpensesPage = () => {
                   return (
                     <div
                       key={index}
-                      className={`subcategory ${actualAmount === 0 ? 'zero-value' : ''}`}
+                      className="subcategory"
                       data-expense-id={expense.id}
                     >
                       <input
@@ -771,7 +747,7 @@ const MonthlyExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input projected-input ${projectedAmount > 0 ? 'has-value' : ''}`}
-                          value={projectedAmount.toFixed(2)}
+                          value={expense.projected ?? ''}
                           step="0.01"
                           placeholder="Projected"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'projected', e.target.value)}
@@ -786,7 +762,7 @@ const MonthlyExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input actual-input ${actualAmount > 0 ? 'has-value' : ''}`}
-                          value={actualAmount.toFixed(2)}
+                          value={expense.actual ?? ''}
                           step="0.01"
                           placeholder="Actual"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'actual', e.target.value)}
@@ -807,6 +783,9 @@ const MonthlyExpensesPage = () => {
             </div>
           );
         })}
+        <div className="add-category-wrapper">
+          <button className="add-category-btn" onClick={addCategory}>Add Category</button>
+        </div>
       </div>
 
       <div className="page-actions">

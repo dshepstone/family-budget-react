@@ -59,8 +59,26 @@ export function BudgetProvider({ children }) {
     updateMonthlyExpense: (category, expense, index) =>
       dispatch({ type: ACTIONS.UPDATE_MONTHLY_EXPENSE, payload: expense, category, index }),
 
+    removeMonthlyExpense: (category, index) =>
+      dispatch({ type: ACTIONS.REMOVE_MONTHLY_EXPENSE, category, index }),
+
+    addMonthlyCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.ADD_MONTHLY_CATEGORY, categoryKey }),
+
+    removeMonthlyCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.REMOVE_MONTHLY_CATEGORY, categoryKey }),
+
     updateAnnualExpense: (category, expense, index) =>
       dispatch({ type: ACTIONS.UPDATE_ANNUAL_EXPENSE, payload: expense, category, index }),
+
+    removeAnnualExpense: (category, index) =>
+      dispatch({ type: ACTIONS.REMOVE_ANNUAL_EXPENSE, category, index }),
+
+    addAnnualCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.ADD_ANNUAL_CATEGORY, categoryKey }),
+
+    removeAnnualCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.REMOVE_ANNUAL_CATEGORY, categoryKey }),
 
     updatePlanner: (plannerData) =>
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: plannerData }),
