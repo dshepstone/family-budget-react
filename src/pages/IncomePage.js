@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { DEFAULT_ACCOUNTS, FREQUENCY_OPTIONS } from '../utils/constants';
 import { validateIncomeItem, sanitizeInput } from '../utils/validators';
-import { formatCurrency, parseAmount } from '../utils/formatters';
+import { parseAmount } from '../utils/formatters';
 
 const IncomePage = () => {
   const { state, actions, formatCurrency: formatCurrencyUtil } = useBudget();
@@ -17,10 +17,27 @@ const IncomePage = () => {
     amount: '',
     frequency: 'monthly',
     account: DEFAULT_ACCOUNTS[0],
-    notes: ''
+    notes: '',
+    weeks: Array(5).fill(0)
   });
 
-  const incomeData = state.data.income || [];
+  const incomeData = (state.data.income || []).map(income => {
+    const weeks = Array.isArray(income.weeks) ? income.weeks : Array(5).fill(0);
+    const amount = income.amount !== undefined
+      ? parseAmount(income.amount)
+      : weeks.reduce((sum, week) => sum + parseAmount(week), 0);
+
+    return {
+      ...income,
+      name: income.name || income.source || '',
+      amount,
+      weeks,
+      frequency: income.frequency || 'monthly',
+      account: income.account || DEFAULT_ACCOUNTS[0],
+      notes: income.notes || ''
+    };
+  });
+
   const totalIncome = incomeData.reduce((total, income) => total + parseAmount(income.amount), 0);
 
   const handleInputChange = (field, value) => {
@@ -38,9 +55,13 @@ const IncomePage = () => {
       return;
     }
 
+    const monthlyAmount = parseAmount(formData.amount);
+    const weeks = Array(5).fill(monthlyAmount / 5);
+
     const incomeItem = {
       ...formData,
-      amount: parseAmount(formData.amount),
+      amount: monthlyAmount,
+      weeks,
       id: editingIndex !== null ? incomeData[editingIndex].id : Date.now().toString()
     };
 
@@ -64,7 +85,8 @@ const IncomePage = () => {
       amount: income.amount?.toString() || '',
       frequency: income.frequency || 'monthly',
       account: income.account || DEFAULT_ACCOUNTS[0],
-      notes: income.notes || ''
+      notes: income.notes || '',
+      weeks: income.weeks || Array(5).fill(0)
     });
     setEditingIndex(index);
     setShowAddForm(true);
@@ -83,7 +105,8 @@ const IncomePage = () => {
       amount: '',
       frequency: 'monthly',
       account: DEFAULT_ACCOUNTS[0],
-      notes: ''
+      notes: '',
+      weeks: Array(5).fill(0)
     });
     setShowAddForm(false);
     setEditingIndex(null);
