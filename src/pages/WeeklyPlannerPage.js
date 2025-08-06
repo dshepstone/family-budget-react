@@ -1,479 +1,898 @@
-// src/pages/WeeklyPlannerPage.js
-import React, { useState, useEffect } from 'react';
+// src/pages/WeeklyPlannerPage.js - Complete Integration
+import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import { currencyCalculator } from '../plugins/calculators/CurrencyCalculator';
-import { formatDate } from '../utils/formatters';
 
 const WEEK_COUNT = 5;
 
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
-  const initArray = (arr = []) =>
-    Array.from({ length: WEEK_COUNT }, (_, i) => arr[i] || 0);
-  const [weeklyData, setWeeklyData] = useState({
-    weeklyIncome: Array(WEEK_COUNT).fill(0),
-    weeklyExpenses: Array(WEEK_COUNT).fill(0),
-    monthlyTargets: {}
-  });
+  const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-  // Load planner data from context
-  useEffect(() => {
-    if (state.data.plannerState) {
-      setWeeklyData({
-        weeklyIncome: initArray(state.data.plannerState.weeklyIncome),
-        weeklyExpenses: initArray(state.data.plannerState.weeklyExpenses),
-        monthlyTargets: state.data.plannerState.monthlyTargets || {}
-      });
-    }
-  }, [state.data.plannerState]);
-
-  // Save planner data to context
-  const savePlannerData = (newData) => {
-    setWeeklyData(newData);
-    actions.updatePlanner(newData);
-  };
-
-  const handleIncomeChange = (weekIndex, value) => {
-    const newData = {
-      ...weeklyData,
-      weeklyIncome: weeklyData.weeklyIncome.map((income, index) => 
-        index === weekIndex ? currencyCalculator.parseAmount(value) : income
-      )
-    };
-    savePlannerData(newData);
-  };
-
-  const handleExpenseChange = (weekIndex, value) => {
-    const newData = {
-      ...weeklyData,
-      weeklyExpenses: weeklyData.weeklyExpenses.map((expense, index) => 
-        index === weekIndex ? currencyCalculator.parseAmount(value) : expense
-      )
-    };
-    savePlannerData(newData);
-  };
-
-  const autoDistributeIncome = () => {
-    const totalMonthlyIncome = calculations.getTotalIncome();
-    const weeklyAmount = currencyCalculator.divide(
-      totalMonthlyIncome,
-      WEEK_COUNT
-    );
-
-    const newData = {
-      ...weeklyData,
-      weeklyIncome: Array(WEEK_COUNT).fill(weeklyAmount)
-    };
-    savePlannerData(newData);
-  };
-
-  const autoDistributeExpenses = () => {
-    const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();
-    const weeklyAmount = currencyCalculator.divide(
-      totalMonthlyExpenses,
-      WEEK_COUNT
-    );
-
-    const newData = {
-      ...weeklyData,
-      weeklyExpenses: Array(WEEK_COUNT).fill(weeklyAmount)
-    };
-    savePlannerData(newData);
-  };
-
-  const resetPlanner = () => {
-    if (window.confirm('Reset all weekly planning data?')) {
-      const newData = {
-        weeklyIncome: Array(WEEK_COUNT).fill(0),
-        weeklyExpenses: Array(WEEK_COUNT).fill(0),
-        monthlyTargets: {}
-      };
-      savePlannerData(newData);
-    }
-  };
-
-  const exportPlannerCSV = () => {
-    const headers = ['Week', 'Income', 'Expenses', 'Net Flow', 'Cumulative'];
-    const csvRows = [headers.join(',')];
-
-    let cumulative = 0;
-    weeklyData.weeklyIncome.forEach((income, index) => {
-      const expenses = weeklyData.weeklyExpenses[index];
-      const netFlow = currencyCalculator.subtract(income, expenses);
-      cumulative = currencyCalculator.add(cumulative, netFlow);
-      
-      const row = [
-        `Week ${index + 1}`,
-        income,
-        expenses,
-        netFlow,
-        cumulative
-      ].map(field => `"${String(field).replace(/"/g, '""')}"`);
-      
-      csvRows.push(row.join(','));
-    });
-
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `weekly-planner-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // Calculate weekly statistics
-  const getTotalWeeklyIncome = () => {
-    return weeklyData.weeklyIncome.reduce((total, income) => 
-      currencyCalculator.add(total, income), 0);
-  };
-
-  const getTotalWeeklyExpenses = () => {
-    return weeklyData.weeklyExpenses.reduce((total, expense) => 
-      currencyCalculator.add(total, expense), 0);
-  };
-
-  const getNetWeeklyFlow = () => {
-    return currencyCalculator.subtract(getTotalWeeklyIncome(), getTotalWeeklyExpenses());
-  };
-
-  const getWeeklyNetFlows = () => {
-    return weeklyData.weeklyIncome.map((income, index) => 
-      currencyCalculator.subtract(income, weeklyData.weeklyExpenses[index])
-    );
-  };
-
-  const getCumulativeFlows = () => {
-    const netFlows = getWeeklyNetFlows();
-    const cumulative = [];
-    let running = 0;
-    
-    netFlows.forEach(flow => {
-      running = currencyCalculator.add(running, flow);
-      cumulative.push(running);
-    });
-    
-    return cumulative;
-  };
-
-  // Get current month dates
-  const getMonthWeeks = () => {
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const weeks = [];
-
-    let weekStart = new Date(firstDay);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start on Sunday
-
-    for (let i = 0; i < WEEK_COUNT; i++) {
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-
-      weeks.push({
-        start: new Date(weekStart),
-        end: new Date(weekEnd),
-        number: i + 1
-      });
-
-      weekStart.setDate(weekStart.getDate() + 7);
-    }
-
-    return weeks;
-  };
-
-  const monthWeeks = getMonthWeeks();
-  const netFlows = getWeeklyNetFlows();
-  const cumulativeFlows = getCumulativeFlows();
+  // Month names for header
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+  // Auto-populate planner when component mounts or when monthly/annual data changes
+  useEffect(() => {
+    actions.autoPopulatePlanner();
+  }, [state.data.monthly, state.data.annual]);
+
+  // Get all expenses from monthly and annual data
+  const getAllExpenses = useCallback(() => {
+    const allExpenses = [];
+
+    // Process monthly expenses
+    if (state.data.monthly) {
+      Object.entries(state.data.monthly).forEach(([categoryKey, expenses]) => {
+        if (Array.isArray(expenses)) {
+          expenses.forEach(expense => {
+            if (expense.name && expense.name.trim()) {
+              allExpenses.push({
+                ...expense,
+                categoryKey,
+                categoryName: getCategoryName(categoryKey),
+                monthlyAmount: parseFloat(expense.actual || expense.amount || 0),
+                type: 'monthly',
+                isAnnual: false
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Process annual expenses (convert to monthly equivalent)
+    if (state.data.annual) {
+      Object.entries(state.data.annual).forEach(([categoryKey, expenses]) => {
+        if (Array.isArray(expenses)) {
+          expenses.forEach(expense => {
+            if (expense.name && expense.name.trim()) {
+              const annualAmount = parseFloat(expense.actual || expense.amount || 0);
+              allExpenses.push({
+                ...expense,
+                categoryKey: `annual-${categoryKey}`,
+                categoryName: `${getCategoryName(categoryKey)} (Annual)`,
+                monthlyAmount: annualAmount / 12,
+                type: 'annual',
+                isAnnual: true,
+                originalAnnualAmount: annualAmount
+              });
+            }
+          });
+        }
+      });
+    }
+
+    return allExpenses;
+  }, [state.data.monthly, state.data.annual]);
+
+  // Get category name
+  const getCategoryName = (categoryKey) => {
+    const categoryNames = {
+      housing: 'Housing',
+      taxes: 'Taxes',
+      utilities: 'Utilities',
+      insurance: 'Insurance',
+      banking: 'Banking',
+      loans: 'Loans',
+      credit: 'Credit',
+      subscriptions: 'Subscriptions',
+      food: 'Food',
+      transportation: 'Transportation',
+      medical: 'Medical',
+      personal: 'Personal',
+      shopping: 'Shopping',
+      dog: 'Dog',
+      maintenance: 'Maintenance',
+      gifts: 'Gifts',
+      'yearly-subs': 'Yearly Subscriptions',
+      'yearly-car': 'Yearly Car',
+      'yearly-bank': 'Yearly Banking'
+    };
+
+    return categoryNames[categoryKey] || categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+  };
+
+  // Get planner data for expense
+  const getExpensePlannerData = (expenseName) => {
+    return state.data.plannerState?.[expenseName] || {
+      weeks: Array(5).fill(0),
+      transferred: Array(5).fill(false),
+      paid: Array(5).fill(false)
+    };
+  };
+
+  // Update planner data for expense
+  const updateExpensePlannerData = (expenseName, newData) => {
+    const updatedPlannerState = {
+      ...state.data.plannerState,
+      [expenseName]: newData
+    };
+    actions.updatePlanner(updatedPlannerState);
+  };
+
+  // Handle week amount change
+  const handleWeekAmountChange = (expenseName, weekIndex, value) => {
+    const currentData = getExpensePlannerData(expenseName);
+    const newWeeks = [...currentData.weeks];
+    newWeeks[weekIndex] = parseFloat(value) || 0;
+
+    updateExpensePlannerData(expenseName, {
+      ...currentData,
+      weeks: newWeeks
+    });
+  };
+
+  // Handle status change with cross-page syncing
+  const handleStatusChange = (expense, weekIndex, type, checked) => {
+    const currentData = getExpensePlannerData(expense.name);
+    const newStatus = [...currentData[type]];
+    newStatus[weekIndex] = checked;
+
+    // Update planner state
+    updateExpensePlannerData(expense.name, {
+      ...currentData,
+      [type]: newStatus
+    });
+
+    // Sync with monthly/annual pages
+    actions.updateExpenseStatus(
+      expense.id,
+      expense.name,
+      weekIndex,
+      type,
+      checked,
+      'weekly'
+    );
+  };
+
+  // Handle quick actions
+  const handleQuickAction = (expenseName, weekIndex, action, monthlyAmount) => {
+    let newValue = 0;
+
+    switch (action) {
+      case 'reset':
+        newValue = 0;
+        break;
+      case 'full':
+        newValue = monthlyAmount;
+        break;
+      case 'half':
+        newValue = monthlyAmount / 2;
+        break;
+      case 'quarter':
+        newValue = monthlyAmount / 4;
+        break;
+      default:
+        return;
+    }
+
+    handleWeekAmountChange(expenseName, weekIndex, newValue);
+  };
+
+  // Calculate week totals
+  const calculateWeekTotals = () => {
+    return calculations.getWeeklyPlannerTotals();
+  };
+
+  // Calculate remaining balance for expense
+  const calculateRemainingBalance = (expense, weeklyAmounts) => {
+    const monthlyAmount = expense.monthlyAmount;
+    const weeklySum = weeklyAmounts.reduce((sum, amount) => sum + amount, 0);
+    return monthlyAmount - weeklySum;
+  };
+
+  // Toggle week visibility
+  const toggleWeekVisibility = (weekIndex) => {
+    const newVisibility = [...weekVisibility];
+    newVisibility[weekIndex] = !newVisibility[weekIndex];
+    setWeekVisibility(newVisibility);
+  };
+
+  // Reset week
+  const resetWeek = (weekIndex) => {
+    if (!window.confirm(`Are you sure you want to reset all Week ${weekIndex + 1} planned amounts to zero?`)) {
+      return;
+    }
+
+    const allExpenses = getAllExpenses();
+    allExpenses.forEach(expense => {
+      handleWeekAmountChange(expense.name, weekIndex, 0);
+    });
+  };
+
+  // Reset all weeks
+  const resetAllWeeks = () => {
+    if (!window.confirm('Are you sure you want to reset all weekly planned amounts to zero?')) {
+      return;
+    }
+
+    const allExpenses = getAllExpenses();
+    allExpenses.forEach(expense => {
+      const currentData = getExpensePlannerData(expense.name);
+      updateExpensePlannerData(expense.name, {
+        ...currentData,
+        weeks: Array(5).fill(0)
+      });
+    });
+  };
+
+  // Calculate week date ranges
+  const getWeekDateRange = (weekIndex) => {
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const weekStartDate = new Date(currentYear, currentMonth, 1 + weekIndex * 7);
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6);
+
+    // Ensure week end doesn't go past month end
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+    if (weekEndDate > monthEnd) {
+      weekEndDate.setTime(monthEnd.getTime());
+    }
+
+    return {
+      start: weekStartDate.toISOString().split('T')[0],
+      end: weekEndDate.toISOString().split('T')[0]
+    };
+  };
+
+  // Auto-distribute expenses evenly across weeks
+  const autoDistributeExpenses = () => {
+    if (!window.confirm('Auto-distribute all expenses evenly across weeks? This will overwrite current weekly planning.')) {
+      return;
+    }
+
+    const allExpenses = getAllExpenses();
+    allExpenses.forEach(expense => {
+      const weeklyAmount = expense.monthlyAmount / 5;
+      const currentData = getExpensePlannerData(expense.name);
+      updateExpensePlannerData(expense.name, {
+        ...currentData,
+        weeks: Array(5).fill(weeklyAmount)
+      });
+    });
+  };
+
+  // Group expenses by category for display
+  const groupExpensesByCategory = () => {
+    const allExpenses = getAllExpenses();
+    const grouped = {};
+
+    allExpenses.forEach(expense => {
+      if (!grouped[expense.categoryKey]) {
+        grouped[expense.categoryKey] = {
+          name: expense.categoryName,
+          expenses: []
+        };
+      }
+      grouped[expense.categoryKey].expenses.push(expense);
+    });
+
+    return grouped;
+  };
+
+  const weekTotals = calculateWeekTotals();
+  const weeklyIncome = calculations.getWeeklyIncome();
+  const groupedExpenses = groupExpensesByCategory();
+
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <h2 className="page-title">📋 Weekly Budget Planner</h2>
-        <p className="page-description">
-          Plan your weekly cash flow and track budget performance across the month
-        </p>
+    <div style={{ padding: '20px', backgroundColor: '#fff', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+      <style>{`
+        .weekly-planner-page {
+          padding: 20px;
+          background-color: #fff;
+          min-height: 100vh;
+        }
+
+        .page-title {
+          color: #2c3e50;
+          margin-bottom: 20px;
+          font-size: 1.8rem;
+          font-weight: 600;
+        }
+
+        .page-controls {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: #f8f9fa;
+          border-radius: 8px;
+          border: 1px solid #dee2e6;
+          flex-wrap: wrap;
+          gap: 15px;
+        }
+
+        .week-visibility-controls {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          flex-wrap: wrap;
+        }
+
+        .week-visibility-controls label {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .action-controls {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .planner-table-container {
+          overflow-x: auto;
+          width: 100%;
+          border-radius: 8px;
+          border: 1px solid #dee2e6;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          margin-bottom: 20px;
+        }
+
+        .planner-table {
+          width: 100%;
+          border-collapse: collapse;
+          background-color: #fff;
+          font-size: 0.9rem;
+          min-width: 1200px;
+        }
+
+        .planner-table th,
+        .planner-table td {
+          padding: 8px;
+          border: 1px solid #dee2e6;
+          text-align: center;
+          vertical-align: middle;
+        }
+
+        .planner-table th {
+          background-color: #007bff;
+          color: white;
+          font-weight: 600;
+          font-size: 0.85rem;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+
+        .planner-table th:first-child {
+          text-align: left;
+          width: 25%;
+        }
+
+        .planner-table th.status-header {
+          min-width: 60px;
+          font-size: 0.8rem;
+        }
+
+        .week-date-range-inputs {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin: 4px 0;
+        }
+
+        .week-date-start,
+        .week-date-end {
+          font-size: 0.7rem;
+          padding: 1px 2px;
+          border: 1px solid rgba(255,255,255,0.3);
+          border-radius: 2px;
+          background-color: rgba(255,255,255,0.1);
+          color: white;
+        }
+
+        .category-row {
+          background-color: #f8f9fa !important;
+          font-weight: bold;
+          color: #2c3e50;
+        }
+
+        .category-row td {
+          text-align: left;
+          padding-left: 15px;
+          font-size: 1rem;
+          background-color: #f8f9fa;
+        }
+
+        .expense-name {
+          text-align: left !important;
+          padding-left: 20px !important;
+          font-weight: 500;
+          color: #495057;
+        }
+
+        .annual-indicator {
+          font-size: 0.7rem;
+          color: #6c757d;
+          font-style: italic;
+        }
+
+        .planner-input-group {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 4px;
+          position: relative;
+          width: 100%;
+        }
+
+        .table-input {
+          width: 100%;
+          padding: 6px 8px;
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          text-align: right;
+          background-color: #fff;
+          color: #495057;
+          transition: all 0.2s ease;
+        }
+
+        .table-input:focus {
+          outline: 2px solid #007bff;
+          outline-offset: -1px;
+          border-color: #007bff;
+        }
+
+        .table-input.has-value {
+          background-color: #e8f5e8 !important;
+          border-color: #28a745 !important;
+          font-weight: 600 !important;
+          color: #155724 !important;
+        }
+
+        .table-input.zero-value {
+          background-color: #fff;
+          border-color: #dee2e6;
+          font-weight: normal;
+        }
+
+        .planner-action-select {
+          font-size: 0.75rem;
+          padding: 2px 4px;
+          border: 1px solid #dee2e6;
+          border-radius: 3px;
+          background-color: #f8f9fa;
+          color: #495057;
+          cursor: pointer;
+          max-width: 100%;
+        }
+
+        .planner-action-select:hover {
+          background-color: #e9ecef;
+        }
+
+        .status-cell {
+          text-align: center !important;
+          padding: 4px !important;
+          min-width: 60px;
+          vertical-align: middle;
+        }
+
+        .status-checkboxes {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .transferred-checkbox,
+        .paid-checkbox {
+          margin: 2px;
+          transform: scale(1.1);
+          cursor: pointer;
+        }
+
+        .transferred-checkbox:checked {
+          accent-color: #ffc107;
+        }
+
+        .paid-checkbox:checked {
+          accent-color: #28a745;
+        }
+
+        .remaining-amount {
+          font-weight: 600 !important;
+          text-align: right;
+          padding-right: 12px !important;
+        }
+
+        .table-footer {
+          background-color: #f8f9fa;
+          font-weight: bold;
+          border-top: 2px solid #007bff;
+        }
+
+        .table-footer td {
+          padding: 10px 8px;
+          font-size: 0.9rem;
+        }
+
+        .cash-flow-analysis {
+          margin-top: 20px;
+          padding: 15px;
+          background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
+          border-radius: 8px;
+          border: 1px solid #dee2e6;
+        }
+
+        .cash-flow-analysis h3 {
+          margin-bottom: 15px;
+          color: #2c3e50;
+          font-size: 1.2rem;
+          font-weight: 600;
+        }
+
+        .cash-flow-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 15px;
+        }
+
+        .cash-flow-grid > div {
+          text-align: center;
+          padding: 12px;
+          background-color: rgba(255,255,255,0.8);
+          border-radius: 6px;
+          border: 1px solid #dee2e6;
+        }
+
+        .week-label {
+          font-size: 0.9rem;
+          color: #7f8c8d;
+          margin-bottom: 5px;
+        }
+
+        .balance-amount {
+          font-size: 1.2rem;
+          font-weight: bold;
+        }
+
+        .balance-amount.positive {
+          color: #27ae60;
+        }
+
+        .balance-amount.negative {
+          color: #e74c3c;
+        }
+
+        .hidden {
+          display: none !important;
+        }
+
+        .income-section {
+          margin-bottom: 20px;
+          padding: 15px;
+          background-color: #e8f5e8;
+          border-radius: 8px;
+          border: 1px solid #28a745;
+        }
+
+        .income-summary {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 10px;
+          margin-top: 10px;
+        }
+
+        .income-week {
+          text-align: center;
+          padding: 8px;
+          background-color: rgba(255,255,255,0.8);
+          border-radius: 4px;
+        }
+
+        .btn {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+          background-color: #007bff;
+          color: white;
+        }
+
+        .btn-primary:hover {
+          background-color: #0056b3;
+        }
+
+        .btn-secondary {
+          background-color: #6c757d;
+          color: white;
+        }
+
+        .btn-secondary:hover {
+          background-color: #545b62;
+        }
+
+        .btn-success {
+          background-color: #28a745;
+          color: white;
+        }
+
+        .btn-success:hover {
+          background-color: #1e7e34;
+        }
+
+        .btn-danger {
+          background-color: #dc3545;
+          color: white;
+        }
+
+        .btn-danger:hover {
+          background-color: #c82333;
+        }
+
+        .btn-sm {
+          padding: 4px 8px;
+          font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+          .page-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          
+          .cash-flow-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .income-summary {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
+
+      <h2 className="page-title">📋 Weekly Budget Planner</h2>
+
+      {/* Income Section */}
+      <div className="income-section">
+        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>💵 Weekly Income</h3>
+        <div className="income-summary">
+          {weeklyIncome.map((income, index) => (
+            <div key={index} className={`income-week ${!weekVisibility[index] ? 'hidden' : ''}`}>
+              <div className="week-label">Week {index + 1}</div>
+              <div style={{ fontWeight: 'bold', color: '#155724' }}>
+                {formatCurrency(income)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Page Controls */}
       <div className="page-controls">
-        <div className="control-group">
-          <label htmlFor="planner-month">Planning Month:</label>
-          <select
-            id="planner-month"
-            value={currentMonth}
-            onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
-            className="month-select"
-          >
-            {months.map((month, index) => (
-              <option key={index} value={index}>
-                {month} {currentYear}
-              </option>
-            ))}
-          </select>
+        <div className="week-visibility-controls">
+          <span style={{ fontWeight: '600' }}>Show Weeks:</span>
+          {Array.from({ length: 5 }, (_, i) => (
+            <label key={i}>
+              <input
+                type="checkbox"
+                checked={weekVisibility[i]}
+                onChange={() => toggleWeekVisibility(i)}
+              />
+              {i + 1}
+            </label>
+          ))}
         </div>
 
-        <div className="control-group">
-          <Button variant="secondary" onClick={autoDistributeIncome}>
-            Auto-Distribute Income
-          </Button>
-          <Button variant="secondary" onClick={autoDistributeExpenses}>
-            Auto-Distribute Expenses
-          </Button>
-          <Button variant="outline" onClick={exportPlannerCSV}>
-            📁 Export CSV
-          </Button>
-          <Button variant="danger" onClick={resetPlanner}>
-            Reset Planner
-          </Button>
+        <div className="action-controls">
+          <button className="btn btn-primary" onClick={autoDistributeExpenses}>
+            Auto-Distribute
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={resetAllWeeks}>
+            Reset All Weeks
+          </button>
+          <button className="btn btn-success" onClick={() => window.location.reload()}>
+            🔄 Refresh Data
+          </button>
+          <button className="btn btn-secondary" onClick={() => window.print()}>
+            🖨️ Print this Page
+          </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="summary-section">
-        <div className="summary-grid">
-          <Card title="Total Weekly Income" className="summary-card">
-            <div className="summary-amount income">
-              {formatCurrency(getTotalWeeklyIncome())}
-            </div>
-            <div className="summary-details">
-              Planned across {WEEK_COUNT} weeks
-            </div>
-          </Card>
+      <div className="planner-table-container">
+        <table className="planner-table" id="planner-table">
+          <thead>
+            <tr>
+              <th style={{ width: '25%' }}>Expense Category</th>
+              <th>Monthly Actual</th>
+              {Array.from({ length: 5 }, (_, weekIndex) => (
+                <React.Fragment key={weekIndex}>
+                  <th
+                    className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
+                  >
+                    <div>Week {weekIndex + 1}</div>
+                    <div className="week-date-range-inputs">
+                      <input
+                        type="date"
+                        className="week-date-start"
+                        value={getWeekDateRange(weekIndex).start}
+                        readOnly
+                      />
+                      <input
+                        type="date"
+                        className="week-date-end"
+                        value={getWeekDateRange(weekIndex).end}
+                        readOnly
+                      />
+                    </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => resetWeek(weekIndex)}
+                    >
+                      Reset
+                    </button>
+                  </th>
+                  <th className={`week-${weekIndex + 1}-status-col status-header ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                    Status
+                  </th>
+                </React.Fragment>
+              ))}
+              <th>Remaining Balance</th>
+            </tr>
+          </thead>
 
-          <Card title="Total Weekly Expenses" className="summary-card">
-            <div className="summary-amount expense">
-              {formatCurrency(getTotalWeeklyExpenses())}
-            </div>
-            <div className="summary-details">
-              Distributed spending plan
-            </div>
-          </Card>
+          <tbody>
+            {Object.keys(groupedExpenses).length === 0 ? (
+              <tr>
+                <td colSpan="13" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                  No expense data found. Please add expenses in the Monthly and Annual Expenses tabs first.
+                </td>
+              </tr>
+            ) : (
+              Object.entries(groupedExpenses).map(([categoryKey, category]) => (
+                <React.Fragment key={categoryKey}>
+                  {/* Category Header */}
+                  <tr className="category-row">
+                    <td colSpan="13">{category.name}</td>
+                  </tr>
 
-          <Card title="Net Weekly Flow" className="summary-card">
-            <div className={`summary-amount ${getNetWeeklyFlow() >= 0 ? 'positive' : 'negative'}`}>
-              {formatCurrency(getNetWeeklyFlow())}
-            </div>
-            <div className="summary-details">
-              {getNetWeeklyFlow() >= 0 ? 'Surplus' : 'Deficit'}
-            </div>
-          </Card>
+                  {/* Expense Rows */}
+                  {category.expenses.map((expense, index) => {
+                    const expenseData = getExpensePlannerData(expense.name);
+                    const remaining = calculateRemainingBalance(expense, expenseData.weeks);
 
-          <Card title="Month-End Position" className="summary-card">
-            <div className={`summary-amount ${cumulativeFlows[WEEK_COUNT - 1] >= 0 ? 'positive' : 'negative'}`}>
-              {formatCurrency(cumulativeFlows[WEEK_COUNT - 1] || 0)}
-            </div>
-            <div className="summary-details">
-              Projected end balance
-            </div>
-          </Card>
-        </div>
+                    return (
+                      <tr key={`${categoryKey}-${index}`} data-expense-id={expense.id}>
+                        <td className="expense-name" style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                          {expense.name}
+                          {expense.isAnnual && (
+                            <div className="annual-indicator">
+                              (Annual: {formatCurrency(expense.originalAnnualAmount)})
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <strong>{formatCurrency(expense.monthlyAmount)}</strong>
+                        </td>
+
+                        {/* Week Columns */}
+                        {Array.from({ length: 5 }, (_, weekIndex) => (
+                          <React.Fragment key={weekIndex}>
+                            <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                              <div className="planner-input-group">
+                                <input
+                                  type="number"
+                                  className={`table-input ${expenseData.weeks[weekIndex] > 0 ? 'has-value' : 'zero-value'}`}
+                                  value={expenseData.weeks[weekIndex].toFixed(2)}
+                                  step="0.01"
+                                  onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
+                                />
+                                <select
+                                  className="planner-action-select"
+                                  onChange={(e) => {
+                                    handleQuickAction(expense.name, weekIndex, e.target.value, expense.monthlyAmount);
+                                    e.target.value = '';
+                                  }}
+                                >
+                                  <option value="">Quick Fill</option>
+                                  <option value="reset">Reset to $0</option>
+                                  <option value="full">Full Amount ({formatCurrency(expense.monthlyAmount)})</option>
+                                  <option value="half">Half Amount ({formatCurrency(expense.monthlyAmount / 2)})</option>
+                                  <option value="quarter">Quarter Amount ({formatCurrency(expense.monthlyAmount / 4)})</option>
+                                </select>
+                              </div>
+                            </td>
+                            <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                              <div className="status-checkboxes">
+                                <input
+                                  type="checkbox"
+                                  className="transferred-checkbox"
+                                  title="Transferred"
+                                  checked={expenseData.transferred[weekIndex]}
+                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
+                                />
+                                <br />
+                                <input
+                                  type="checkbox"
+                                  className="paid-checkbox"
+                                  title="Paid"
+                                  checked={expenseData.paid[weekIndex]}
+                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
+                                />
+                              </div>
+                            </td>
+                          </React.Fragment>
+                        ))}
+
+                        <td
+                          className="remaining-amount"
+                          style={{
+                            fontWeight: 'bold',
+                            color: Math.abs(remaining) < 0.001 ? 'black' : 'red'
+                          }}
+                        >
+                          {formatCurrency(remaining)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+
+          <tfoot>
+            <tr className="table-footer">
+              <td><strong>Weekly Expense Totals</strong></td>
+              <td></td>
+              {Array.from({ length: 5 }, (_, weekIndex) => (
+                <React.Fragment key={weekIndex}>
+                  <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                    <strong>{formatCurrency(weekTotals[weekIndex])}</strong>
+                    <div style={{ fontSize: '0.8em', fontWeight: 'normal' }}>
+                      Net: {formatCurrency(weeklyIncome[weekIndex] - weekTotals[weekIndex])}
+                    </div>
+                  </td>
+                  <td className={`week-${weekIndex + 1}-status-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}></td>
+                </React.Fragment>
+              ))}
+              <td>
+                <strong>{formatCurrency(weekTotals.reduce((sum, total) => sum + total, 0))}</strong>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
-      {/* Weekly Planning Grid */}
-      <Card title="Weekly Cash Flow Planning" className="planner-card">
-        <div className="planner-grid">
-          <div className="planner-header">
-            <div className="week-header">Week</div>
-            <div className="income-header">Income</div>
-            <div className="expense-header">Expenses</div>
-            <div className="net-header">Net Flow</div>
-            <div className="cumulative-header">Cumulative</div>
-            <div className="status-header">Status</div>
-          </div>
-
-          {weeklyData.weeklyIncome.map((income, index) => {
-            const expenses = weeklyData.weeklyExpenses[index];
-            const netFlow = netFlows[index];
-            const cumulative = cumulativeFlows[index];
-            const week = monthWeeks[index];
-            const isPositive = netFlow >= 0;
-            const status = isPositive ? 'Surplus' : 'Deficit';
-
+      {/* Cash Flow Analysis */}
+      <div className="cash-flow-analysis">
+        <h3>📊 Weekly Cash Flow Analysis</h3>
+        <div className="cash-flow-grid">
+          {Array.from({ length: 5 }, (_, weekIndex) => {
+            const balance = weeklyIncome[weekIndex] - weekTotals[weekIndex];
             return (
-              <div key={index} className="planner-row">
-                <div className="week-info">
-                  <div className="week-number">Week {index + 1}</div>
-                  <div className="week-dates">
-                    {formatDate(week.start, 'MMM DD')} - {formatDate(week.end, 'MMM DD')}
-                  </div>
-                </div>
-
-                <div className="income-input">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={income}
-                    onChange={(e) => handleIncomeChange(index, e.target.value)}
-                    placeholder="0.00"
-                    className="week-input income"
-                  />
-                </div>
-
-                <div className="expense-input">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={expenses}
-                    onChange={(e) => handleExpenseChange(index, e.target.value)}
-                    placeholder="0.00"
-                    className="week-input expense"
-                  />
-                </div>
-
-                <div className={`net-flow ${isPositive ? 'positive' : 'negative'}`}>
-                  {formatCurrency(netFlow)}
-                </div>
-
-                <div className={`cumulative-flow ${cumulative >= 0 ? 'positive' : 'negative'}`}>
-                  {formatCurrency(cumulative)}
-                </div>
-
-                <div className={`status-indicator ${isPositive ? 'good' : 'warning'}`}>
-                  <span className="status-icon">
-                    {isPositive ? '✓' : '⚠️'}
-                  </span>
-                  <span className="status-text">{status}</span>
+              <div
+                key={weekIndex}
+                className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
+              >
+                <div className="week-label">Week {weekIndex + 1}</div>
+                <div className="week-label">Income: {formatCurrency(weeklyIncome[weekIndex])}</div>
+                <div className="week-label">Expenses: {formatCurrency(weekTotals[weekIndex])}</div>
+                <div className={`balance-amount ${balance >= 0 ? 'positive' : 'negative'}`}>
+                  Balance: {formatCurrency(balance)}
                 </div>
               </div>
             );
           })}
         </div>
-      </Card>
-
-      {/* Budget vs Actual Comparison */}
-      <Card title="Budget vs Planned Comparison" className="comparison-card">
-        <div className="comparison-grid">
-          <div className="comparison-section">
-            <h4>Monthly Budget Targets</h4>
-            <div className="comparison-stats">
-              <div className="comparison-item">
-                <span className="label">Total Income:</span>
-                <span className="value income">{formatCurrency(calculations.getTotalIncome())}</span>
-              </div>
-              <div className="comparison-item">
-                <span className="label">Monthly Expenses:</span>
-                <span className="value expense">{formatCurrency(calculations.getTotalMonthlyExpenses())}</span>
-              </div>
-              <div className="comparison-item">
-                <span className="label">Annual Impact:</span>
-                <span className="value annual">{formatCurrency(calculations.getMonthlyAnnualImpact())}</span>
-              </div>
-              <div className="comparison-item highlight">
-                <span className="label">Net Position:</span>
-                <span className={`value ${calculations.getNetMonthlyIncome() >= 0 ? 'positive' : 'negative'}`}>
-                  {formatCurrency(calculations.getNetMonthlyIncome())}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="comparison-section">
-            <h4>Weekly Planning Totals</h4>
-            <div className="comparison-stats">
-              <div className="comparison-item">
-                <span className="label">Planned Income:</span>
-                <span className="value income">{formatCurrency(getTotalWeeklyIncome())}</span>
-              </div>
-              <div className="comparison-item">
-                <span className="label">Planned Expenses:</span>
-                <span className="value expense">{formatCurrency(getTotalWeeklyExpenses())}</span>
-              </div>
-              <div className="comparison-item">
-                <span className="label">Variance:</span>
-                <span className="value neutral">
-                  {formatCurrency(currencyCalculator.subtract(
-                    getTotalWeeklyExpenses(), 
-                    calculations.getTotalMonthlyExpenses()
-                  ))}
-                </span>
-              </div>
-              <div className="comparison-item highlight">
-                <span className="label">Net Position:</span>
-                <span className={`value ${getNetWeeklyFlow() >= 0 ? 'positive' : 'negative'}`}>
-                  {formatCurrency(getNetWeeklyFlow())}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="variance-analysis">
-          <h4>Variance Analysis</h4>
-          <div className="variance-items">
-            <div className="variance-item">
-              <span className="variance-label">Income Variance:</span>
-              <span className={`variance-value ${
-                currencyCalculator.subtract(getTotalWeeklyIncome(), calculations.getTotalIncome()) >= 0 ? 'positive' : 'negative'
-              }`}>
-                {formatCurrency(currencyCalculator.subtract(getTotalWeeklyIncome(), calculations.getTotalIncome()))}
-              </span>
-            </div>
-            <div className="variance-item">
-              <span className="variance-label">Expense Variance:</span>
-              <span className={`variance-value ${
-                currencyCalculator.subtract(getTotalWeeklyExpenses(), calculations.getTotalMonthlyExpenses()) <= 0 ? 'positive' : 'negative'
-              }`}>
-                {formatCurrency(currencyCalculator.subtract(getTotalWeeklyExpenses(), calculations.getTotalMonthlyExpenses()))}
-              </span>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Quick Insights */}
-      <Card title="💡 Planning Insights" className="insights-card">
-        <div className="insights-list">
-          {getNetWeeklyFlow() < 0 && (
-            <div className="insight-item warning">
-              <span className="insight-icon">⚠️</span>
-              <span className="insight-text">
-                Weekly planning shows a deficit of {formatCurrency(Math.abs(getNetWeeklyFlow()))}
-              </span>
-            </div>
-          )}
-          
-          {netFlows.filter(flow => flow < 0).length > 0 && (
-            <div className="insight-item warning">
-              <span className="insight-icon">📉</span>
-              <span className="insight-text">
-                {netFlows.filter(flow => flow < 0).length} week(s) show negative cash flow
-              </span>
-            </div>
-          )}
-          
-          {Math.abs(currencyCalculator.subtract(getTotalWeeklyIncome(), calculations.getTotalIncome())) > 100 && (
-            <div className="insight-item info">
-              <span className="insight-icon">📊</span>
-              <span className="insight-text">
-                Significant variance from monthly budget - review planning assumptions
-              </span>
-            </div>
-          )}
-          
-          {getNetWeeklyFlow() >= 0 && netFlows.every(flow => flow >= 0) && (
-            <div className="insight-item success">
-              <span className="insight-icon">✅</span>
-              <span className="insight-text">
-                Excellent planning! All weeks show positive cash flow
-              </span>
-            </div>
-          )}
-        </div>
-      </Card>
+      </div>
     </div>
   );
 };
