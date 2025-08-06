@@ -207,6 +207,13 @@ export function BudgetProvider({ children }) {
 
   // Enhanced action creators with cross-page syncing
   const actions = {
+    loadData: (data) => {
+      if (validateBudgetData(data)) {
+        dispatch({ type: ACTIONS.LOAD_DATA, payload: data });
+      } else {
+        console.error('Invalid budget data provided to loadData');
+      }
+    },
     updateIncome: (income) =>
       dispatch({ type: ACTIONS.UPDATE_INCOME, payload: income }),
 
@@ -414,27 +421,23 @@ export function BudgetProvider({ children }) {
       return weeklyIncome.map((income, index) => income - weeklyExpenses[index]);
     },
 
-    getNetIncome: () => {
-      const totalIncome = calculations.getTotalIncome();
-      const totalMonthly = calculations.getTotalMonthlyExpenses();
-      const totalAnnualMonthly = calculations.getTotalAnnualExpenses() / 12;
-
-      return totalIncome - totalMonthly - totalAnnualMonthly;
+    getMonthlyAnnualImpact: () => {
+      const totalAnnual = calculations.getTotalAnnualExpenses();
+      return totalAnnual / 12;
     },
 
     getNetMonthlyIncome: () => {
-      return calculations.getNetIncome();
+      const totalIncome = calculations.getTotalIncome();
+      const monthlyExpenses = calculations.getTotalMonthlyExpenses();
+      const annualImpact = calculations.getMonthlyAnnualImpact();
+      return totalIncome - monthlyExpenses - annualImpact;
     },
 
     getSavingsRate: () => {
-      const net = calculations.getNetIncome();
+      const net = calculations.getNetMonthlyIncome();
       const income = calculations.getTotalIncome();
 
       return income > 0 ? (net / income) * 100 : 0;
-    },
-
-    getMonthlyAnnualImpact: () => {
-      return calculations.getTotalAnnualExpenses() / 12;
     },
 
     getAccountBalances: () => {
