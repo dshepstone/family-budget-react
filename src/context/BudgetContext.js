@@ -1,4 +1,4 @@
-// src/context/BudgetContext.js
+// src/context/BudgetContext.js - Complete Enhanced Context with ALL Calculation Functions
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { validateBudgetData, createDefaultData } from '../utils/validators';
 import { formatCurrency, parseAmount } from '../utils/formatters';
@@ -11,24 +11,27 @@ const ACTIONS = {
   UPDATE_INCOME: 'UPDATE_INCOME',
   UPDATE_MONTHLY_EXPENSE: 'UPDATE_MONTHLY_EXPENSE',
   UPDATE_ANNUAL_EXPENSE: 'UPDATE_ANNUAL_EXPENSE',
-  UPDATE_ACCOUNTS: 'UPDATE_ACCOUNTS',
   UPDATE_PLANNER: 'UPDATE_PLANNER',
-  UPDATE_LINKS: 'UPDATE_LINKS',
+  UPDATE_EXPENSE_STATUS: 'UPDATE_EXPENSE_STATUS',
+  SYNC_WEEKLY_TO_MONTHLY: 'SYNC_WEEKLY_TO_MONTHLY',
+  SYNC_WEEKLY_TO_ANNUAL: 'SYNC_WEEKLY_TO_ANNUAL',
   SET_CURRENT_PAGE: 'SET_CURRENT_PAGE',
   RESET_DATA: 'RESET_DATA',
   TOGGLE_THEME: 'TOGGLE_THEME'
 };
 
-// Initial state
+// Initial state with enhanced structure
 const initialState = {
   data: createDefaultData(),
   currentPage: 'home',
   theme: 'light',
   isLoading: false,
-  lastUpdated: new Date().toISOString()
+  lastUpdated: new Date().toISOString(),
+  plannerState: {},
+  currentWeek: 1
 };
 
-// Reducer function for state management
+// Enhanced reducer function
 function budgetReducer(state, action) {
   switch (action.type) {
     case ACTIONS.LOAD_DATA:
@@ -53,7 +56,7 @@ function budgetReducer(state, action) {
       if (!newMonthly[action.category]) {
         newMonthly[action.category] = [];
       }
-      
+
       if (action.index !== undefined) {
         newMonthly[action.category][action.index] = action.payload;
       } else {
@@ -74,7 +77,7 @@ function budgetReducer(state, action) {
       if (!newAnnual[action.category]) {
         newAnnual[action.category] = [];
       }
-      
+
       if (action.index !== undefined) {
         newAnnual[action.category][action.index] = action.payload;
       } else {
@@ -90,16 +93,6 @@ function budgetReducer(state, action) {
         lastUpdated: new Date().toISOString()
       };
 
-    case ACTIONS.UPDATE_ACCOUNTS:
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          accounts: { ...state.data.accounts, ...action.payload }
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
     case ACTIONS.UPDATE_PLANNER:
       return {
         ...state,
@@ -110,12 +103,52 @@ function budgetReducer(state, action) {
         lastUpdated: new Date().toISOString()
       };
 
-    case ACTIONS.UPDATE_LINKS:
+    case ACTIONS.UPDATE_EXPENSE_STATUS:
+      const { expenseId, expenseName, weekIndex, statusType, checked, sourceModule } = action.payload;
+
+      let updatedMonthly = { ...state.data.monthly };
+      let updatedAnnual = { ...state.data.annual };
+      let updatedPlanner = { ...state.data.plannerState };
+
+      // Update monthly expenses
+      Object.keys(updatedMonthly).forEach(category => {
+        updatedMonthly[category] = updatedMonthly[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: checked };
+          }
+          return expense;
+        });
+      });
+
+      // Update annual expenses
+      Object.keys(updatedAnnual).forEach(category => {
+        updatedAnnual[category] = updatedAnnual[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: checked };
+          }
+          return expense;
+        });
+      });
+
+      // Update planner state
+      if (expenseName && updatedPlanner[expenseName]) {
+        const plannerExpense = { ...updatedPlanner[expenseName] };
+        if (!plannerExpense[statusType]) {
+          plannerExpense[statusType] = Array(5).fill(false);
+        }
+        if (weekIndex !== undefined && weekIndex >= 0 && weekIndex < 5) {
+          plannerExpense[statusType][weekIndex] = checked;
+        }
+        updatedPlanner[expenseName] = plannerExpense;
+      }
+
       return {
         ...state,
         data: {
           ...state.data,
-          links: { ...state.data.links, ...action.payload }
+          monthly: updatedMonthly,
+          annual: updatedAnnual,
+          plannerState: updatedPlanner
         },
         lastUpdated: new Date().toISOString()
       };
@@ -172,35 +205,25 @@ export function BudgetProvider({ children }) {
     }
   }, [state.data]);
 
-  // Action creators
+  // Enhanced action creators with cross-page syncing
   const actions = {
-    updateIncome: (income) => 
+    updateIncome: (income) =>
       dispatch({ type: ACTIONS.UPDATE_INCOME, payload: income }),
 
     updateMonthlyExpense: (category, expense, index) =>
-      dispatch({ 
-        type: ACTIONS.UPDATE_MONTHLY_EXPENSE, 
-        category, 
-        payload: expense, 
-        index 
-      }),
+      dispatch({ type: ACTIONS.UPDATE_MONTHLY_EXPENSE, payload: expense, category, index }),
 
     updateAnnualExpense: (category, expense, index) =>
-      dispatch({ 
-        type: ACTIONS.UPDATE_ANNUAL_EXPENSE, 
-        category, 
-        payload: expense, 
-        index 
-      }),
-
-    updateAccounts: (accounts) =>
-      dispatch({ type: ACTIONS.UPDATE_ACCOUNTS, payload: accounts }),
+      dispatch({ type: ACTIONS.UPDATE_ANNUAL_EXPENSE, payload: expense, category, index }),
 
     updatePlanner: (plannerData) =>
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: plannerData }),
 
-    updateLinks: (links) =>
-      dispatch({ type: ACTIONS.UPDATE_LINKS, payload: links }),
+    updateExpenseStatus: (expenseId, expenseName, weekIndex, statusType, checked, sourceModule) =>
+      dispatch({
+        type: ACTIONS.UPDATE_EXPENSE_STATUS,
+        payload: { expenseId, expenseName, weekIndex, statusType, checked, sourceModule }
+      }),
 
     setCurrentPage: (page) =>
       dispatch({ type: ACTIONS.SET_CURRENT_PAGE, payload: page }),
@@ -211,95 +234,367 @@ export function BudgetProvider({ children }) {
     toggleTheme: () =>
       dispatch({ type: ACTIONS.TOGGLE_THEME }),
 
-    loadData: (data) =>
-      dispatch({ type: ACTIONS.LOAD_DATA, payload: data })
+    distributeMonthlyToWeekly: (expenseName, monthlyAmount, dueDate) => {
+      const existingData = state.data.plannerState[expenseName] || {
+        weeks: Array(5).fill(0),
+        transferred: Array(5).fill(false),
+        paid: Array(5).fill(false)
+      };
+
+      if (dueDate) {
+        const dueDateObj = new Date(dueDate);
+        const dueDateOfMonth = dueDateObj.getDate();
+
+        let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+        targetWeek = Math.max(0, Math.min(4, targetWeek));
+
+        const newWeeks = [...existingData.weeks];
+        newWeeks[targetWeek] = monthlyAmount;
+
+        const updatedData = {
+          ...existingData,
+          weeks: newWeeks
+        };
+
+        const newPlannerState = {
+          ...state.data.plannerState,
+          [expenseName]: updatedData
+        };
+
+        dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: newPlannerState });
+      }
+    },
+
+    autoPopulatePlanner: () => {
+      const newPlannerState = { ...state.data.plannerState };
+
+      // Process monthly expenses
+      if (state.data.monthly) {
+        Object.values(state.data.monthly).flat().forEach(expense => {
+          if (expense.name && expense.name.trim()) {
+            const monthlyAmount = parseFloat(expense.actual || expense.amount || 0);
+            if (monthlyAmount > 0) {
+              let weeklyAmounts = Array(5).fill(0);
+
+              if (expense.date) {
+                const dueDateObj = new Date(expense.date);
+                const dueDateOfMonth = dueDateObj.getDate();
+                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                targetWeek = Math.max(0, Math.min(4, targetWeek));
+                weeklyAmounts[targetWeek] = monthlyAmount;
+              } else {
+                const weeklyAmount = monthlyAmount / 5;
+                weeklyAmounts = Array(5).fill(weeklyAmount);
+              }
+
+              newPlannerState[expense.name] = {
+                weeks: weeklyAmounts,
+                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+              };
+            }
+          }
+        });
+      }
+
+      // Process annual expenses (convert to monthly equivalent)
+      if (state.data.annual) {
+        Object.values(state.data.annual).flat().forEach(expense => {
+          if (expense.name && expense.name.trim()) {
+            const annualAmount = parseFloat(expense.actual || expense.amount || 0);
+            const monthlyEquivalent = annualAmount / 12;
+
+            if (monthlyEquivalent > 0) {
+              let weeklyAmounts = Array(5).fill(0);
+
+              if (expense.date) {
+                const dueDateObj = new Date(expense.date);
+                const dueDateOfMonth = dueDateObj.getDate();
+                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                targetWeek = Math.max(0, Math.min(4, targetWeek));
+                weeklyAmounts[targetWeek] = monthlyEquivalent;
+              } else {
+                const weeklyAmount = monthlyEquivalent / 5;
+                weeklyAmounts = Array(5).fill(weeklyAmount);
+              }
+
+              newPlannerState[expense.name] = {
+                weeks: weeklyAmounts,
+                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+              };
+            }
+          }
+        });
+      }
+
+      dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: newPlannerState });
+    }
   };
 
-  // Calculated values
+  // COMPLETE Enhanced calculations with ALL functions
   const calculations = {
     getTotalIncome: () => {
-      return state.data.income.reduce((total, item) => 
-        total + parseAmount(item.amount), 0);
+      if (!state.data.income || !Array.isArray(state.data.income)) return 0;
+
+      return state.data.income.reduce((total, income) => {
+        if (income.weeks && Array.isArray(income.weeks)) {
+          return total + income.weeks.reduce((sum, week) => sum + (parseFloat(week) || 0), 0);
+        }
+        return total;
+      }, 0);
+    },
+
+    getWeeklyIncome: () => {
+      const weeklyTotals = Array(5).fill(0);
+
+      if (state.data.income && Array.isArray(state.data.income)) {
+        state.data.income.forEach(income => {
+          if (income.weeks && Array.isArray(income.weeks)) {
+            income.weeks.forEach((amount, index) => {
+              if (index < 5) {
+                weeklyTotals[index] += parseFloat(amount) || 0;
+              }
+            });
+          }
+        });
+      }
+
+      return weeklyTotals;
     },
 
     getTotalMonthlyExpenses: () => {
-      let total = 0;
-      Object.values(state.data.monthly).forEach(category => {
-        category.forEach(expense => {
-          total += parseAmount(expense.actual || expense.amount);
-        });
-      });
-      return total;
+      if (!state.data.monthly) return 0;
+
+      return Object.values(state.data.monthly).reduce((total, category) => {
+        if (Array.isArray(category)) {
+          return total + category.reduce((catTotal, expense) => {
+            return catTotal + (parseFloat(expense.actual || expense.amount || 0));
+          }, 0);
+        }
+        return total;
+      }, 0);
     },
 
     getTotalAnnualExpenses: () => {
-      let total = 0;
-      Object.values(state.data.annual).forEach(category => {
-        category.forEach(expense => {
-          total += parseAmount(expense.actual || expense.amount);
+      if (!state.data.annual) return 0;
+
+      return Object.values(state.data.annual).reduce((total, category) => {
+        if (Array.isArray(category)) {
+          return total + category.reduce((catTotal, expense) => {
+            return catTotal + (parseFloat(expense.actual || expense.amount || 0));
+          }, 0);
+        }
+        return total;
+      }, 0);
+    },
+
+    getWeeklyPlannerTotals: () => {
+      const weeklyTotals = Array(5).fill(0);
+
+      if (state.data.plannerState) {
+        Object.values(state.data.plannerState).forEach(expense => {
+          if (expense.weeks && Array.isArray(expense.weeks)) {
+            expense.weeks.forEach((amount, index) => {
+              if (index < 5) {
+                weeklyTotals[index] += parseFloat(amount) || 0;
+              }
+            });
+          }
         });
-      });
-      return total;
+      }
+
+      return weeklyTotals;
+    },
+
+    getCashFlowByWeek: () => {
+      const weeklyIncome = calculations.getWeeklyIncome();
+      const weeklyExpenses = calculations.getWeeklyPlannerTotals();
+
+      return weeklyIncome.map((income, index) => income - weeklyExpenses[index]);
+    },
+
+    getNetIncome: () => {
+      const totalIncome = calculations.getTotalIncome();
+      const totalMonthly = calculations.getTotalMonthlyExpenses();
+      const totalAnnualMonthly = calculations.getTotalAnnualExpenses() / 12;
+
+      return totalIncome - totalMonthly - totalAnnualMonthly;
+    },
+
+    getNetMonthlyIncome: () => {
+      return calculations.getNetIncome();
+    },
+
+    getSavingsRate: () => {
+      const net = calculations.getNetIncome();
+      const income = calculations.getTotalIncome();
+
+      return income > 0 ? (net / income) * 100 : 0;
     },
 
     getMonthlyAnnualImpact: () => {
       return calculations.getTotalAnnualExpenses() / 12;
     },
 
-    getNetMonthlyIncome: () => {
-      const income = calculations.getTotalIncome();
-      const monthlyExpenses = calculations.getTotalMonthlyExpenses();
-      const annualImpact = calculations.getMonthlyAnnualImpact();
-      return income - monthlyExpenses - annualImpact;
+    getAccountBalances: () => {
+      return state.data.accounts || {
+        checking: 0,
+        savings: 0,
+        creditCard: 0,
+        cash: 0,
+        investment: 0,
+        other: 0
+      };
     },
 
-    getSavingsRate: () => {
+    getCategoryTotals: () => {
+      const monthlyTotals = {};
+      const annualTotals = {};
+
+      // Calculate monthly category totals
+      if (state.data.monthly) {
+        Object.entries(state.data.monthly).forEach(([category, expenses]) => {
+          if (Array.isArray(expenses)) {
+            monthlyTotals[category] = expenses.reduce((total, expense) => {
+              return total + (parseFloat(expense.actual || expense.amount || 0));
+            }, 0);
+          }
+        });
+      }
+
+      // Calculate annual category totals
+      if (state.data.annual) {
+        Object.entries(state.data.annual).forEach(([category, expenses]) => {
+          if (Array.isArray(expenses)) {
+            annualTotals[category] = expenses.reduce((total, expense) => {
+              return total + (parseFloat(expense.actual || expense.amount || 0));
+            }, 0);
+          }
+        });
+      }
+
+      return { monthly: monthlyTotals, annual: annualTotals };
+    },
+
+    getBudgetHealth: () => {
       const income = calculations.getTotalIncome();
-      const net = calculations.getNetMonthlyIncome();
-      return income > 0 ? (net / income) * 100 : 0;
+      const monthlyExpenses = calculations.getTotalMonthlyExpenses();
+      const annualMonthlyImpact = calculations.getMonthlyAnnualImpact();
+      const totalExpenses = monthlyExpenses + annualMonthlyImpact;
+      const netIncome = income - totalExpenses;
+
+      let status = 'good';
+      if (netIncome < 0) {
+        status = 'critical';
+      } else if (netIncome < income * 0.1) {
+        status = 'warning';
+      }
+
+      return {
+        status,
+        netIncome,
+        totalExpenses,
+        savingsRate: income > 0 ? (netIncome / income) * 100 : 0,
+        message: status === 'critical' ? 'Expenses exceed income' :
+          status === 'warning' ? 'Low savings rate' : 'Budget looks healthy'
+      };
     },
 
     getUpcomingExpenses: () => {
       const upcoming = [];
       const today = new Date();
-      
+
       // Check monthly expenses
-      Object.values(state.data.monthly).forEach(category => {
-        category.forEach(expense => {
-          if (expense.date && !expense.paid) {
-            const dueDate = new Date(expense.date);
-            const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntil <= 7 && daysUntil >= 0) {
-              upcoming.push({
-                ...expense,
-                daysUntil,
-                type: 'monthly'
-              });
-            }
+      if (state.data.monthly) {
+        Object.values(state.data.monthly).forEach(category => {
+          if (Array.isArray(category)) {
+            category.forEach(expense => {
+              if (expense.date && !expense.paid) {
+                const dueDate = new Date(expense.date);
+                const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                if (daysUntil <= 7 && daysUntil >= 0) {
+                  upcoming.push({
+                    ...expense,
+                    daysUntil,
+                    type: 'monthly'
+                  });
+                }
+              }
+            });
           }
         });
-      });
+      }
 
       // Check annual expenses
-      Object.values(state.data.annual).forEach(category => {
-        category.forEach(expense => {
-          if (expense.date && !expense.paid) {
-            const dueDate = new Date(expense.date);
-            const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntil <= 30 && daysUntil >= 0) {
-              upcoming.push({
-                ...expense,
-                daysUntil,
-                type: 'annual'
-              });
-            }
+      if (state.data.annual) {
+        Object.values(state.data.annual).forEach(category => {
+          if (Array.isArray(category)) {
+            category.forEach(expense => {
+              if (expense.date && !expense.paid) {
+                const dueDate = new Date(expense.date);
+                const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                if (daysUntil <= 30 && daysUntil >= 0) {
+                  upcoming.push({
+                    ...expense,
+                    daysUntil,
+                    type: 'annual'
+                  });
+                }
+              }
+            });
           }
         });
-      });
+      }
 
       return upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+    },
+
+    // Additional helper functions
+    getCategoryTotal: (categoryKey, type = 'monthly') => {
+      const data = type === 'monthly' ? state.data.monthly : state.data.annual;
+      const category = data?.[categoryKey] || [];
+
+      return category.reduce((total, expense) => {
+        return total + (parseFloat(expense.actual || expense.amount || 0));
+      }, 0);
+    },
+
+    getExpenseById: (expenseId) => {
+      // Search in monthly expenses
+      for (const [categoryKey, expenses] of Object.entries(state.data.monthly || {})) {
+        const expense = expenses.find(exp => exp.id === expenseId);
+        if (expense) return { ...expense, category: categoryKey, type: 'monthly' };
+      }
+
+      // Search in annual expenses
+      for (const [categoryKey, expenses] of Object.entries(state.data.annual || {})) {
+        const expense = expenses.find(exp => exp.id === expenseId);
+        if (expense) return { ...expense, category: categoryKey, type: 'annual' };
+      }
+
+      return null;
+    },
+
+    getTotalPlannedForWeek: (weekIndex) => {
+      if (weekIndex < 0 || weekIndex >= 5) return 0;
+
+      let total = 0;
+      Object.values(state.data.plannerState || {}).forEach(expense => {
+        if (expense.weeks && expense.weeks[weekIndex]) {
+          total += parseFloat(expense.weeks[weekIndex]) || 0;
+        }
+      });
+
+      return total;
+    },
+
+    getWeeklyBalance: (weekIndex) => {
+      const income = calculations.getWeeklyIncome()[weekIndex] || 0;
+      const expenses = calculations.getTotalPlannedForWeek(weekIndex);
+      return income - expenses;
     }
   };
 
