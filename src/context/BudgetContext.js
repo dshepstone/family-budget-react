@@ -118,26 +118,28 @@ export function BudgetProvider({ children }) {
       if (state.data.monthly) {
         Object.values(state.data.monthly).flat().forEach(expense => {
           if (expense.name && expense.name.trim()) {
-            const monthlyAmount = parseFloat(expense.actual || expense.amount || 0);
-            if (monthlyAmount > 0) {
-              let weeklyAmounts = Array(5).fill(0);
+            if (!newPlannerState[expense.name]) {
+              const monthlyAmount = parseFloat(expense.actual || expense.amount || 0);
+              if (monthlyAmount > 0) {
+                let weeklyAmounts = Array(5).fill(0);
 
-              if (expense.date) {
-                const dueDateObj = new Date(expense.date);
-                const dueDateOfMonth = dueDateObj.getDate();
-                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
-                targetWeek = Math.max(0, Math.min(4, targetWeek));
-                weeklyAmounts[targetWeek] = monthlyAmount;
-              } else {
-                const weeklyAmount = monthlyAmount / 5;
-                weeklyAmounts = Array(5).fill(weeklyAmount);
+                if (expense.date) {
+                  const dueDateObj = new Date(expense.date);
+                  const dueDateOfMonth = dueDateObj.getDate();
+                  let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                  targetWeek = Math.max(0, Math.min(4, targetWeek));
+                  weeklyAmounts[targetWeek] = monthlyAmount;
+                } else {
+                  const weeklyAmount = monthlyAmount / 5;
+                  weeklyAmounts = Array(5).fill(weeklyAmount);
+                }
+
+                newPlannerState[expense.name] = {
+                  weeks: weeklyAmounts,
+                  transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                  paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+                };
               }
-
-              newPlannerState[expense.name] = {
-                weeks: weeklyAmounts,
-                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
-                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
-              };
             }
           }
         });
@@ -147,28 +149,30 @@ export function BudgetProvider({ children }) {
       if (state.data.annual) {
         Object.values(state.data.annual).flat().forEach(expense => {
           if (expense.name && expense.name.trim()) {
-            const annualAmount = parseFloat(expense.actual || expense.amount || 0);
-            const monthlyEquivalent = annualAmount / 12;
+            if (!newPlannerState[expense.name]) {
+              const annualAmount = parseFloat(expense.actual || expense.amount || 0);
+              const monthlyEquivalent = annualAmount / 12;
 
-            if (monthlyEquivalent > 0) {
-              let weeklyAmounts = Array(5).fill(0);
+              if (monthlyEquivalent > 0) {
+                let weeklyAmounts = Array(5).fill(0);
 
-              if (expense.date) {
-                const dueDateObj = new Date(expense.date);
-                const dueDateOfMonth = dueDateObj.getDate();
-                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
-                targetWeek = Math.max(0, Math.min(4, targetWeek));
-                weeklyAmounts[targetWeek] = monthlyEquivalent;
-              } else {
-                const weeklyAmount = monthlyEquivalent / 5;
-                weeklyAmounts = Array(5).fill(weeklyAmount);
+                if (expense.date) {
+                  const dueDateObj = new Date(expense.date);
+                  const dueDateOfMonth = dueDateObj.getDate();
+                  let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                  targetWeek = Math.max(0, Math.min(4, targetWeek));
+                  weeklyAmounts[targetWeek] = monthlyEquivalent;
+                } else {
+                  const weeklyAmount = monthlyEquivalent / 5;
+                  weeklyAmounts = Array(5).fill(weeklyAmount);
+                }
+
+                newPlannerState[expense.name] = {
+                  weeks: weeklyAmounts,
+                  transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                  paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+                };
               }
-
-              newPlannerState[expense.name] = {
-                weeks: weeklyAmounts,
-                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
-                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
-              };
             }
           }
         });

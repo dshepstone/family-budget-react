@@ -140,27 +140,9 @@ export function budgetReducer(state, action) {
       let updatedAnnual = { ...state.data.annual };
       let updatedPlanner = { ...state.data.plannerState };
 
-      // Update monthly expenses
-      Object.keys(updatedMonthly).forEach(category => {
-        updatedMonthly[category] = updatedMonthly[category].map(expense => {
-          if (expense.id === expenseId || expense.name === expenseName) {
-            return { ...expense, [statusType]: checked };
-          }
-          return expense;
-        });
-      });
+      let overallStatus = checked;
 
-      // Update annual expenses
-      Object.keys(updatedAnnual).forEach(category => {
-        updatedAnnual[category] = updatedAnnual[category].map(expense => {
-          if (expense.id === expenseId || expense.name === expenseName) {
-            return { ...expense, [statusType]: checked };
-          }
-          return expense;
-        });
-      });
-
-      // Update planner state
+      // Update planner state first
       if (expenseName && updatedPlanner[expenseName]) {
         const plannerExpense = { ...updatedPlanner[expenseName] };
         if (!plannerExpense[statusType]) {
@@ -170,7 +152,31 @@ export function budgetReducer(state, action) {
           plannerExpense[statusType][weekIndex] = checked;
         }
         updatedPlanner[expenseName] = plannerExpense;
+
+        if (sourceModule === 'weekly') {
+          overallStatus = plannerExpense[statusType].every(Boolean);
+        }
       }
+
+      // Update monthly expenses
+      Object.keys(updatedMonthly).forEach(category => {
+        updatedMonthly[category] = updatedMonthly[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: overallStatus };
+          }
+          return expense;
+        });
+      });
+
+      // Update annual expenses
+      Object.keys(updatedAnnual).forEach(category => {
+        updatedAnnual[category] = updatedAnnual[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: overallStatus };
+          }
+          return expense;
+        });
+      });
 
       return {
         ...state,

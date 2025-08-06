@@ -2,19 +2,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
 
-const WEEK_COUNT = 5;
-
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-
-  // Month names for header
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
 
   // Auto-populate planner when component mounts or when monthly/annual data changes
   useEffect(() => {
@@ -129,17 +121,6 @@ const WeeklyPlannerPage = () => {
 
   // Handle status change with cross-page syncing
   const handleStatusChange = (expense, weekIndex, type, checked) => {
-    const currentData = getExpensePlannerData(expense.name);
-    const newStatus = [...currentData[type]];
-    newStatus[weekIndex] = checked;
-
-    // Update planner state
-    updateExpensePlannerData(expense.name, {
-      ...currentData,
-      [type]: newStatus
-    });
-
-    // Sync with monthly/annual pages
     actions.updateExpenseStatus(
       expense.id,
       expense.name,
@@ -223,7 +204,6 @@ const WeeklyPlannerPage = () => {
 
   // Calculate week date ranges
   const getWeekDateRange = (weekIndex) => {
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     const weekStartDate = new Date(currentYear, currentMonth, 1 + weekIndex * 7);
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
