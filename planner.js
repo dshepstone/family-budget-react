@@ -277,7 +277,7 @@ const PlannerModule = {
                 try {
                     this.updatePlannerRow(e.target.closest('tr'));
                     this.savePlannerData();
-                    this.notifyMonthlyOfStatusChange(e.target);
+                    this.notifyStatusChange(e.target);
                 } catch (error) {
                     console.error('PlannerModule: Error in checkbox change listener:', error);
                 }
@@ -346,7 +346,7 @@ const PlannerModule = {
         }
     },
 
-    notifyMonthlyOfStatusChange(checkboxElement) {
+    notifyStatusChange(checkboxElement) {
         const row = checkboxElement.closest('tr');
         const expenseName = row.querySelector('.expense-name')?.textContent;
         const expenseId = row.dataset.expenseId;
@@ -442,42 +442,6 @@ const PlannerModule = {
 
         this.updatePlannerTotals();
         console.log('PlannerModule: Planner table populated.');
-
-        const syncWeeklyStatus = (event) => {
-            const cb = event.target;
-            const row = cb.closest('tr');
-            const rowId = row?.dataset.expenseId;
-            const type = cb.classList.contains('paid-checkbox') ? 'paid' : 'transferred';
-
-            // Determine overall state for the row
-            const anyTransferred = Array.from(row.querySelectorAll('.transferred-checkbox')).some(c => c.checked);
-            const anyPaid = Array.from(row.querySelectorAll('.paid-checkbox')).some(c => c.checked);
-
-            // Sync to Monthly page using aggregated state
-            const monthlySelector = `#monthly .subcategory[data-expense-id="${rowId}"] input.monthly-${type}-checkbox`;
-            const monthlyCb = document.querySelector(monthlySelector);
-            if (monthlyCb) {
-                monthlyCb.checked = type === 'paid' ? anyPaid : anyTransferred;
-                const statusSelect = monthlyCb.closest('.status-control-group')?.querySelector('.transfer-status-select');
-                if (statusSelect && window.MonthlyModule && typeof MonthlyModule.setTransferStatusStyle === 'function') {
-                    MonthlyModule.setTransferStatusStyle(statusSelect);
-                }
-            }
-
-            // Sync to Annual page using aggregated state
-            const annualSelector = `#annual .subcategory[data-expense-id="${rowId}"] input.${type}-checkbox`;
-            const annualCb = document.querySelector(annualSelector);
-            if (annualCb) {
-                annualCb.checked = type === 'paid' ? anyPaid : anyTransferred;
-                if (window.AnnualModule && typeof AnnualModule.setTransferStatusStyle === 'function') {
-                    AnnualModule.setTransferStatusStyle(annualCb);
-                }
-            }
-        };
-
-        const week = window.currentBudgetWeek;
-        document.querySelectorAll(`#planner-table td.week-${week}-status-col input.paid-checkbox, #planner-table td.week-${week}-status-col input.transferred-checkbox`)
-            .forEach(cb => cb.addEventListener('change', syncWeeklyStatus));
     },
 
     createPlannerRow(expense) {
@@ -974,6 +938,14 @@ plannerStyles.textContent = `
     
     .status-cell input[type="checkbox"] {
         margin: 2px;
+    }
+
+    .transferred-checkbox:checked {
+        accent-color: #ffc107;
+    }
+
+    .paid-checkbox:checked {
+        accent-color: #28a745;
     }
     
     /* Week date inputs styling */

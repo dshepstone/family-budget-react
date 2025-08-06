@@ -353,39 +353,6 @@ const MonthlyModule = {
             this.app.emit('dataChanged');
         }
         console.log('MonthlyModule: Categories populated and dataChanged emitted.');
-
-        // Sync checkboxes to planner for the current week
-        const syncMonthlyStatus = (event) => {
-            const cb = event.target;
-            const rowId = cb.closest('.subcategory')?.dataset.expenseId;
-            const type = cb.classList.contains('monthly-paid-checkbox') ? 'paid' : 'transferred';
-            const checked = cb.checked;
-            const week = window.currentBudgetWeek;
-
-            // Update Weekly planner for current week
-            const plannerSelector = `#planner tr[data-expense-id="${rowId}"] td.week-${week}-status-col input.${type}-checkbox`;
-            const wpCb = document.querySelector(plannerSelector);
-            if (wpCb) {
-                wpCb.checked = checked;
-                if (window.PlannerModule) {
-                    PlannerModule.updatePlannerRow(wpCb.closest('tr'));
-                    PlannerModule.savePlannerData();
-                }
-            }
-
-            // Update Annual page
-            const annualSelector = `#annual .subcategory[data-expense-id="${rowId}"] input.${type}-checkbox`;
-            const annualCb = document.querySelector(annualSelector);
-            if (annualCb) {
-                annualCb.checked = checked;
-                if (window.AnnualModule && typeof AnnualModule.setTransferStatusStyle === 'function') {
-                    AnnualModule.setTransferStatusStyle(annualCb);
-                }
-            }
-        };
-
-        document.querySelectorAll('#monthly-expense-categories .monthly-paid-checkbox, #monthly-expense-categories .monthly-transferred-checkbox')
-            .forEach(cb => cb.addEventListener('change', syncMonthlyStatus));
     },
 
     createCategoryElement(categoryKey, expenses) {

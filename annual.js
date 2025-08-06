@@ -28,6 +28,18 @@ const AnnualModule = {
                 this.updateTotals();
             }
         });
+
+        app.on('plannerStatusChanged', (data) => {
+            if (data.source === 'planner') {
+                this.updateStatusFromPlanner(data);
+            }
+        });
+
+        app.on('monthlyStatusChanged', (data) => {
+            if (data.source === 'monthly') {
+                this.updateStatusFromMonthly(data);
+            }
+        });
     },
 
     forceDataLoad() {
@@ -294,6 +306,32 @@ const AnnualModule = {
 
         dropdown.classList.toggle('paid', paidChecked);
         dropdown.classList.toggle('transferred', !paidChecked && transferredChecked);
+    },
+
+    updateStatusFromPlanner(data) {
+        const row = document.querySelector(`#annual .subcategory[data-expense-id="${data.expenseId}"]`);
+        if (row) {
+            const transferredCb = row.querySelector('.transferred-checkbox');
+            const paidCb = row.querySelector('.paid-checkbox');
+            if (transferredCb) transferredCb.checked = !!data.hasTransferred;
+            if (paidCb) paidCb.checked = !!data.hasPaid;
+            this.setTransferStatusStyle(transferredCb || paidCb);
+            this.saveAnnualData();
+            this.updateTotals();
+        }
+    },
+
+    updateStatusFromMonthly(data) {
+        const row = document.querySelector(`#annual .subcategory[data-expense-id="${data.expenseId}"]`);
+        if (row) {
+            const transferredCb = row.querySelector('.transferred-checkbox');
+            const paidCb = row.querySelector('.paid-checkbox');
+            if (transferredCb) transferredCb.checked = !!data.transferred;
+            if (paidCb) paidCb.checked = !!data.paid;
+            this.setTransferStatusStyle(transferredCb || paidCb);
+            this.saveAnnualData();
+            this.updateTotals();
+        }
     },
 
     handleLinkClick(event) {
