@@ -142,15 +142,73 @@ export function budgetReducer(state, action) {
 
       let overallStatus = checked;
 
-      // Update planner state first
-      if (expenseName && updatedPlanner[expenseName]) {
-        const plannerExpense = { ...updatedPlanner[expenseName] };
+      // Ensure planner entry exists and update status for specific week
+      if (expenseName) {
+        let plannerExpense = updatedPlanner[expenseName];
+
+        // Create planner entry if missing using data from monthly or annual expenses
+        if (!plannerExpense) {
+          let weeks = Array(5).fill(0);
+
+          const findExpense = (collections) => {
+            for (const expenses of Object.values(collections || {})) {
+              const found = (expenses || []).find(
+                (exp) => exp.id === expenseId || exp.name === expenseName
+              );
+              if (found) return found;
+            }
+            return null;
+          };
+
+          const monthlyExpense = findExpense(state.data.monthly);
+          const annualExpense = findExpense(state.data.annual);
+
+          if (monthlyExpense) {
+            const monthlyAmount = parseFloat(monthlyExpense.actual || monthlyExpense.amount || 0);
+            if (monthlyAmount > 0) {
+              if (monthlyExpense.date) {
+                const dueDateObj = new Date(monthlyExpense.date);
+                let targetWeek = Math.ceil(dueDateObj.getDate() / 7) - 1;
+                targetWeek = Math.max(0, Math.min(4, targetWeek));
+                weeks[targetWeek] = monthlyAmount;
+              } else {
+                const weeklyAmount = monthlyAmount / 5;
+                weeks = Array(5).fill(weeklyAmount);
+              }
+            }
+          } else if (annualExpense) {
+            const annualAmount = parseFloat(annualExpense.actual || annualExpense.amount || 0);
+            const monthlyEquivalent = annualAmount / 12;
+            if (monthlyEquivalent > 0) {
+              if (annualExpense.date) {
+                const dueDateObj = new Date(annualExpense.date);
+                let targetWeek = Math.ceil(dueDateObj.getDate() / 7) - 1;
+                targetWeek = Math.max(0, Math.min(4, targetWeek));
+                weeks[targetWeek] = monthlyEquivalent;
+              } else {
+                const weeklyAmount = monthlyEquivalent / 5;
+                weeks = Array(5).fill(weeklyAmount);
+              }
+            }
+          }
+
+          plannerExpense = {
+            weeks,
+            transferred: Array(5).fill(false),
+            paid: Array(5).fill(false)
+          };
+        } else {
+          plannerExpense = { ...plannerExpense };
+        }
+
         if (!plannerExpense[statusType]) {
           plannerExpense[statusType] = Array(5).fill(false);
         }
+
         if (weekIndex !== undefined && weekIndex >= 0 && weekIndex < 5) {
           plannerExpense[statusType][weekIndex] = checked;
         }
+
         updatedPlanner[expenseName] = plannerExpense;
 
         if (sourceModule === 'weekly') {
@@ -159,8 +217,8 @@ export function budgetReducer(state, action) {
       }
 
       // Update monthly expenses
-      Object.keys(updatedMonthly).forEach(category => {
-        updatedMonthly[category] = updatedMonthly[category].map(expense => {
+      Object.keys(updatedMonthly).forEach((category) => {
+        updatedMonthly[category] = updatedMonthly[category].map((expense) => {
           if (expense.id === expenseId || expense.name === expenseName) {
             return { ...expense, [statusType]: overallStatus };
           }
@@ -169,8 +227,8 @@ export function budgetReducer(state, action) {
       });
 
       // Update annual expenses
-      Object.keys(updatedAnnual).forEach(category => {
-        updatedAnnual[category] = updatedAnnual[category].map(expense => {
+      Object.keys(updatedAnnual).forEach((category) => {
+      updatedAnnual[category] = updatedAnnual[category].map((expense) => {
           if (expense.id === expenseId || expense.name === expenseName) {
             return { ...expense, [statusType]: overallStatus };
           }
@@ -184,9 +242,9 @@ export function budgetReducer(state, action) {
           ...state.data,
           monthly: updatedMonthly,
           annual: updatedAnnual,
-          plannerState: updatedPlanner
+          plannerState: updatedPlanner,
         },
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
     }
 

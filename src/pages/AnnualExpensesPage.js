@@ -22,6 +22,11 @@ const AnnualExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [currentWeek, setCurrentWeek] = useState(1);
 
+  const getPlannerStatus = (expenseName, statusType) => {
+    const entry = state.data.plannerState?.[expenseName];
+    return entry?.[statusType]?.[currentWeek - 1] || false;
+  };
+
   // Initialize empty categories if they don't exist
   useEffect(() => {
     const hasAnnualData = state.data.annual && Object.keys(state.data.annual).length > 0;
@@ -747,7 +752,7 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.paid || false}
+                              checked={getPlannerStatus(expense.name, 'paid')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
                             <span className="checkbox-label">Paid</span>
@@ -755,7 +760,7 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.transferred || false}
+                              checked={getPlannerStatus(expense.name, 'transferred')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
                             <span className="checkbox-label">Trans</span>
