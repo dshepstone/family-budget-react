@@ -107,6 +107,37 @@ const AnnualModule = {
                 this.setTransferStatusStyle(e.target);
                 this.updateTotals();
                 this.saveAnnualData();
+
+                // Sync status checkboxes with Monthly and Weekly modules
+                if (e.target.matches('#annual .paid-checkbox, #annual .transferred-checkbox')) {
+                    const cb = e.target;
+                    const rowId = cb.closest('.subcategory')?.dataset.expenseId;
+                    const type = cb.classList.contains('paid-checkbox') ? 'paid' : 'transferred';
+                    const checked = cb.checked;
+
+                    // Update Monthly page
+                    const monthlySelector = `#monthly .subcategory[data-expense-id="${rowId}"] input.monthly-${type}-checkbox`;
+                    const monthlyCb = document.querySelector(monthlySelector);
+                    if (monthlyCb) {
+                        monthlyCb.checked = checked;
+                        const statusSelect = monthlyCb.closest('.status-control-group')?.querySelector('.transfer-status-select');
+                        if (statusSelect && window.MonthlyModule && typeof MonthlyModule.setTransferStatusStyle === 'function') {
+                            MonthlyModule.setTransferStatusStyle(statusSelect);
+                        }
+                    }
+
+                    // Update Weekly planner (current week)
+                    const week = window.currentBudgetWeek;
+                    const plannerSelector = `#planner tr[data-expense-id="${rowId}"] td.week-${week}-status-col input.${type}-checkbox`;
+                    const plannerCb = document.querySelector(plannerSelector);
+                    if (plannerCb) {
+                        plannerCb.checked = checked;
+                        if (window.PlannerModule) {
+                            PlannerModule.updatePlannerRow(plannerCb.closest('tr'));
+                            PlannerModule.savePlannerData();
+                        }
+                    }
+                }
             }
         });
 
