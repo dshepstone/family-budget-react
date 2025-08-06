@@ -56,6 +56,7 @@ const AnnualModule = {
                     <button class="btn btn-secondary" onclick="AnnualModule.resetFunding()">Reset Funding</button>
                     <button class="btn btn-danger" onclick="AnnualModule.resetStatuses()">Reset Statuses</button>
                     <button class="btn btn-success" onclick="AnnualModule.refreshData()">🔄 Refresh Data</button>
+                    <button class="btn btn-primary" onclick="AnnualModule.addCategory()">Add Category</button>
                 </div>
             </div>
             
@@ -91,6 +92,16 @@ const AnnualModule = {
         `;
 
         pageContainer.appendChild(annualPage);
+
+        if (!document.getElementById('annual-status-styles')) {
+            const style = document.createElement('style');
+            style.id = 'annual-status-styles';
+            style.textContent = `
+                #annual .transferred-checkbox:checked { accent-color: #ffc107; }
+                #annual .paid-checkbox:checked { accent-color: #28a745; }
+            `;
+            document.head.appendChild(style);
+        }
     },
 
     setupEventListeners() {
@@ -242,6 +253,7 @@ const AnnualModule = {
                 <div class="category-controls">
                     <span class="category-total">${this.app.formatCurrency(total)}/yr</span>
                     <button class="add-item-btn" onclick="AnnualModule.addItem('${categoryKey}')">+</button>
+                    <button class="delete-category-btn" onclick="AnnualModule.removeCategory('${categoryKey}')">×</button>
                 </div>
             </div>
             <div class="subcategory-header">
@@ -388,6 +400,31 @@ const AnnualModule = {
             this.saveAnnualData();
             this.app.emit('dataChanged');
         }
+    },
+
+    addCategory() {
+        const name = prompt('Enter new category name');
+        if (!name) return;
+        const key = name.toLowerCase().replace(/\s+/g, '-');
+        if (!this.app.state.data.annual[key]) {
+            this.app.state.data.annual[key] = [];
+            this.app.categoryNames = this.app.categoryNames || {};
+            this.app.categoryNames[key] = name;
+            this.app.saveData();
+            this.populateCategories();
+            this.saveAnnualData();
+        }
+    },
+
+    removeCategory(categoryKey) {
+        if (!confirm('Delete this category?')) return;
+        delete this.app.state.data.annual[categoryKey];
+        if (this.app.categoryNames) {
+            delete this.app.categoryNames[categoryKey];
+        }
+        this.app.saveData();
+        this.populateCategories();
+        this.saveAnnualData();
     },
 
     updateTotals() {

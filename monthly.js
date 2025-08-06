@@ -84,6 +84,7 @@ const MonthlyModule = {
                     <button class="btn btn-secondary" onclick="MonthlyModule.resetFunding()">Reset Funding</button>
                     <button class="btn btn-danger" onclick="MonthlyModule.resetStatuses()">Reset Statuses</button>
                     <button class="btn btn-success" onclick="MonthlyModule.refreshData()">🔄 Refresh Data</button>
+                    <button class="btn btn-primary" onclick="MonthlyModule.addCategory()">Add Category</button>
                 </div>
             </div>
             
@@ -109,6 +110,18 @@ const MonthlyModule = {
         `;
 
         pageContainer.appendChild(monthlyPage);
+
+        // Ensure status checkboxes match weekly planner colors
+        if (!document.getElementById('monthly-status-styles')) {
+            const style = document.createElement('style');
+            style.id = 'monthly-status-styles';
+            style.textContent = `
+                #monthly .monthly-transferred-checkbox:checked { accent-color: #ffc107; }
+                #monthly .monthly-paid-checkbox:checked { accent-color: #28a745; }
+            `;
+            document.head.appendChild(style);
+        }
+
         console.log('MonthlyModule: Monthly page HTML appended to DOM.');
     },
 
@@ -288,29 +301,26 @@ const MonthlyModule = {
     },
 
     updateExpenseStatusFromPlanner(data) {
-        const expenseRows = document.querySelectorAll('#monthly .subcategory');
-        expenseRows.forEach(row => {
-            const nameInput = row.querySelector('.subcategory-name-input');
-            if (nameInput && nameInput.value === data.expenseName) {
-                const transferredCheckbox = row.querySelector('.monthly-transferred-checkbox');
-                const paidCheckbox = row.querySelector('.monthly-paid-checkbox');
-                const statusSelect = row.querySelector('.transfer-status-select');
+        const row = document.querySelector(`#monthly .subcategory[data-expense-id="${data.expenseId}"]`);
+        if (row) {
+            const transferredCheckbox = row.querySelector('.monthly-transferred-checkbox');
+            const paidCheckbox = row.querySelector('.monthly-paid-checkbox');
+            const statusSelect = row.querySelector('.transfer-status-select');
 
-                if (transferredCheckbox) {
-                    transferredCheckbox.checked = !!data.hasTransferred;
-                }
-                if (paidCheckbox) {
-                    paidCheckbox.checked = !!data.hasPaid;
-                }
-
-                if (statusSelect) {
-                    this.setTransferStatusStyle(statusSelect);
-                }
-
-                this.saveMonthlyData(false);
-                this.updateTotals();
+            if (transferredCheckbox) {
+                transferredCheckbox.checked = !!data.hasTransferred;
             }
-        });
+            if (paidCheckbox) {
+                paidCheckbox.checked = !!data.hasPaid;
+            }
+
+            if (statusSelect) {
+                this.setTransferStatusStyle(statusSelect);
+            }
+
+            this.saveMonthlyData(false);
+            this.updateTotals();
+        }
     },
 
     populateCategories() {
@@ -466,6 +476,7 @@ const MonthlyModule = {
                 <div class="category-controls">
                     <span class="category-total">${this.app.formatCurrency(total)}</span>
                     <button class="add-item-btn" onclick="MonthlyModule.addItem('${categoryKey}')">+</button>
+                    <button class="delete-category-btn" onclick="MonthlyModule.removeCategory('${categoryKey}')">×</button>
                 </div>
             </div>
             ${subheaderHTML}
@@ -590,6 +601,35 @@ const MonthlyModule = {
         } else {
             console.warn('MonthlyModule: Could not find subcategory to remove.');
         }
+    },
+
+    addCategory() {
+        const name = prompt('Enter new category name');
+        if (!name) return;
+        const key = name.toLowerCase().replace(/\s+/g, '-');
+        if (!this.app.state.data.monthly[key]) {
+            this.app.state.data.monthly[key] = [];
+            this.app.categoryNames = this.app.categoryNames || {};
+            this.app.categoryNames[key] = name;
+            if (this.app && typeof this.app.saveData === 'function') {
+                this.app.saveData();
+            }
+            this.populateCategories();
+            this.saveMonthlyData();
+        }
+    },
+
+    removeCategory(categoryKey) {
+        if (!confirm('Delete this category?')) return;
+        delete this.app.state.data.monthly[categoryKey];
+        if (this.app.categoryNames) {
+            delete this.app.categoryNames[categoryKey];
+        }
+        if (this.app && typeof this.app.saveData === 'function') {
+            this.app.saveData();
+        }
+        this.populateCategories();
+        this.saveMonthlyData();
     },
 
     updateTotals() {

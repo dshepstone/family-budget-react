@@ -349,6 +349,8 @@ const PlannerModule = {
     notifyMonthlyOfStatusChange(checkboxElement) {
         const row = checkboxElement.closest('tr');
         const expenseName = row.querySelector('.expense-name')?.textContent;
+        const expenseId = row.dataset.expenseId;
+        const week = parseInt(checkboxElement.dataset.week, 10) || window.currentBudgetWeek;
 
         if (expenseName && this.app.emit) {
             const transferredCheckboxes = row.querySelectorAll('.transferred-checkbox');
@@ -357,8 +359,19 @@ const PlannerModule = {
             const hasTransferred = Array.from(transferredCheckboxes).some(cb => cb.checked);
             const hasPaid = Array.from(paidCheckboxes).some(cb => cb.checked);
 
+            const transferred = checkboxElement.classList.contains('transferred-checkbox')
+                ? checkboxElement.checked
+                : row.querySelector(`td.week-${week}-status-col input.transferred-checkbox`)?.checked;
+            const paid = checkboxElement.classList.contains('paid-checkbox')
+                ? checkboxElement.checked
+                : row.querySelector(`td.week-${week}-status-col input.paid-checkbox`)?.checked;
+
             this.app.emit('plannerStatusChanged', {
                 expenseName,
+                expenseId,
+                week,
+                transferred,
+                paid,
                 hasTransferred,
                 hasPaid,
                 source: 'planner'
@@ -432,26 +445,30 @@ const PlannerModule = {
 
         const syncWeeklyStatus = (event) => {
             const cb = event.target;
-            const rowId = cb.closest('tr')?.dataset.expenseId;
+            const row = cb.closest('tr');
+            const rowId = row?.dataset.expenseId;
             const type = cb.classList.contains('paid-checkbox') ? 'paid' : 'transferred';
-            const checked = cb.checked;
 
-            // Sync to Monthly page
+            // Determine overall state for the row
+            const anyTransferred = Array.from(row.querySelectorAll('.transferred-checkbox')).some(c => c.checked);
+            const anyPaid = Array.from(row.querySelectorAll('.paid-checkbox')).some(c => c.checked);
+
+            // Sync to Monthly page using aggregated state
             const monthlySelector = `#monthly .subcategory[data-expense-id="${rowId}"] input.monthly-${type}-checkbox`;
             const monthlyCb = document.querySelector(monthlySelector);
             if (monthlyCb) {
-                monthlyCb.checked = checked;
+                monthlyCb.checked = type === 'paid' ? anyPaid : anyTransferred;
                 const statusSelect = monthlyCb.closest('.status-control-group')?.querySelector('.transfer-status-select');
                 if (statusSelect && window.MonthlyModule && typeof MonthlyModule.setTransferStatusStyle === 'function') {
                     MonthlyModule.setTransferStatusStyle(statusSelect);
                 }
             }
 
-            // Sync to Annual page
+            // Sync to Annual page using aggregated state
             const annualSelector = `#annual .subcategory[data-expense-id="${rowId}"] input.${type}-checkbox`;
             const annualCb = document.querySelector(annualSelector);
             if (annualCb) {
-                annualCb.checked = checked;
+                annualCb.checked = type === 'paid' ? anyPaid : anyTransferred;
                 if (window.AnnualModule && typeof AnnualModule.setTransferStatusStyle === 'function') {
                     AnnualModule.setTransferStatusStyle(annualCb);
                 }
@@ -496,8 +513,8 @@ const PlannerModule = {
                 </div>
             </td>
             <td class="week-${index + 1}-status-col status-cell">
-                <input type="checkbox" class="transferred-checkbox" title="Transferred" ${transferredValues[index] ? 'checked' : ''}><br>
-                <input type="checkbox" class="paid-checkbox" title="Paid" ${paidValues[index] ? 'checked' : ''}>
+                <input type="checkbox" class="transferred-checkbox" data-week="${index + 1}" title="Transferred" ${transferredValues[index] ? 'checked' : ''}><br>
+                <input type="checkbox" class="paid-checkbox" data-week="${index + 1}" title="Paid" ${paidValues[index] ? 'checked' : ''}>
             </td>
         `).join('');
 
