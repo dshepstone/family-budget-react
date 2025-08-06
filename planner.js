@@ -275,7 +275,7 @@ const PlannerModule = {
         document.addEventListener('change', (e) => {
             if (e.target.matches('#planner .transferred-checkbox, #planner .paid-checkbox')) {
                 try {
-                    this.updatePlannerRow(e.target.closest('tr'));
+                    this.updateCheckboxState(e.target);
                     this.savePlannerData();
                     this.notifyStatusChange(e.target);
                 } catch (error) {
@@ -346,6 +346,33 @@ const PlannerModule = {
         }
     },
 
+    updateCheckboxState(checkboxElement) {
+        const row = checkboxElement.closest('tr');
+        if (!row) return;
+
+        const expenseName = row.querySelector('.expense-name')?.textContent;
+        if (!expenseName) return;
+
+        const week = parseInt(checkboxElement.dataset.week, 10);
+        if (isNaN(week) || week < 1 || week > 5) return;
+
+        if (!this.app.state.data.plannerState[expenseName]) {
+            const weeks = Array.from(row.querySelectorAll('.table-input')).map(inp => parseFloat(inp.value) || 0);
+            this.app.state.data.plannerState[expenseName] = {
+                weeks,
+                transferred: Array(5).fill(false),
+                paid: Array(5).fill(false)
+            };
+        }
+
+        const entry = this.app.state.data.plannerState[expenseName];
+        if (checkboxElement.classList.contains('transferred-checkbox')) {
+            entry.transferred[week - 1] = checkboxElement.checked;
+        } else {
+            entry.paid[week - 1] = checkboxElement.checked;
+        }
+    },
+
     notifyStatusChange(checkboxElement) {
         const row = checkboxElement.closest('tr');
         const expenseName = row.querySelector('.expense-name')?.textContent;
@@ -353,18 +380,12 @@ const PlannerModule = {
         const week = parseInt(checkboxElement.dataset.week, 10) || window.currentBudgetWeek;
 
         if (expenseName && this.app.emit) {
-            const transferredCheckboxes = row.querySelectorAll('.transferred-checkbox');
-            const paidCheckboxes = row.querySelectorAll('.paid-checkbox');
+            const state = this.app.state.data.plannerState[expenseName] || {};
+            const hasTransferred = Array.isArray(state.transferred) ? state.transferred.some(Boolean) : false;
+            const hasPaid = Array.isArray(state.paid) ? state.paid.some(Boolean) : false;
 
-            const hasTransferred = Array.from(transferredCheckboxes).some(cb => cb.checked);
-            const hasPaid = Array.from(paidCheckboxes).some(cb => cb.checked);
-
-            const transferred = checkboxElement.classList.contains('transferred-checkbox')
-                ? checkboxElement.checked
-                : row.querySelector(`td.week-${week}-status-col input.transferred-checkbox`)?.checked;
-            const paid = checkboxElement.classList.contains('paid-checkbox')
-                ? checkboxElement.checked
-                : row.querySelector(`td.week-${week}-status-col input.paid-checkbox`)?.checked;
+            const transferred = Array.isArray(state.transferred) ? state.transferred[week - 1] : false;
+            const paid = Array.isArray(state.paid) ? state.paid[week - 1] : false;
 
             this.app.emit('plannerStatusChanged', {
                 expenseName,
@@ -387,10 +408,15 @@ const PlannerModule = {
                 const transferredCb = row.querySelector(`td.week-${week}-status-col input.transferred-checkbox`);
                 const paidCb = row.querySelector(`td.week-${week}-status-col input.paid-checkbox`);
 
-                if (transferredCb) transferredCb.checked = !!data.transferred;
-                if (paidCb) paidCb.checked = !!data.paid;
+                if (transferredCb) {
+                    transferredCb.checked = !!data.transferred;
+                    this.updateCheckboxState(transferredCb);
+                }
+                if (paidCb) {
+                    paidCb.checked = !!data.paid;
+                    this.updateCheckboxState(paidCb);
+                }
 
-                this.updatePlannerRow(row);
                 this.savePlannerData();
             }
         }
