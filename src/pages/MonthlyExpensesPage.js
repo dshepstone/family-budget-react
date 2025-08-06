@@ -445,6 +445,14 @@ const MonthlyExpensesPage = () => {
           font-weight: bold;
         }
 
+        .transferred-checkbox:checked {
+          accent-color: #ffc107;
+        }
+
+        .paid-checkbox:checked {
+          accent-color: #28a745;
+        }
+
         .amount-input-group {
           width: 200px;
           display: flex;
@@ -741,6 +749,7 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="transferred-checkbox"
                               checked={getPlannerStatus(expense.name, 'transferred')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
@@ -749,6 +758,7 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="paid-checkbox"
                               checked={getPlannerStatus(expense.name, 'paid')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
