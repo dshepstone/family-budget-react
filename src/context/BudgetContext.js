@@ -2,23 +2,9 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { validateBudgetData, createDefaultData } from '../utils/validators';
 import { formatCurrency, parseAmount } from '../utils/formatters';
+import { ACTIONS, budgetReducer } from './budgetReducer';
 
 const BudgetContext = createContext();
-
-// Action types for reducer
-const ACTIONS = {
-  LOAD_DATA: 'LOAD_DATA',
-  UPDATE_INCOME: 'UPDATE_INCOME',
-  UPDATE_MONTHLY_EXPENSE: 'UPDATE_MONTHLY_EXPENSE',
-  UPDATE_ANNUAL_EXPENSE: 'UPDATE_ANNUAL_EXPENSE',
-  UPDATE_PLANNER: 'UPDATE_PLANNER',
-  UPDATE_EXPENSE_STATUS: 'UPDATE_EXPENSE_STATUS',
-  SYNC_WEEKLY_TO_MONTHLY: 'SYNC_WEEKLY_TO_MONTHLY',
-  SYNC_WEEKLY_TO_ANNUAL: 'SYNC_WEEKLY_TO_ANNUAL',
-  SET_CURRENT_PAGE: 'SET_CURRENT_PAGE',
-  RESET_DATA: 'RESET_DATA',
-  TOGGLE_THEME: 'TOGGLE_THEME'
-};
 
 // Initial state with enhanced structure
 const initialState = {
@@ -31,6 +17,8 @@ const initialState = {
   currentWeek: 1
 };
 
+<<<<<<< Updated upstream
+=======
 // Enhanced reducer function
 function budgetReducer(state, action) {
   switch (action.type) {
@@ -93,14 +81,55 @@ function budgetReducer(state, action) {
         lastUpdated: new Date().toISOString()
       };
 
+      // ADDED: Data migration function for weekly status independence
+      const migratePlannerDataToWeeklyStatus = (plannerState) => {
+        const migratedState = { ...plannerState };
+
+        Object.keys(migratedState).forEach(expenseName => {
+          const expense = migratedState[expenseName];
+
+          // Migrate old format to new weeklyStatuses format
+          if (!expense.weeklyStatuses && (expense.transferred || expense.paid)) {
+            expense.weeklyStatuses = {
+              transferred: Array.isArray(expense.transferred)
+                ? expense.transferred
+                : Array(5).fill(expense.transferred || false),
+              paid: Array.isArray(expense.paid)
+                ? expense.paid
+                : Array(5).fill(expense.paid || false)
+            };
+
+            // Clean up old format
+            delete expense.transferred;
+            delete expense.paid;
+          }
+
+          // Ensure weeklyStatuses exists and is properly formatted
+          if (!expense.weeklyStatuses) {
+            expense.weeklyStatuses = {
+              transferred: Array(5).fill(false),
+              paid: Array(5).fill(false)
+            };
+          }
+
+          // Ensure arrays are exactly 5 elements
+          if (expense.weeklyStatuses.transferred.length !== 5) {
+            expense.weeklyStatuses.transferred = Array(5).fill(false);
+          }
+          if (expense.weeklyStatuses.paid.length !== 5) {
+            expense.weeklyStatuses.paid = Array(5).fill(false);
+          }
+        });
+
+        return migratedState;
+      };
     case ACTIONS.UPDATE_PLANNER:
       return {
         ...state,
         data: {
           ...state.data,
-          plannerState: { ...state.data.plannerState, ...action.payload }
-        },
-        lastUpdated: new Date().toISOString()
+          plannerState: migratePlannerDataToWeeklyStatus(action.payload)
+        }
       };
 
     case ACTIONS.UPDATE_EXPENSE_STATUS:
@@ -177,6 +206,7 @@ function budgetReducer(state, action) {
   }
 }
 
+>>>>>>> Stashed changes
 // Context Provider Component
 export function BudgetProvider({ children }) {
   const [state, dispatch] = useReducer(budgetReducer, initialState);

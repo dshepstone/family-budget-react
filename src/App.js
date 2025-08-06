@@ -16,6 +16,7 @@ import './styles/globals.css';
 import './styles/themes.css';
 import './styles/components.css';
 import './styles/responsive.css';
+import './styles/GlobalCheckboxStyles.css';
 
 // Page component mapping
 const PAGES = {

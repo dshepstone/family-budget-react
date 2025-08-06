@@ -69,7 +69,7 @@ const AnnualExpensesPage = () => {
     }
   };
 
-  // Handle status changes (paid/transferred) with weekly sync
+  // Handle status changes (paid/transferred) with weekly sync - ENHANCED
   const handleStatusChange = (categoryKey, expenseIndex, statusType, checked) => {
     const category = state.data.annual[categoryKey] || [];
     const expense = category[expenseIndex] || {};
@@ -77,13 +77,28 @@ const AnnualExpensesPage = () => {
     const updatedExpense = {
       ...expense,
       [statusType]: checked,
-      id: expense.id || `${categoryKey}-${Date.now()}-${expenseIndex}`
+      id: expense.id || `${categoryKey}-annual-${Date.now()}-${expenseIndex}`
     };
 
     actions.updateAnnualExpense(categoryKey, updatedExpense, expenseIndex);
 
-    // Sync with weekly planner for current week
+    // Add visual feedback classes to the expense row
+    setTimeout(() => {
+      const expenseRow = document.querySelector(`[data-expense-id="${updatedExpense.id}"]`);
+      if (expenseRow) {
+        expenseRow.classList.remove('status-transferred', 'status-paid');
+        if (updatedExpense.transferred) {
+          expenseRow.classList.add('status-transferred');
+        }
+        if (updatedExpense.paid) {
+          expenseRow.classList.add('status-paid');
+        }
+      }
+    }, 10);
+
+    // Sync with weekly planner for current week (monthly equivalent)
     if (expense.name) {
+      const monthlyEquivalent = updatedExpense.actual / 12;
       actions.updateExpenseStatus(
         updatedExpense.id,
         expense.name,
@@ -415,8 +430,45 @@ const AnnualExpensesPage = () => {
           cursor: pointer;
         }
 
-        .checkbox-label {
-          font-weight: bold;
+        /* FIXED: Consistent checkbox colors matching Weekly and Monthly */
+        .annual-paid-checkbox:checked {
+          accent-color: #28a745 !important;
+        }
+
+        .annual-transferred-checkbox:checked {
+          accent-color: #ffc107 !important;
+        }
+
+        /* Visual feedback for annual expenses */
+        .subcategory.status-transferred {
+          background-color: rgba(255, 193, 7, 0.1);
+          border-left: 4px solid #ffc107;
+          transition: all 0.3s ease;
+        }
+
+        .subcategory.status-paid {
+          background-color: rgba(40, 167, 69, 0.1);
+          border-left: 4px solid #28a745;
+          transition: all 0.3s ease;
+        }
+
+        /* Enhanced checkbox hover effects for annual */
+        .annual-paid-checkbox:hover,
+        .annual-transferred-checkbox:hover {
+          transform: scale(1.1);
+          cursor: pointer;
+          transition: transform 0.2s ease;
+        }
+
+        /* Frequency dropdown visual feedback */
+        .frequency-dropdown.paid {
+          background-color: rgba(40, 167, 69, 0.15);
+          border-color: #28a745;
+        }
+
+        .frequency-dropdown.transferred {
+          background-color: rgba(255, 193, 7, 0.15);
+          border-color: #ffc107;
         }
 
         .frequency-dropdown {
@@ -711,7 +763,8 @@ const AnnualExpensesPage = () => {
                   return (
                     <div
                       key={index}
-                      className="subcategory"
+                      className={`subcategory ${expense.transferred ? 'status-transferred' : ''
+                        } ${expense.paid ? 'status-paid' : ''}`}
                       data-expense-id={expense.id}
                     >
                       <input
@@ -747,6 +800,7 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="annual-paid-checkbox"
                               checked={expense.paid || false}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
@@ -755,6 +809,7 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="annual-transferred-checkbox"
                               checked={expense.transferred || false}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />

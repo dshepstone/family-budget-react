@@ -97,12 +97,14 @@ const WeeklyPlannerPage = () => {
     return categoryNames[categoryKey] || categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
   };
 
-  // Get planner data for expense
+  // Get planner data for expense - FIXED: Independent weekly status
   const getExpensePlannerData = (expenseName) => {
     return state.data.plannerState?.[expenseName] || {
       weeks: Array(5).fill(0),
-      transferred: Array(5).fill(false),
-      paid: Array(5).fill(false)
+      weeklyStatuses: {
+        transferred: Array(5).fill(false),
+        paid: Array(5).fill(false)
+      }
     };
   };
 
@@ -127,19 +129,26 @@ const WeeklyPlannerPage = () => {
     });
   };
 
-  // Handle status change with cross-page syncing
+  // Handle status change - FIXED: Independent weekly status with proper data structure
   const handleStatusChange = (expense, weekIndex, type, checked) => {
     const currentData = getExpensePlannerData(expense.name);
-    const newStatus = [...currentData[type]];
-    newStatus[weekIndex] = checked;
 
-    // Update planner state
+    // FIXED: Use weeklyStatuses structure instead of flat arrays
+    const newWeeklyStatuses = {
+      transferred: [...(currentData.weeklyStatuses?.transferred || Array(5).fill(false))],
+      paid: [...(currentData.weeklyStatuses?.paid || Array(5).fill(false))]
+    };
+
+    // Update only the specific week's status - NO cross-contamination
+    newWeeklyStatuses[type][weekIndex] = checked;
+
+    // Update planner state with new structure
     updateExpensePlannerData(expense.name, {
       ...currentData,
-      [type]: newStatus
+      weeklyStatuses: newWeeklyStatuses
     });
 
-    // Sync with monthly/annual pages
+    // Optional: Sync with monthly/annual pages (only for current week)
     actions.updateExpenseStatus(
       expense.id,
       expense.name,
@@ -493,12 +502,39 @@ const WeeklyPlannerPage = () => {
           cursor: pointer;
         }
 
+        /* FIXED: Consistent checkbox colors with higher specificity */
         .transferred-checkbox:checked {
-          accent-color: #ffc107;
+          accent-color: #ffc107 !important;
         }
 
         .paid-checkbox:checked {
-          accent-color: #28a745;
+          accent-color: #28a745 !important;
+        }
+
+        /* Visual feedback for status */
+        .status-cell.has-transferred {
+          background-color: rgba(255, 193, 7, 0.1);
+          border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .status-cell.has-paid {
+          background-color: rgba(40, 167, 69, 0.1);
+          border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        /* Enhanced status visual feedback */
+        .status-checkboxes {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          padding: 4px;
+        }
+
+        .transferred-checkbox:hover,
+        .paid-checkbox:hover {
+          transform: scale(1.15);
+          transition: transform 0.2s ease;
         }
 
         .remaining-amount {
@@ -785,28 +821,23 @@ const WeeklyPlannerPage = () => {
                         {/* Week Columns */}
                         {Array.from({ length: 5 }, (_, weekIndex) => (
                           <React.Fragment key={weekIndex}>
-                            <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                              <div className="planner-input-group">
+                            <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                              <div className="status-checkboxes">
                                 <input
-                                  type="number"
-                                  className={`table-input ${expenseData.weeks[weekIndex] > 0 ? 'has-value' : 'zero-value'}`}
-                                  value={expenseData.weeks[weekIndex].toFixed(2)}
-                                  step="0.01"
-                                  onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
+                                  type="checkbox"
+                                  className="transferred-checkbox"
+                                  title="Transferred"
+                                  checked={expenseData.weeklyStatuses?.transferred[weekIndex] || false}
+                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
                                 />
-                                <select
-                                  className="planner-action-select"
-                                  onChange={(e) => {
-                                    handleQuickAction(expense.name, weekIndex, e.target.value, expense.monthlyAmount);
-                                    e.target.value = '';
-                                  }}
-                                >
-                                  <option value="">Quick Fill</option>
-                                  <option value="reset">Reset to $0</option>
-                                  <option value="full">Full Amount ({formatCurrency(expense.monthlyAmount)})</option>
-                                  <option value="half">Half Amount ({formatCurrency(expense.monthlyAmount / 2)})</option>
-                                  <option value="quarter">Quarter Amount ({formatCurrency(expense.monthlyAmount / 4)})</option>
-                                </select>
+                                <br />
+                                <input
+                                  type="checkbox"
+                                  className="paid-checkbox"
+                                  title="Paid"
+                                  checked={expenseData.weeklyStatuses?.paid[weekIndex] || false}
+                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
+                                />
                               </div>
                             </td>
                             <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
