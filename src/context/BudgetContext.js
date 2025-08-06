@@ -17,6 +17,196 @@ const initialState = {
   currentWeek: 1
 };
 
+<<<<<<< Updated upstream
+=======
+// Enhanced reducer function
+function budgetReducer(state, action) {
+  switch (action.type) {
+    case ACTIONS.LOAD_DATA:
+      return {
+        ...state,
+        data: { ...state.data, ...action.payload },
+        lastUpdated: new Date().toISOString()
+      };
+
+    case ACTIONS.UPDATE_INCOME:
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          income: action.payload
+        },
+        lastUpdated: new Date().toISOString()
+      };
+
+    case ACTIONS.UPDATE_MONTHLY_EXPENSE:
+      const newMonthly = { ...state.data.monthly };
+      if (!newMonthly[action.category]) {
+        newMonthly[action.category] = [];
+      }
+
+      if (action.index !== undefined) {
+        newMonthly[action.category][action.index] = action.payload;
+      } else {
+        newMonthly[action.category].push(action.payload);
+      }
+
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          monthly: newMonthly
+        },
+        lastUpdated: new Date().toISOString()
+      };
+
+    case ACTIONS.UPDATE_ANNUAL_EXPENSE:
+      const newAnnual = { ...state.data.annual };
+      if (!newAnnual[action.category]) {
+        newAnnual[action.category] = [];
+      }
+
+      if (action.index !== undefined) {
+        newAnnual[action.category][action.index] = action.payload;
+      } else {
+        newAnnual[action.category].push(action.payload);
+      }
+
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          annual: newAnnual
+        },
+        lastUpdated: new Date().toISOString()
+      };
+
+      // ADDED: Data migration function for weekly status independence
+      const migratePlannerDataToWeeklyStatus = (plannerState) => {
+        const migratedState = { ...plannerState };
+
+        Object.keys(migratedState).forEach(expenseName => {
+          const expense = migratedState[expenseName];
+
+          // Migrate old format to new weeklyStatuses format
+          if (!expense.weeklyStatuses && (expense.transferred || expense.paid)) {
+            expense.weeklyStatuses = {
+              transferred: Array.isArray(expense.transferred)
+                ? expense.transferred
+                : Array(5).fill(expense.transferred || false),
+              paid: Array.isArray(expense.paid)
+                ? expense.paid
+                : Array(5).fill(expense.paid || false)
+            };
+
+            // Clean up old format
+            delete expense.transferred;
+            delete expense.paid;
+          }
+
+          // Ensure weeklyStatuses exists and is properly formatted
+          if (!expense.weeklyStatuses) {
+            expense.weeklyStatuses = {
+              transferred: Array(5).fill(false),
+              paid: Array(5).fill(false)
+            };
+          }
+
+          // Ensure arrays are exactly 5 elements
+          if (expense.weeklyStatuses.transferred.length !== 5) {
+            expense.weeklyStatuses.transferred = Array(5).fill(false);
+          }
+          if (expense.weeklyStatuses.paid.length !== 5) {
+            expense.weeklyStatuses.paid = Array(5).fill(false);
+          }
+        });
+
+        return migratedState;
+      };
+    case ACTIONS.UPDATE_PLANNER:
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          plannerState: migratePlannerDataToWeeklyStatus(action.payload)
+        }
+      };
+
+    case ACTIONS.UPDATE_EXPENSE_STATUS:
+      const { expenseId, expenseName, weekIndex, statusType, checked, sourceModule } = action.payload;
+
+      let updatedMonthly = { ...state.data.monthly };
+      let updatedAnnual = { ...state.data.annual };
+      let updatedPlanner = { ...state.data.plannerState };
+
+      // Update monthly expenses
+      Object.keys(updatedMonthly).forEach(category => {
+        updatedMonthly[category] = updatedMonthly[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: checked };
+          }
+          return expense;
+        });
+      });
+
+      // Update annual expenses
+      Object.keys(updatedAnnual).forEach(category => {
+        updatedAnnual[category] = updatedAnnual[category].map(expense => {
+          if (expense.id === expenseId || expense.name === expenseName) {
+            return { ...expense, [statusType]: checked };
+          }
+          return expense;
+        });
+      });
+
+      // Update planner state
+      if (expenseName && updatedPlanner[expenseName]) {
+        const plannerExpense = { ...updatedPlanner[expenseName] };
+        if (!plannerExpense[statusType]) {
+          plannerExpense[statusType] = Array(5).fill(false);
+        }
+        if (weekIndex !== undefined && weekIndex >= 0 && weekIndex < 5) {
+          plannerExpense[statusType][weekIndex] = checked;
+        }
+        updatedPlanner[expenseName] = plannerExpense;
+      }
+
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          monthly: updatedMonthly,
+          annual: updatedAnnual,
+          plannerState: updatedPlanner
+        },
+        lastUpdated: new Date().toISOString()
+      };
+
+    case ACTIONS.SET_CURRENT_PAGE:
+      return {
+        ...state,
+        currentPage: action.payload
+      };
+
+    case ACTIONS.RESET_DATA:
+      return {
+        ...state,
+        data: createDefaultData(),
+        lastUpdated: new Date().toISOString()
+      };
+
+    case ACTIONS.TOGGLE_THEME:
+      return {
+        ...state,
+        theme: state.theme === 'light' ? 'dark' : 'light'
+      };
+
+    default:
+      return state;
+  }
+}
+
+>>>>>>> Stashed changes
 // Context Provider Component
 export function BudgetProvider({ children }) {
   const [state, dispatch] = useReducer(budgetReducer, initialState);

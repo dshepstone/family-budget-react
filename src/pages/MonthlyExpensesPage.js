@@ -77,7 +77,7 @@ const MonthlyExpensesPage = () => {
     }
   };
 
-  // Handle status changes (paid/transferred) with weekly sync
+  // Handle status changes (paid/transferred) with weekly sync - ENHANCED with visual feedback
   const handleStatusChange = (categoryKey, expenseIndex, statusType, checked) => {
     const category = state.data.monthly[categoryKey] || [];
     const expense = category[expenseIndex] || {};
@@ -89,6 +89,20 @@ const MonthlyExpensesPage = () => {
     };
 
     actions.updateMonthlyExpense(categoryKey, updatedExpense, expenseIndex);
+
+    // Add visual feedback classes to the expense row
+    setTimeout(() => {
+      const expenseRow = document.querySelector(`[data-expense-id="${updatedExpense.id}"]`);
+      if (expenseRow) {
+        expenseRow.classList.remove('status-transferred', 'status-paid');
+        if (updatedExpense.transferred) {
+          expenseRow.classList.add('status-transferred');
+        }
+        if (updatedExpense.paid) {
+          expenseRow.classList.add('status-paid');
+        }
+      }
+    }, 10);
 
     // Sync with weekly planner for current week
     if (expense.name) {
@@ -436,8 +450,34 @@ const MonthlyExpensesPage = () => {
           cursor: pointer;
         }
 
-        .checkbox-label {
-          font-weight: bold;
+        /* FIXED: Consistent checkbox colors matching WeeklyPlanner */
+        .monthly-transferred-checkbox:checked {
+          accent-color: #ffc107 !important;
+        }
+
+        .monthly-paid-checkbox:checked {
+          accent-color: #28a745 !important;
+        }
+
+        /* Visual feedback for status changes */
+        .subcategory.status-transferred {
+          background-color: rgba(255, 193, 7, 0.1);
+          border-left: 4px solid #ffc107;
+          transition: all 0.3s ease;
+        }
+
+        .subcategory.status-paid {
+          background-color: rgba(40, 167, 69, 0.1);
+          border-left: 4px solid #28a745;
+          transition: all 0.3s ease;
+        }
+
+        /* Enhanced checkbox hover effects */
+        .monthly-transferred-checkbox:hover,
+        .monthly-paid-checkbox:hover {
+          transform: scale(1.1);
+          cursor: pointer;
+          transition: transform 0.2s ease;
         }
 
         .amount-input-group {
@@ -595,10 +635,80 @@ const MonthlyExpensesPage = () => {
             width: 100%;
             justify-content: space-between;
           }
+            /* Category Management Modal - OPTIONAL */
+        .modal {
+          position: fixed;
+          z-index: 1000;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0,0,0,0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .modal-content {
+          background-color: #fff;
+          padding: 0;
+          border-radius: 8px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 80vh;
+          overflow-y: auto;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px;
+          border-bottom: 1px solid #dee2e6;
+          background-color: #f8f9fa;
+        }
+
+        .modal-close {
+          font-size: 24px;
+          font-weight: bold;
+          cursor: pointer;
+          color: #666;
+        }
+
+        .modal-close:hover {
+          color: #000;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .category-form {
+          padding: 15px;
+          background-color: #f8f9fa;
+          border-radius: 5px;
+        }
         }
       `}</style>
 
-      <h2 className="page-title">💳 Monthly Expenses</h2>
+      {/* Category Management Modal - OPTIONAL ENHANCEMENT */}
+      <div id="monthly-category-modal" className="modal" style={{ display: 'none' }}>
+        <div className="modal-content">
+          <div className="modal-header">
+            <h3>📁 Monthly Category Management</h3>
+            <span className="modal-close" onClick={() => document.getElementById('monthly-category-modal').style.display = 'none'}>&times;</span>
+          </div>
+          <div className="modal-body">
+            <div className="category-form">
+              <h4>Add New Monthly Category</h4>
+              <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                Note: This is a demonstration. Full category management would require additional React state management.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Current Week Selector for Status Sync */}
       <div className="current-week-selector">
@@ -689,7 +799,8 @@ const MonthlyExpensesPage = () => {
                   return (
                     <div
                       key={index}
-                      className={`subcategory ${actualAmount === 0 ? 'zero-value' : ''}`}
+                      className={`subcategory ${actualAmount === 0 ? 'zero-value' : ''} ${expense.transferred ? 'status-transferred' : ''
+                        } ${expense.paid ? 'status-paid' : ''}`}
                       data-expense-id={expense.id}
                     >
                       <input
@@ -736,6 +847,7 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="monthly-transferred-checkbox"
                               checked={expense.transferred || false}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
@@ -744,6 +856,7 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
+                              className="monthly-paid-checkbox"
                               checked={expense.paid || false}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
