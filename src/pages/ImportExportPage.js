@@ -113,7 +113,7 @@ const ImportExportPage = () => {
       totalAnnualExpenses: Object.values(state.data.annual || {}).reduce((total, cat) => total + cat.length, 0),
       dataSize: JSON.stringify(currentData).length,
       lastUpdated: state.lastUpdated,
-      accounts: Object.keys(state.data.accounts || {}).length
+      accounts: Array.isArray(state.data.accounts) ? state.data.accounts.length : 0
     };
 
     setLastOperation({
@@ -135,7 +135,7 @@ const ImportExportPage = () => {
       annualExpenses,
       totalExpenses: monthlyExpenses + annualExpenses,
       categories: Object.keys(state.data.monthly || {}).length + Object.keys(state.data.annual || {}).length,
-      accounts: Object.keys(state.data.accounts || {}).length,
+      accounts: Array.isArray(state.data.accounts) ? state.data.accounts.length : 0,
       dataSize: JSON.stringify(state.data).length
     };
   };

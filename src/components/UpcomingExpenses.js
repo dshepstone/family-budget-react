@@ -5,7 +5,7 @@ import Button from './ui/Button';
 import { formatRelativeDate } from '../utils/formatters';
 
 const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
-  const { formatCurrency } = useBudget();
+  const { formatCurrency, state } = useBudget();
 
   if (!expenses || expenses.length === 0) {
     return (
@@ -71,6 +71,8 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
           const urgencyIcon = getUrgencyIcon(expense.daysUntil);
           const timingText = getTimingText(expense.daysUntil);
 
+          const account = (Array.isArray(state.data.accounts) ? state.data.accounts : []).find(a => a.id === expense.accountId);
+
           return (
             <div key={`${expense.name}-${index}`} className={`expense-item ${urgencyLevel}`}>
               <div className="expense-content">
@@ -83,8 +85,8 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
                         <span className="expense-type">
                           {expense.type === 'monthly' ? 'Monthly' : 'Annual'}
                         </span>
-                        {expense.account && (
-                          <span className="expense-account">• {expense.account}</span>
+                        {account && (
+                          <span className="expense-account">• {account.name}</span>
                         )}
                       </div>
                     </div>

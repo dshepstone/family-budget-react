@@ -2,11 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 
-const ANNUAL_CATEGORIES = [
-  'yearly-subs', 'yearly-car', 'yearly-bank', 'yearly-insurance',
-  'yearly-tax', 'yearly-medical', 'yearly-home', 'yearly-personal'
-];
-
 const ANNUAL_CATEGORY_NAMES = {
   'yearly-subs': 'Yearly Subscriptions',
   'yearly-car': 'Yearly Car Expenses',
@@ -22,22 +17,10 @@ const AnnualExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [currentWeek, setCurrentWeek] = useState(1);
 
-  // Initialize empty categories if they don't exist
-  useEffect(() => {
-    const hasAnnualData = state.data.annual && Object.keys(state.data.annual).length > 0;
-
-    if (!hasAnnualData) {
-      const initialData = {};
-      ANNUAL_CATEGORIES.forEach(category => {
-        initialData[category] = [];
-      });
-
-      // Update the annual data in context
-      ANNUAL_CATEGORIES.forEach(category => {
-        actions.updateAnnualExpense(category, { name: '', actual: 0, projected: 0, date: '', account: '', paid: false, transferred: false }, 0);
-      });
-    }
-  }, []);
+  const getPlannerStatus = (expenseName, statusType) => {
+    const entry = state.data.plannerState?.[expenseName];
+    return entry?.[statusType]?.[currentWeek - 1] || false;
+  };
 
   // Auto-populate planner when annual data changes
   useEffect(() => {
@@ -104,7 +87,7 @@ const AnnualExpensesPage = () => {
       actual: 0,
       projected: 0,
       date: '',
-      account: '',
+      accountId: '',
       paid: false,
       transferred: false,
       transferStatus: 'full'
@@ -115,17 +98,21 @@ const AnnualExpensesPage = () => {
 
   // Remove expense from category
   const removeExpense = (categoryKey, expenseIndex) => {
-    const category = state.data.annual[categoryKey] || [];
-    const updatedCategory = category.filter((_, index) => index !== expenseIndex);
+    actions.removeAnnualExpense(categoryKey, expenseIndex);
+  };
 
-    // Update the entire category
-    updatedCategory.forEach((expense, index) => {
-      actions.updateAnnualExpense(categoryKey, expense, index);
-    });
+  // Add a new category
+  const addCategory = () => {
+    const name = prompt('Enter new category name');
+    if (name && !state.data.annual[name]) {
+      actions.addAnnualCategory(name);
+    }
+  };
 
-    // If we removed all expenses, ensure category still exists as empty array
-    if (updatedCategory.length === 0) {
-      actions.updateAnnualExpense(categoryKey, { name: '', actual: 0 }, 0);
+  // Remove an entire category
+  const removeCategory = (categoryKey) => {
+    if (window.confirm(`Remove category "${categoryKey}"?`)) {
+      actions.removeAnnualCategory(categoryKey);
     }
   };
 
@@ -152,7 +139,7 @@ const AnnualExpensesPage = () => {
   const resetFunding = () => {
     if (!window.confirm('Reset all projected amounts to $0.00?')) return;
 
-    ANNUAL_CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.annual || {}).forEach(categoryKey => {
       const category = state.data.annual[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -166,7 +153,7 @@ const AnnualExpensesPage = () => {
   const resetStatuses = () => {
     if (!window.confirm('Reset all payment and transfer statuses?')) return;
 
-    ANNUAL_CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.annual || {}).forEach(categoryKey => {
       const category = state.data.annual[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -183,7 +170,7 @@ const AnnualExpensesPage = () => {
     const currentMonth = new Date().getMonth() + 1; // 1-12
     const expensesByMonth = {};
 
-    ANNUAL_CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.annual || {}).forEach(categoryKey => {
       const category = state.data.annual[categoryKey] || [];
       category.forEach(expense => {
         if (expense.date && expense.name && expense.actual > 0) {
@@ -417,6 +404,14 @@ const AnnualExpensesPage = () => {
 
         .checkbox-label {
           font-weight: bold;
+        }
+
+        .transferred-checkbox:checked {
+          accent-color: #ffc107;
+        }
+
+        .paid-checkbox:checked {
+          accent-color: #28a745;
         }
 
         .frequency-dropdown {
@@ -669,9 +664,8 @@ const AnnualExpensesPage = () => {
 
       {/* Annual Expense Categories */}
       <div id="annual-expense-categories">
-        {ANNUAL_CATEGORIES.map(categoryKey => {
-          const categoryName = ANNUAL_CATEGORY_NAMES[categoryKey];
-          const expenses = state.data.annual?.[categoryKey] || [];
+        {Object.entries(state.data.annual || {}).map(([categoryKey, expenses]) => {
+          const categoryName = ANNUAL_CATEGORY_NAMES[categoryKey] || categoryKey;
           const categoryTotal = getCategoryTotal(categoryKey);
 
           return (
@@ -680,11 +674,10 @@ const AnnualExpensesPage = () => {
                 <span className="category-name">{categoryName}</span>
                 <div className="category-controls">
                   <span className="category-total">{formatCurrency(categoryTotal)}/yr</span>
-                  <button
-                    className="add-item-btn"
-                    onClick={() => addExpense(categoryKey)}
-                  >
-                    +
+                  <button className="add-item-btn" onClick={() => addExpense(categoryKey)}>+
+                  </button>
+                  <button className="remove-category-btn" onClick={() => removeCategory(categoryKey)} title="Delete Category">
+                    ×
                   </button>
                 </div>
               </div>
@@ -730,16 +723,13 @@ const AnnualExpensesPage = () => {
 
                       <select
                         className="account-select"
-                        value={expense.account || ''}
-                        onChange={(e) => handleExpenseChange(categoryKey, index, 'account', e.target.value)}
+                        value={expense.accountId || ''}
+                        onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                        {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
                       </select>
 
                       <div className="status-control-group">
@@ -747,7 +737,8 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.paid || false}
+                              className="paid-checkbox"
+                              checked={getPlannerStatus(expense.name, 'paid')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
                             <span className="checkbox-label">Paid</span>
@@ -755,7 +746,8 @@ const AnnualExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.transferred || false}
+                              className="transferred-checkbox"
+                              checked={getPlannerStatus(expense.name, 'transferred')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
                             <span className="checkbox-label">Trans</span>
@@ -777,7 +769,7 @@ const AnnualExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input projected-input ${projectedAmount > 0 ? 'has-value' : ''}`}
-                          value={projectedAmount.toFixed(2)}
+                          value={expense.projected ?? ''}
                           step="0.01"
                           placeholder="Projected"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'projected', e.target.value)}
@@ -792,7 +784,7 @@ const AnnualExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input actual-input ${actualAmount > 0 ? 'has-value' : ''}`}
-                          value={actualAmount.toFixed(2)}
+                          value={expense.actual ?? ''}
                           step="0.01"
                           placeholder="Actual"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'actual', e.target.value)}
@@ -817,6 +809,9 @@ const AnnualExpensesPage = () => {
             </div>
           );
         })}
+        <div className="add-category-wrapper">
+          <button className="add-category-btn" onClick={addCategory}>Add Category</button>
+        </div>
       </div>
 
       <div className="page-actions">

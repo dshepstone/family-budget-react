@@ -1,24 +1,9 @@
-// src/context/BudgetContext.js - Complete Enhanced Context with ALL Calculation Functions
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { validateBudgetData, createDefaultData } from '../utils/validators';
 import { formatCurrency, parseAmount } from '../utils/formatters';
+import { ACTIONS, budgetReducer } from './budgetReducer';
 
 const BudgetContext = createContext();
-
-// Action types for reducer
-const ACTIONS = {
-  LOAD_DATA: 'LOAD_DATA',
-  UPDATE_INCOME: 'UPDATE_INCOME',
-  UPDATE_MONTHLY_EXPENSE: 'UPDATE_MONTHLY_EXPENSE',
-  UPDATE_ANNUAL_EXPENSE: 'UPDATE_ANNUAL_EXPENSE',
-  UPDATE_PLANNER: 'UPDATE_PLANNER',
-  UPDATE_EXPENSE_STATUS: 'UPDATE_EXPENSE_STATUS',
-  SYNC_WEEKLY_TO_MONTHLY: 'SYNC_WEEKLY_TO_MONTHLY',
-  SYNC_WEEKLY_TO_ANNUAL: 'SYNC_WEEKLY_TO_ANNUAL',
-  SET_CURRENT_PAGE: 'SET_CURRENT_PAGE',
-  RESET_DATA: 'RESET_DATA',
-  TOGGLE_THEME: 'TOGGLE_THEME'
-};
 
 // Initial state with enhanced structure
 const initialState = {
@@ -30,152 +15,6 @@ const initialState = {
   plannerState: {},
   currentWeek: 1
 };
-
-// Enhanced reducer function
-function budgetReducer(state, action) {
-  switch (action.type) {
-    case ACTIONS.LOAD_DATA:
-      return {
-        ...state,
-        data: { ...state.data, ...action.payload },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.UPDATE_INCOME:
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          income: action.payload
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.UPDATE_MONTHLY_EXPENSE:
-      const newMonthly = { ...state.data.monthly };
-      if (!newMonthly[action.category]) {
-        newMonthly[action.category] = [];
-      }
-
-      if (action.index !== undefined) {
-        newMonthly[action.category][action.index] = action.payload;
-      } else {
-        newMonthly[action.category].push(action.payload);
-      }
-
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          monthly: newMonthly
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.UPDATE_ANNUAL_EXPENSE:
-      const newAnnual = { ...state.data.annual };
-      if (!newAnnual[action.category]) {
-        newAnnual[action.category] = [];
-      }
-
-      if (action.index !== undefined) {
-        newAnnual[action.category][action.index] = action.payload;
-      } else {
-        newAnnual[action.category].push(action.payload);
-      }
-
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          annual: newAnnual
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.UPDATE_PLANNER:
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          plannerState: { ...state.data.plannerState, ...action.payload }
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.UPDATE_EXPENSE_STATUS:
-      const { expenseId, expenseName, weekIndex, statusType, checked, sourceModule } = action.payload;
-
-      let updatedMonthly = { ...state.data.monthly };
-      let updatedAnnual = { ...state.data.annual };
-      let updatedPlanner = { ...state.data.plannerState };
-
-      // Update monthly expenses
-      Object.keys(updatedMonthly).forEach(category => {
-        updatedMonthly[category] = updatedMonthly[category].map(expense => {
-          if (expense.id === expenseId || expense.name === expenseName) {
-            return { ...expense, [statusType]: checked };
-          }
-          return expense;
-        });
-      });
-
-      // Update annual expenses
-      Object.keys(updatedAnnual).forEach(category => {
-        updatedAnnual[category] = updatedAnnual[category].map(expense => {
-          if (expense.id === expenseId || expense.name === expenseName) {
-            return { ...expense, [statusType]: checked };
-          }
-          return expense;
-        });
-      });
-
-      // Update planner state
-      if (expenseName && updatedPlanner[expenseName]) {
-        const plannerExpense = { ...updatedPlanner[expenseName] };
-        if (!plannerExpense[statusType]) {
-          plannerExpense[statusType] = Array(5).fill(false);
-        }
-        if (weekIndex !== undefined && weekIndex >= 0 && weekIndex < 5) {
-          plannerExpense[statusType][weekIndex] = checked;
-        }
-        updatedPlanner[expenseName] = plannerExpense;
-      }
-
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          monthly: updatedMonthly,
-          annual: updatedAnnual,
-          plannerState: updatedPlanner
-        },
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.SET_CURRENT_PAGE:
-      return {
-        ...state,
-        currentPage: action.payload
-      };
-
-    case ACTIONS.RESET_DATA:
-      return {
-        ...state,
-        data: createDefaultData(),
-        lastUpdated: new Date().toISOString()
-      };
-
-    case ACTIONS.TOGGLE_THEME:
-      return {
-        ...state,
-        theme: state.theme === 'light' ? 'dark' : 'light'
-      };
-
-    default:
-      return state;
-  }
-}
 
 // Context Provider Component
 export function BudgetProvider({ children }) {
@@ -220,8 +59,35 @@ export function BudgetProvider({ children }) {
     updateMonthlyExpense: (category, expense, index) =>
       dispatch({ type: ACTIONS.UPDATE_MONTHLY_EXPENSE, payload: expense, category, index }),
 
+    removeMonthlyExpense: (category, index) =>
+      dispatch({ type: ACTIONS.REMOVE_MONTHLY_EXPENSE, category, index }),
+
+    addMonthlyCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.ADD_MONTHLY_CATEGORY, categoryKey }),
+
+    removeMonthlyCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.REMOVE_MONTHLY_CATEGORY, categoryKey }),
+
     updateAnnualExpense: (category, expense, index) =>
       dispatch({ type: ACTIONS.UPDATE_ANNUAL_EXPENSE, payload: expense, category, index }),
+
+    removeAnnualExpense: (category, index) =>
+      dispatch({ type: ACTIONS.REMOVE_ANNUAL_EXPENSE, category, index }),
+
+    addAnnualCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.ADD_ANNUAL_CATEGORY, categoryKey }),
+
+    removeAnnualCategory: (categoryKey) =>
+      dispatch({ type: ACTIONS.REMOVE_ANNUAL_CATEGORY, categoryKey }),
+
+    addAccount: (account) =>
+      dispatch({ type: ACTIONS.ADD_ACCOUNT, payload: account }),
+
+    updateAccount: (account) =>
+      dispatch({ type: ACTIONS.UPDATE_ACCOUNT, payload: account }),
+
+    removeAccount: (id) =>
+      dispatch({ type: ACTIONS.REMOVE_ACCOUNT, id }),
 
     updatePlanner: (plannerData) =>
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: plannerData }),
@@ -279,26 +145,28 @@ export function BudgetProvider({ children }) {
       if (state.data.monthly) {
         Object.values(state.data.monthly).flat().forEach(expense => {
           if (expense.name && expense.name.trim()) {
-            const monthlyAmount = parseFloat(expense.actual || expense.amount || 0);
-            if (monthlyAmount > 0) {
-              let weeklyAmounts = Array(5).fill(0);
+            if (!newPlannerState[expense.name]) {
+              const monthlyAmount = parseFloat(expense.actual || expense.amount || 0);
+              if (monthlyAmount > 0) {
+                let weeklyAmounts = Array(5).fill(0);
 
-              if (expense.date) {
-                const dueDateObj = new Date(expense.date);
-                const dueDateOfMonth = dueDateObj.getDate();
-                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
-                targetWeek = Math.max(0, Math.min(4, targetWeek));
-                weeklyAmounts[targetWeek] = monthlyAmount;
-              } else {
-                const weeklyAmount = monthlyAmount / 5;
-                weeklyAmounts = Array(5).fill(weeklyAmount);
+                if (expense.date) {
+                  const dueDateObj = new Date(expense.date);
+                  const dueDateOfMonth = dueDateObj.getDate();
+                  let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                  targetWeek = Math.max(0, Math.min(4, targetWeek));
+                  weeklyAmounts[targetWeek] = monthlyAmount;
+                } else {
+                  const weeklyAmount = monthlyAmount / 5;
+                  weeklyAmounts = Array(5).fill(weeklyAmount);
+                }
+
+                newPlannerState[expense.name] = {
+                  weeks: weeklyAmounts,
+                  transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                  paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+                };
               }
-
-              newPlannerState[expense.name] = {
-                weeks: weeklyAmounts,
-                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
-                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
-              };
             }
           }
         });
@@ -308,28 +176,30 @@ export function BudgetProvider({ children }) {
       if (state.data.annual) {
         Object.values(state.data.annual).flat().forEach(expense => {
           if (expense.name && expense.name.trim()) {
-            const annualAmount = parseFloat(expense.actual || expense.amount || 0);
-            const monthlyEquivalent = annualAmount / 12;
+            if (!newPlannerState[expense.name]) {
+              const annualAmount = parseFloat(expense.actual || expense.amount || 0);
+              const monthlyEquivalent = annualAmount / 12;
 
-            if (monthlyEquivalent > 0) {
-              let weeklyAmounts = Array(5).fill(0);
+              if (monthlyEquivalent > 0) {
+                let weeklyAmounts = Array(5).fill(0);
 
-              if (expense.date) {
-                const dueDateObj = new Date(expense.date);
-                const dueDateOfMonth = dueDateObj.getDate();
-                let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
-                targetWeek = Math.max(0, Math.min(4, targetWeek));
-                weeklyAmounts[targetWeek] = monthlyEquivalent;
-              } else {
-                const weeklyAmount = monthlyEquivalent / 5;
-                weeklyAmounts = Array(5).fill(weeklyAmount);
+                if (expense.date) {
+                  const dueDateObj = new Date(expense.date);
+                  const dueDateOfMonth = dueDateObj.getDate();
+                  let targetWeek = Math.ceil(dueDateOfMonth / 7) - 1;
+                  targetWeek = Math.max(0, Math.min(4, targetWeek));
+                  weeklyAmounts[targetWeek] = monthlyEquivalent;
+                } else {
+                  const weeklyAmount = monthlyEquivalent / 5;
+                  weeklyAmounts = Array(5).fill(weeklyAmount);
+                }
+
+                newPlannerState[expense.name] = {
+                  weeks: weeklyAmounts,
+                  transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
+                  paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
+                };
               }
-
-              newPlannerState[expense.name] = {
-                weeks: weeklyAmounts,
-                transferred: expense.transferred ? Array(5).fill(expense.transferred) : Array(5).fill(false),
-                paid: expense.paid ? Array(5).fill(expense.paid) : Array(5).fill(false)
-              };
             }
           }
         });
@@ -440,15 +310,8 @@ export function BudgetProvider({ children }) {
       return income > 0 ? (net / income) * 100 : 0;
     },
 
-    getAccountBalances: () => {
-      return state.data.accounts || {
-        checking: 0,
-        savings: 0,
-        creditCard: 0,
-        cash: 0,
-        investment: 0,
-        other: 0
-      };
+    getAccounts: () => {
+      return Array.isArray(state.data.accounts) ? state.data.accounts : [];
     },
 
     getCategoryTotals: () => {

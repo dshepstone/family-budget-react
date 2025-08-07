@@ -2,12 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 
-const CATEGORIES = [
-  'housing', 'taxes', 'utilities', 'insurance', 'banking',
-  'loans', 'credit', 'subscriptions', 'food', 'transportation',
-  'medical', 'personal', 'shopping', 'dog', 'maintenance', 'gifts'
-];
-
 const CATEGORY_NAMES = {
   housing: 'Housing',
   taxes: 'Taxes',
@@ -31,22 +25,20 @@ const MonthlyExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [showZeroValues, setShowZeroValues] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(1);
+  const emptyAccount = {
+    id: null,
+    name: '',
+    bank: '',
+    transitNumber: '',
+    branchNumber: '',
+    accountNumber: '',
+  };
+  const [accountForm, setAccountForm] = useState(emptyAccount);
 
-  // Initialize empty categories if they don't exist
-  useEffect(() => {
-    const hasMonthlyData = state.data.monthly && Object.keys(state.data.monthly).length > 0;
-
-    if (!hasMonthlyData) {
-      const initialData = {};
-      CATEGORIES.forEach(category => {
-        initialData[category] = [];
-      });
-
-      // Update the monthly data in context
-      const updatedData = { ...state.data, monthly: initialData };
-      actions.updateMonthlyExpense('housing', { name: '', actual: 0, projected: 0, date: '', account: '', paid: false, transferred: false }, 0);
-    }
-  }, []);
+  const getPlannerStatus = (expenseName, statusType) => {
+    const entry = state.data.plannerState?.[expenseName];
+    return entry?.[statusType]?.[currentWeek - 1] || false;
+  };
 
   // Auto-populate planner when monthly data changes
   useEffect(() => {
@@ -112,7 +104,7 @@ const MonthlyExpensesPage = () => {
       actual: 0,
       projected: 0,
       date: '',
-      account: '',
+      accountId: '',
       paid: false,
       transferred: false,
       transferStatus: 'none'
@@ -123,17 +115,21 @@ const MonthlyExpensesPage = () => {
 
   // Remove expense from category
   const removeExpense = (categoryKey, expenseIndex) => {
-    const category = state.data.monthly[categoryKey] || [];
-    const updatedCategory = category.filter((_, index) => index !== expenseIndex);
+    actions.removeMonthlyExpense(categoryKey, expenseIndex);
+  };
 
-    // Update the entire category
-    updatedCategory.forEach((expense, index) => {
-      actions.updateMonthlyExpense(categoryKey, expense, index);
-    });
+  // Add a new category
+  const addCategory = () => {
+    const name = prompt('Enter new category name');
+    if (name && !state.data.monthly[name]) {
+      actions.addMonthlyCategory(name);
+    }
+  };
 
-    // If we removed all expenses, ensure category still exists as empty array
-    if (updatedCategory.length === 0) {
-      actions.updateMonthlyExpense(categoryKey, { name: '', actual: 0 }, 0);
+  // Remove an entire category
+  const removeCategory = (categoryKey) => {
+    if (window.confirm(`Remove category "${categoryKey}"?`)) {
+      actions.removeMonthlyCategory(categoryKey);
     }
   };
 
@@ -160,7 +156,7 @@ const MonthlyExpensesPage = () => {
   const resetFunding = () => {
     if (!window.confirm('Reset all projected amounts to $0.00?')) return;
 
-    CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.monthly || {}).forEach(categoryKey => {
       const category = state.data.monthly[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -174,7 +170,7 @@ const MonthlyExpensesPage = () => {
   const resetStatuses = () => {
     if (!window.confirm('Reset all payment and transfer statuses?')) return;
 
-    CATEGORIES.forEach(categoryKey => {
+    Object.keys(state.data.monthly || {}).forEach(categoryKey => {
       const category = state.data.monthly[categoryKey] || [];
       category.forEach((expense, index) => {
         if (expense.name) {
@@ -186,18 +182,23 @@ const MonthlyExpensesPage = () => {
     });
   };
 
-  // Create account select options
-  const createAccountSelect = (selectedAccount = '') => {
-    const accounts = ['Checking', 'Savings', 'Credit Card', 'Cash', 'Investment', 'Other'];
+  // Account form handlers
+  const handleAccountFieldChange = (field, value) => {
+    setAccountForm(prev => ({ ...prev, [field]: value }));
+  };
 
-    return (
-      <select value={selectedAccount} className="account-select">
-        <option value="">Select Account</option>
-        {accounts.map(account => (
-          <option key={account} value={account}>{account}</option>
-        ))}
-      </select>
-    );
+  const handleAccountSubmit = (e) => {
+    e.preventDefault();
+    if (accountForm.id) {
+      actions.updateAccount(accountForm);
+    } else {
+      actions.addAccount({ ...accountForm, id: Date.now().toString(), currentBalance: 0 });
+    }
+    setAccountForm(emptyAccount);
+  };
+
+  const editAccount = (account) => {
+    setAccountForm(account);
   };
 
   return (
@@ -356,10 +357,6 @@ const MonthlyExpensesPage = () => {
           background-color: #f8f9fa;
         }
 
-        .subcategory.zero-value {
-          opacity: 0.6;
-        }
-
         .date-input {
           width: 120px;
           padding: 6px 8px;
@@ -438,6 +435,14 @@ const MonthlyExpensesPage = () => {
 
         .checkbox-label {
           font-weight: bold;
+        }
+
+        .transferred-checkbox:checked {
+          accent-color: #ffc107;
+        }
+
+        .paid-checkbox:checked {
+          accent-color: #28a745;
         }
 
         .amount-input-group {
@@ -646,9 +651,8 @@ const MonthlyExpensesPage = () => {
 
       {/* Expense Categories */}
       <div id="monthly-expense-categories">
-        {CATEGORIES.map(categoryKey => {
-          const categoryName = CATEGORY_NAMES[categoryKey];
-          const expenses = state.data.monthly?.[categoryKey] || [];
+        {Object.entries(state.data.monthly || {}).map(([categoryKey, expenses]) => {
+          const categoryName = CATEGORY_NAMES[categoryKey] || categoryKey;
           const categoryTotal = getCategoryTotal(categoryKey);
 
           return (
@@ -657,11 +661,10 @@ const MonthlyExpensesPage = () => {
                 <span className="category-name">{categoryName}</span>
                 <div className="category-controls">
                   <span className="category-total">{formatCurrency(categoryTotal)}</span>
-                  <button
-                    className="add-item-btn"
-                    onClick={() => addExpense(categoryKey)}
-                  >
-                    +
+                  <button className="add-item-btn" onClick={() => addExpense(categoryKey)}>+
+                  </button>
+                  <button className="remove-category-btn" onClick={() => removeCategory(categoryKey)} title="Delete Category">
+                    ×
                   </button>
                 </div>
               </div>
@@ -689,7 +692,7 @@ const MonthlyExpensesPage = () => {
                   return (
                     <div
                       key={index}
-                      className={`subcategory ${actualAmount === 0 ? 'zero-value' : ''}`}
+                      className="subcategory"
                       data-expense-id={expense.id}
                     >
                       <input
@@ -708,16 +711,13 @@ const MonthlyExpensesPage = () => {
 
                       <select
                         className="account-select"
-                        value={expense.account || ''}
-                        onChange={(e) => handleExpenseChange(categoryKey, index, 'account', e.target.value)}
+                        value={expense.accountId || ''}
+                        onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                        {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
                       </select>
 
                       <div className="status-control-group">
@@ -736,7 +736,8 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.transferred || false}
+                              className="transferred-checkbox"
+                              checked={getPlannerStatus(expense.name, 'transferred')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
                             <span className="checkbox-label">T</span>
@@ -744,7 +745,8 @@ const MonthlyExpensesPage = () => {
                           <label className="status-checkbox-label">
                             <input
                               type="checkbox"
-                              checked={expense.paid || false}
+                              className="paid-checkbox"
+                              checked={getPlannerStatus(expense.name, 'paid')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
                             <span className="checkbox-label">P</span>
@@ -756,7 +758,7 @@ const MonthlyExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input projected-input ${projectedAmount > 0 ? 'has-value' : ''}`}
-                          value={projectedAmount.toFixed(2)}
+                          value={expense.projected ?? ''}
                           step="0.01"
                           placeholder="Projected"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'projected', e.target.value)}
@@ -771,7 +773,7 @@ const MonthlyExpensesPage = () => {
                         <input
                           type="number"
                           className={`amount-input actual-input ${actualAmount > 0 ? 'has-value' : ''}`}
-                          value={actualAmount.toFixed(2)}
+                          value={expense.actual ?? ''}
                           step="0.01"
                           placeholder="Actual"
                           onChange={(e) => handleExpenseChange(categoryKey, index, 'actual', e.target.value)}
@@ -792,6 +794,9 @@ const MonthlyExpensesPage = () => {
             </div>
           );
         })}
+        <div className="add-category-wrapper">
+          <button className="add-category-btn" onClick={addCategory}>Add Category</button>
+        </div>
       </div>
 
       <div className="page-actions">
@@ -816,6 +821,50 @@ const MonthlyExpensesPage = () => {
           • Due dates determine which week expenses are planned for<br />
           • Changes here update the weekly planner in real-time
         </div>
+      </div>
+
+      {/* Accounts Manager */}
+      <div className="accounts-manager">
+        <h3>Accounts Manager</h3>
+        <form onSubmit={handleAccountSubmit} className="account-form">
+          <input
+            value={accountForm.name}
+            onChange={(e) => handleAccountFieldChange('name', e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            value={accountForm.bank}
+            onChange={(e) => handleAccountFieldChange('bank', e.target.value)}
+            placeholder="Bank"
+          />
+          <input
+            value={accountForm.transitNumber}
+            onChange={(e) => handleAccountFieldChange('transitNumber', e.target.value)}
+            placeholder="Transit #"
+          />
+          <input
+            value={accountForm.branchNumber}
+            onChange={(e) => handleAccountFieldChange('branchNumber', e.target.value)}
+            placeholder="Branch #"
+          />
+          <input
+            value={accountForm.accountNumber}
+            onChange={(e) => handleAccountFieldChange('accountNumber', e.target.value)}
+            placeholder="Account #"
+          />
+          <button type="submit">
+            {accountForm.id ? 'Update' : 'Add'} Account
+          </button>
+        </form>
+        <ul className="accounts-list">
+          {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
+            <li key={acc.id}>
+              {acc.name} ({acc.bank})
+              <button type="button" onClick={() => editAccount(acc)}>Edit</button>
+              <button type="button" onClick={() => actions.removeAccount(acc.id)}>Delete</button>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
