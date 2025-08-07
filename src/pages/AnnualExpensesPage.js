@@ -87,7 +87,7 @@ const AnnualExpensesPage = () => {
       actual: 0,
       projected: 0,
       date: '',
-      account: '',
+      accountId: '',
       paid: false,
       transferred: false,
       transferStatus: 'full'
@@ -723,16 +723,13 @@ const AnnualExpensesPage = () => {
 
                       <select
                         className="account-select"
-                        value={expense.account || ''}
-                        onChange={(e) => handleExpenseChange(categoryKey, index, 'account', e.target.value)}
+                        value={expense.accountId || ''}
+                        onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                        {(state.data.accounts || []).map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
                       </select>
 
                       <div className="status-control-group">

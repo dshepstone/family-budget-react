@@ -144,7 +144,7 @@ export function useBudgetCalculations(budgetData) {
       // Process monthly expenses
       Object.values(monthly).forEach(category => {
         category.forEach(expense => {
-          const account = expense.account || 'Unassigned';
+          const account = expense.accountId || 'Unassigned';
           const amount = currencyCalculator.parseAmount(expense.actual || expense.amount);
           allocations[account] = currencyCalculator.add(allocations[account] || 0, amount);
         });
@@ -153,7 +153,7 @@ export function useBudgetCalculations(budgetData) {
       // Process annual expenses (as monthly equivalent)
       Object.values(annual).forEach(category => {
         category.forEach(expense => {
-          const account = expense.account || 'Unassigned';
+          const account = expense.accountId || 'Unassigned';
           const amount = currencyCalculator.parseAmount(expense.actual || expense.amount);
           const monthlyAmount = currencyCalculator.divide(amount, 12);
           allocations[account] = currencyCalculator.add(allocations[account] || 0, monthlyAmount);

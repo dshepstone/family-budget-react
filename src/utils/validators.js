@@ -1,5 +1,5 @@
 // src/utils/validators.js
-import { EXPENSE_CATEGORIES, ACCOUNT_TYPES } from './constants';
+import { EXPENSE_CATEGORIES } from './constants';
 
 // Validate budget data structure
 export function validateBudgetData(data) {
@@ -28,9 +28,9 @@ export function validateBudgetData(data) {
     return false;
   }
 
-  // Validate accounts object
-  if (typeof data.accounts !== 'object') {
-    console.warn('Accounts must be an object');
+  // Validate accounts array
+  if (!Array.isArray(data.accounts)) {
+    console.warn('Accounts must be an array');
     return false;
   }
 
@@ -83,19 +83,15 @@ export function validateAccount(account) {
   if (!account || typeof account !== 'object') {
     return false;
   }
-
-  if (!account.name || typeof account.name !== 'string') {
+  const required = ['name', 'bank', 'transitNumber', 'branchNumber', 'accountNumber'];
+  for (const field of required) {
+    if (!account[field] || typeof account[field] !== 'string') {
+      return false;
+    }
+  }
+  if (account.currentBalance !== undefined && isNaN(parseFloat(account.currentBalance))) {
     return false;
   }
-
-  if (!account.type || !ACCOUNT_TYPES.includes(account.type)) {
-    return false;
-  }
-
-  if (account.balance !== undefined && isNaN(parseFloat(account.balance))) {
-    return false;
-  }
-
   return true;
 }
 
@@ -147,13 +143,7 @@ export function createDefaultData() {
     income: [],
     monthly: defaultMonthly,
     annual: defaultAnnual,
-    accounts: {
-      balances: {},
-      availableBalances: {},
-      lastUpdated: {},
-      transactions: {},
-      accountInfo: {}
-    },
+    accounts: [],
     plannerState: {
       weeklyIncome: [0, 0, 0, 0],
       weeklyExpenses: [0, 0, 0, 0],
@@ -226,7 +216,7 @@ export function validateImportData(data) {
       stats: {
         totalExpenses,
         hasIncome: Array.isArray(budgetData.income) && budgetData.income.length > 0,
-        hasAccounts: budgetData.accounts && Object.keys(budgetData.accounts).length > 0
+        hasAccounts: Array.isArray(budgetData.accounts) && budgetData.accounts.length > 0
       }
     };
 

@@ -25,6 +25,15 @@ const MonthlyExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [showZeroValues, setShowZeroValues] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(1);
+  const emptyAccount = {
+    id: null,
+    name: '',
+    bank: '',
+    transitNumber: '',
+    branchNumber: '',
+    accountNumber: '',
+  };
+  const [accountForm, setAccountForm] = useState(emptyAccount);
 
   const getPlannerStatus = (expenseName, statusType) => {
     const entry = state.data.plannerState?.[expenseName];
@@ -95,7 +104,7 @@ const MonthlyExpensesPage = () => {
       actual: 0,
       projected: 0,
       date: '',
-      account: '',
+      accountId: '',
       paid: false,
       transferred: false,
       transferStatus: 'none'
@@ -173,18 +182,23 @@ const MonthlyExpensesPage = () => {
     });
   };
 
-  // Create account select options
-  const createAccountSelect = (selectedAccount = '') => {
-    const accounts = ['Checking', 'Savings', 'Credit Card', 'Cash', 'Investment', 'Other'];
+  // Account form handlers
+  const handleAccountFieldChange = (field, value) => {
+    setAccountForm(prev => ({ ...prev, [field]: value }));
+  };
 
-    return (
-      <select value={selectedAccount} className="account-select">
-        <option value="">Select Account</option>
-        {accounts.map(account => (
-          <option key={account} value={account}>{account}</option>
-        ))}
-      </select>
-    );
+  const handleAccountSubmit = (e) => {
+    e.preventDefault();
+    if (accountForm.id) {
+      actions.updateAccount(accountForm);
+    } else {
+      actions.addAccount({ ...accountForm, id: Date.now().toString(), currentBalance: 0 });
+    }
+    setAccountForm(emptyAccount);
+  };
+
+  const editAccount = (account) => {
+    setAccountForm(account);
   };
 
   return (
@@ -697,16 +711,13 @@ const MonthlyExpensesPage = () => {
 
                       <select
                         className="account-select"
-                        value={expense.account || ''}
-                        onChange={(e) => handleExpenseChange(categoryKey, index, 'account', e.target.value)}
+                        value={expense.accountId || ''}
+                        onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        <option value="Checking">Checking</option>
-                        <option value="Savings">Savings</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Cash">Cash</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                        {(state.data.accounts || []).map(acc => (
+                          <option key={acc.id} value={acc.id}>{acc.name}</option>
+                        ))}
                       </select>
 
                       <div className="status-control-group">
@@ -810,6 +821,50 @@ const MonthlyExpensesPage = () => {
           • Due dates determine which week expenses are planned for<br />
           • Changes here update the weekly planner in real-time
         </div>
+      </div>
+
+      {/* Accounts Manager */}
+      <div className="accounts-manager">
+        <h3>Accounts Manager</h3>
+        <form onSubmit={handleAccountSubmit} className="account-form">
+          <input
+            value={accountForm.name}
+            onChange={(e) => handleAccountFieldChange('name', e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            value={accountForm.bank}
+            onChange={(e) => handleAccountFieldChange('bank', e.target.value)}
+            placeholder="Bank"
+          />
+          <input
+            value={accountForm.transitNumber}
+            onChange={(e) => handleAccountFieldChange('transitNumber', e.target.value)}
+            placeholder="Transit #"
+          />
+          <input
+            value={accountForm.branchNumber}
+            onChange={(e) => handleAccountFieldChange('branchNumber', e.target.value)}
+            placeholder="Branch #"
+          />
+          <input
+            value={accountForm.accountNumber}
+            onChange={(e) => handleAccountFieldChange('accountNumber', e.target.value)}
+            placeholder="Account #"
+          />
+          <button type="submit">
+            {accountForm.id ? 'Update' : 'Add'} Account
+          </button>
+        </form>
+        <ul className="accounts-list">
+          {(state.data.accounts || []).map(acc => (
+            <li key={acc.id}>
+              {acc.name} ({acc.bank})
+              <button type="button" onClick={() => editAccount(acc)}>Edit</button>
+              <button type="button" onClick={() => actions.removeAccount(acc.id)}>Delete</button>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

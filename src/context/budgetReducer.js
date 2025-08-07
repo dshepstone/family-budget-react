@@ -12,6 +12,9 @@ export const ACTIONS = {
   REMOVE_MONTHLY_CATEGORY: 'REMOVE_MONTHLY_CATEGORY',
   ADD_ANNUAL_CATEGORY: 'ADD_ANNUAL_CATEGORY',
   REMOVE_ANNUAL_CATEGORY: 'REMOVE_ANNUAL_CATEGORY',
+  ADD_ACCOUNT: 'ADD_ACCOUNT',
+  UPDATE_ACCOUNT: 'UPDATE_ACCOUNT',
+  REMOVE_ACCOUNT: 'REMOVE_ACCOUNT',
   UPDATE_PLANNER: 'UPDATE_PLANNER',
   UPDATE_EXPENSE_STATUS: 'UPDATE_EXPENSE_STATUS',
   SYNC_WEEKLY_TO_MONTHLY: 'SYNC_WEEKLY_TO_MONTHLY',
@@ -211,6 +214,38 @@ export function budgetReducer(state, action) {
           annual: newAnnual
         },
         lastUpdated: new Date().toISOString()
+      };
+    }
+
+    case ACTIONS.ADD_ACCOUNT: {
+      const accounts = [...(state.data.accounts || [])];
+      accounts.push(action.payload);
+      return {
+        ...state,
+        data: { ...state.data, accounts },
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    case ACTIONS.UPDATE_ACCOUNT: {
+      const accounts = (state.data.accounts || []).map((acc) =>
+        acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
+      );
+      return {
+        ...state,
+        data: { ...state.data, accounts },
+        lastUpdated: new Date().toISOString(),
+      };
+    }
+
+    case ACTIONS.REMOVE_ACCOUNT: {
+      const accounts = (state.data.accounts || []).filter(
+        (acc) => acc.id !== action.id
+      );
+      return {
+        ...state,
+        data: { ...state.data, accounts },
+        lastUpdated: new Date().toISOString(),
       };
     }
 

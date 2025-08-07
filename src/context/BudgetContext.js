@@ -80,6 +80,15 @@ export function BudgetProvider({ children }) {
     removeAnnualCategory: (categoryKey) =>
       dispatch({ type: ACTIONS.REMOVE_ANNUAL_CATEGORY, categoryKey }),
 
+    addAccount: (account) =>
+      dispatch({ type: ACTIONS.ADD_ACCOUNT, payload: account }),
+
+    updateAccount: (account) =>
+      dispatch({ type: ACTIONS.UPDATE_ACCOUNT, payload: account }),
+
+    removeAccount: (id) =>
+      dispatch({ type: ACTIONS.REMOVE_ACCOUNT, id }),
+
     updatePlanner: (plannerData) =>
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: plannerData }),
 
@@ -301,15 +310,8 @@ export function BudgetProvider({ children }) {
       return income > 0 ? (net / income) * 100 : 0;
     },
 
-    getAccountBalances: () => {
-      return state.data.accounts || {
-        checking: 0,
-        savings: 0,
-        creditCard: 0,
-        cash: 0,
-        investment: 0,
-        other: 0
-      };
+    getAccounts: () => {
+      return state.data.accounts || [];
     },
 
     getCategoryTotals: () => {

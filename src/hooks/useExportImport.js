@@ -179,7 +179,7 @@ export function useExportImport() {
           category,
           expense.name || '',
           expense.actual || expense.amount || 0,
-          expense.account || '',
+          expense.accountId || '',
           expense.date || '',
           expense.paid ? 'Yes' : 'No',
           expense.notes || ''
@@ -203,7 +203,7 @@ export function useExportImport() {
           category,
           expense.name || '',
           expense.actual || expense.amount || 0,
-          expense.account || '',
+          expense.accountId || '',
           expense.date || '',
           expense.frequency || 'annual',
           expense.paid ? 'Yes' : 'No',

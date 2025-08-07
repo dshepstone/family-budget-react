@@ -9,7 +9,7 @@ import ExpenseBreakdown from '../components/charts/ExpenseBreakdown';
 import Card from '../components/ui/Card';
 
 const HomePage = () => {
-  const { state, calculations, formatCurrency } = useBudget();
+  const { state, calculations, formatCurrency, actions } = useBudget();
 
   const totalIncome = calculations.getTotalIncome();
   const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();
@@ -47,6 +47,17 @@ const HomePage = () => {
   };
 
   const expenseData = getExpenseBreakdownData();
+
+  const allExpenses = [
+    ...Object.values(state.data.monthly || {}).flat(),
+    ...Object.values(state.data.annual || {}).flat()
+  ];
+
+  const getProjectedTotal = (accountId) => {
+    return allExpenses
+      .filter(e => e.accountId === accountId && e.transferred && !e.paid)
+      .reduce((sum, e) => sum + (parseFloat(e.actual || e.amount || 0)), 0);
+  };
 
   return (
     <div className="page-content">
@@ -114,6 +125,37 @@ const HomePage = () => {
         {/* Expense Breakdown */}
         <Card title="🥧 Expense Breakdown" className="chart-card">
           <ExpenseBreakdown data={expenseData} />
+        </Card>
+
+        {/* Account Balances */}
+        <Card title="🏦 Account Balances" className="accounts-card">
+          <div className="accounts-grid">
+            <div className="accounts-header">
+              <span>Account</span>
+              <span>Current Balance</span>
+              <span>Projected Total</span>
+            </div>
+            {(state.data.accounts || []).map((acc) => (
+              <div key={acc.id} className="account-row">
+                <div className="account-info">
+                  {acc.name} - {acc.bank} {acc.transitNumber}-{acc.branchNumber}-{acc.accountNumber}
+                </div>
+                <input
+                  type="number"
+                  value={acc.currentBalance ?? ''}
+                  onChange={(e) =>
+                    actions.updateAccount({
+                      ...acc,
+                      currentBalance: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                />
+                <div className="projected-value">
+                  {formatCurrency(getProjectedTotal(acc.id))}
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
 
         {/* Upcoming Expenses */}
