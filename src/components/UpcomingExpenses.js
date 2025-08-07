@@ -71,7 +71,7 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
           const urgencyIcon = getUrgencyIcon(expense.daysUntil);
           const timingText = getTimingText(expense.daysUntil);
 
-          const account = (state.data.accounts || []).find(a => a.id === expense.accountId);
+          const account = (Array.isArray(state.data.accounts) ? state.data.accounts : []).find(a => a.id === expense.accountId);
 
           return (
             <div key={`${expense.name}-${index}`} className={`expense-item ${urgencyLevel}`}>

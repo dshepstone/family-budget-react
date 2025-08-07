@@ -135,7 +135,7 @@ const HomePage = () => {
               <span>Current Balance</span>
               <span>Projected Total</span>
             </div>
-            {(state.data.accounts || []).map((acc) => (
+            {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map((acc) => (
               <div key={acc.id} className="account-row">
                 <div className="account-info">
                   {acc.name} - {acc.bank} {acc.transitNumber}-{acc.branchNumber}-{acc.accountNumber}

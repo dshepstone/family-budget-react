@@ -715,7 +715,7 @@ const MonthlyExpensesPage = () => {
                         onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        {(state.data.accounts || []).map(acc => (
+                        {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
                           <option key={acc.id} value={acc.id}>{acc.name}</option>
                         ))}
                       </select>
@@ -857,7 +857,7 @@ const MonthlyExpensesPage = () => {
           </button>
         </form>
         <ul className="accounts-list">
-          {(state.data.accounts || []).map(acc => (
+          {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
             <li key={acc.id}>
               {acc.name} ({acc.bank})
               <button type="button" onClick={() => editAccount(acc)}>Edit</button>

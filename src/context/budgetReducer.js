@@ -66,12 +66,19 @@ export function migratePlannerDataToWeeklyStatus(plannerData = {}, weeklyStatus 
 // Reducer function
 export function budgetReducer(state, action) {
   switch (action.type) {
-    case ACTIONS.LOAD_DATA:
+    case ACTIONS.LOAD_DATA: {
+      const incoming = { ...action.payload };
+      if (!Array.isArray(incoming.accounts)) {
+        incoming.accounts = incoming.accounts && typeof incoming.accounts === 'object'
+          ? Object.values(incoming.accounts)
+          : [];
+      }
       return {
         ...state,
-        data: { ...state.data, ...action.payload },
+        data: { ...state.data, ...incoming },
         lastUpdated: new Date().toISOString()
       };
+    }
 
     case ACTIONS.UPDATE_INCOME:
       return {
@@ -218,7 +225,9 @@ export function budgetReducer(state, action) {
     }
 
     case ACTIONS.ADD_ACCOUNT: {
-      const accounts = [...(state.data.accounts || [])];
+      const accounts = Array.isArray(state.data.accounts)
+        ? [...state.data.accounts]
+        : [];
       accounts.push(action.payload);
       return {
         ...state,
@@ -228,9 +237,11 @@ export function budgetReducer(state, action) {
     }
 
     case ACTIONS.UPDATE_ACCOUNT: {
-      const accounts = (state.data.accounts || []).map((acc) =>
-        acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
-      );
+      const accounts = Array.isArray(state.data.accounts)
+        ? state.data.accounts.map((acc) =>
+            acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
+          )
+        : [];
       return {
         ...state,
         data: { ...state.data, accounts },
@@ -239,9 +250,9 @@ export function budgetReducer(state, action) {
     }
 
     case ACTIONS.REMOVE_ACCOUNT: {
-      const accounts = (state.data.accounts || []).filter(
-        (acc) => acc.id !== action.id
-      );
+      const accounts = Array.isArray(state.data.accounts)
+        ? state.data.accounts.filter((acc) => acc.id !== action.id)
+        : [];
       return {
         ...state,
         data: { ...state.data, accounts },

@@ -311,7 +311,7 @@ export function BudgetProvider({ children }) {
     },
 
     getAccounts: () => {
-      return state.data.accounts || [];
+      return Array.isArray(state.data.accounts) ? state.data.accounts : [];
     },
 
     getCategoryTotals: () => {

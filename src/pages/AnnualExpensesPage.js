@@ -727,7 +727,7 @@ const AnnualExpensesPage = () => {
                         onChange={(e) => handleExpenseChange(categoryKey, index, 'accountId', e.target.value)}
                       >
                         <option value="">Select Account</option>
-                        {(state.data.accounts || []).map(acc => (
+                        {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
                           <option key={acc.id} value={acc.id}>{acc.name}</option>
                         ))}
                       </select>
