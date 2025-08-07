@@ -1,6 +1,9 @@
 // src/pages/MonthlyExpensesPage.js - Enhanced with Weekly Sync
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
+import AccountsManager from '../components/AccountsManager';
+import { MonthlyExpensesPrint } from '../utils/printUtils';
+
 
 const CATEGORY_NAMES = {
   housing: 'Housing',
@@ -25,15 +28,7 @@ const MonthlyExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [showZeroValues, setShowZeroValues] = useState(true);
   const [currentWeek, setCurrentWeek] = useState(1);
-  const emptyAccount = {
-    id: null,
-    name: '',
-    bank: '',
-    transitNumber: '',
-    branchNumber: '',
-    accountNumber: '',
-  };
-  const [accountForm, setAccountForm] = useState(emptyAccount);
+ 
 
   const getPlannerStatus = (expenseName, statusType) => {
     const entry = state.data.plannerState?.[expenseName];
@@ -93,6 +88,15 @@ const MonthlyExpensesPage = () => {
         'monthly'
       );
     }
+  };
+
+  const handlePrint = () => {
+    const printContent = MonthlyExpensesPrint.generatePrintContent(
+      state.data,
+      calculations,
+      formatCurrency
+    );
+    MonthlyExpensesPrint.openPrintWindow(printContent, 'Monthly Expenses Report');
   };
 
   // Add new expense to category
@@ -182,24 +186,7 @@ const MonthlyExpensesPage = () => {
     });
   };
 
-  // Account form handlers
-  const handleAccountFieldChange = (field, value) => {
-    setAccountForm(prev => ({ ...prev, [field]: value }));
-  };
 
-  const handleAccountSubmit = (e) => {
-    e.preventDefault();
-    if (accountForm.id) {
-      actions.updateAccount(accountForm);
-    } else {
-      actions.addAccount({ ...accountForm, id: Date.now().toString(), currentBalance: 0 });
-    }
-    setAccountForm(emptyAccount);
-  };
-
-  const editAccount = (account) => {
-    setAccountForm(account);
-  };
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
@@ -800,7 +787,7 @@ const MonthlyExpensesPage = () => {
       </div>
 
       <div className="page-actions">
-        <button className="btn btn-secondary" onClick={() => window.print()}>
+        <button className="btn btn-secondary" onClick={() => handlePrint()}>
           🖨️ Print this Page
         </button>
         <button className="btn btn-primary">
@@ -823,49 +810,8 @@ const MonthlyExpensesPage = () => {
         </div>
       </div>
 
-      {/* Accounts Manager */}
-      <div className="accounts-manager">
-        <h3>Accounts Manager</h3>
-        <form onSubmit={handleAccountSubmit} className="account-form">
-          <input
-            value={accountForm.name}
-            onChange={(e) => handleAccountFieldChange('name', e.target.value)}
-            placeholder="Name"
-          />
-          <input
-            value={accountForm.bank}
-            onChange={(e) => handleAccountFieldChange('bank', e.target.value)}
-            placeholder="Bank"
-          />
-          <input
-            value={accountForm.transitNumber}
-            onChange={(e) => handleAccountFieldChange('transitNumber', e.target.value)}
-            placeholder="Transit #"
-          />
-          <input
-            value={accountForm.branchNumber}
-            onChange={(e) => handleAccountFieldChange('branchNumber', e.target.value)}
-            placeholder="Branch #"
-          />
-          <input
-            value={accountForm.accountNumber}
-            onChange={(e) => handleAccountFieldChange('accountNumber', e.target.value)}
-            placeholder="Account #"
-          />
-          <button type="submit">
-            {accountForm.id ? 'Update' : 'Add'} Account
-          </button>
-        </form>
-        <ul className="accounts-list">
-          {(Array.isArray(state.data.accounts) ? state.data.accounts : []).map(acc => (
-            <li key={acc.id}>
-              {acc.name} ({acc.bank})
-              <button type="button" onClick={() => editAccount(acc)}>Edit</button>
-              <button type="button" onClick={() => actions.removeAccount(acc.id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* Modern Accounts Manager */}
+      <AccountsManager />
     </div>
   );
 };

@@ -1,6 +1,8 @@
 // src/pages/AnnualExpensesPage.js - Enhanced with Weekly Sync
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
+import { AnnualExpensesPrint } from '../utils/printUtils';
+
 
 const ANNUAL_CATEGORY_NAMES = {
   'yearly-subs': 'Yearly Subscriptions',
@@ -147,6 +149,15 @@ const AnnualExpensesPage = () => {
         }
       });
     });
+  };
+
+  const handlePrint = () => {
+    const printContent = AnnualExpensesPrint.generatePrintContent(
+      state.data,
+      calculations,
+      formatCurrency
+    );
+    AnnualExpensesPrint.openPrintWindow(printContent, 'Annual Expenses Report');
   };
 
   // Reset all statuses
@@ -815,7 +826,7 @@ const AnnualExpensesPage = () => {
       </div>
 
       <div className="page-actions">
-        <button className="btn btn-secondary" onClick={() => window.print()}>
+        <button className="btn btn-secondary" onClick={() => handlePrint()}>
           🖨️ Print this Page
         </button>
         <button className="btn btn-primary">

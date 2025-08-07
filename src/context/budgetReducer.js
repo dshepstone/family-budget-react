@@ -21,7 +21,8 @@ export const ACTIONS = {
   SYNC_WEEKLY_TO_ANNUAL: 'SYNC_WEEKLY_TO_ANNUAL',
   SET_CURRENT_PAGE: 'SET_CURRENT_PAGE',
   RESET_DATA: 'RESET_DATA',
-  TOGGLE_THEME: 'TOGGLE_THEME'
+  TOGGLE_THEME: 'TOGGLE_THEME',
+  TOGGLE_CALCULATOR: 'TOGGLE_CALCULATOR'
 };
 
 // Helper to migrate old planner data format to new weekly status structure
@@ -266,8 +267,8 @@ export function budgetReducer(state, action) {
     case ACTIONS.UPDATE_ACCOUNT: {
       const accounts = Array.isArray(state.data.accounts)
         ? state.data.accounts.map((acc) =>
-            acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
-          )
+          acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
+        )
         : [];
       return {
         ...state,
@@ -392,7 +393,7 @@ export function budgetReducer(state, action) {
 
       // Update annual expenses
       Object.keys(updatedAnnual).forEach((category) => {
-      updatedAnnual[category] = updatedAnnual[category].map((expense) => {
+        updatedAnnual[category] = updatedAnnual[category].map((expense) => {
           if (expense.id === expenseId || expense.name === expenseName) {
             return { ...expense, [statusType]: overallStatus };
           }
@@ -429,6 +430,12 @@ export function budgetReducer(state, action) {
       return {
         ...state,
         theme: state.theme === 'light' ? 'dark' : 'light'
+      };
+
+    case ACTIONS.TOGGLE_CALCULATOR:
+      return {
+        ...state,
+        isCalculatorOpen: !state.isCalculatorOpen,
       };
 
     default:

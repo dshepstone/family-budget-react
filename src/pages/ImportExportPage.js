@@ -1,4 +1,4 @@
-// src/pages/ImportExportPage.js
+// src/pages/ImportExportPage.js - Redesigned Layout
 import React, { useState, useRef } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { useExportImport } from '../hooks/useExportImport';
@@ -128,7 +128,7 @@ const ImportExportPage = () => {
   const getDataStats = () => {
     const monthlyExpenses = Object.values(state.data.monthly || {}).reduce((total, cat) => total + cat.length, 0);
     const annualExpenses = Object.values(state.data.annual || {}).reduce((total, cat) => total + cat.length, 0);
-    
+
     return {
       income: state.data.income?.length || 0,
       monthlyExpenses,
@@ -143,7 +143,7 @@ const ImportExportPage = () => {
   const stats = getDataStats();
 
   return (
-    <div className="page-content">
+    <div className="import-export-redesigned">
       <div className="page-header">
         <h2 className="page-title">📂 Data Management</h2>
         <p className="page-description">
@@ -151,126 +151,181 @@ const ImportExportPage = () => {
         </p>
       </div>
 
-      {/* Current Data Overview */}
-      <Card title="📊 Current Data Overview" className="overview-card">
-        <div className="data-stats-grid">
-          <div className="stat-item">
-            <div className="stat-value">{stats.income}</div>
-            <div className="stat-label">Income Sources</div>
+      {/* Data Overview Dashboard */}
+      <div className="data-overview-dashboard">
+        <div className="overview-stats">
+          <div className="stat-card primary">
+            <div className="stat-icon">📊</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.totalExpenses}</div>
+              <div className="stat-label">Total Expenses</div>
+              <div className="stat-detail">{stats.monthlyExpenses} monthly • {stats.annualExpenses} annual</div>
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-value">{stats.monthlyExpenses}</div>
-            <div className="stat-label">Monthly Expenses</div>
+
+          <div className="stat-card success">
+            <div className="stat-icon">💵</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.income}</div>
+              <div className="stat-label">Income Sources</div>
+              <div className="stat-detail">Active revenue streams</div>
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-value">{stats.annualExpenses}</div>
-            <div className="stat-label">Annual Expenses</div>
+
+          <div className="stat-card info">
+            <div className="stat-icon">🏷️</div>
+            <div className="stat-content">
+              <div className="stat-number">{stats.categories}</div>
+              <div className="stat-label">Categories</div>
+              <div className="stat-detail">Budget organization</div>
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-value">{stats.categories}</div>
-            <div className="stat-label">Categories</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-value">{Math.round(stats.dataSize / 1024)}</div>
-            <div className="stat-label">KB Data Size</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-value">{new Date(state.lastUpdated).toLocaleDateString()}</div>
-            <div className="stat-label">Last Updated</div>
+
+          <div className="stat-card warning">
+            <div className="stat-icon">💾</div>
+            <div className="stat-content">
+              <div className="stat-number">{Math.round(stats.dataSize / 1024)}</div>
+              <div className="stat-label">KB Data Size</div>
+              <div className="stat-detail">Storage footprint</div>
+            </div>
           </div>
         </div>
-      </Card>
 
-      {/* Export Options */}
-      <Card title="📤 Export Data" className="export-card">
-        <div className="export-section">
-          <div className="export-options">
-            <div className="export-group">
-              <h4>JSON Export (Complete Backup)</h4>
-              <p>Export all budget data in JSON format for complete backup and restore capabilities.</p>
-              
-              <div className="filename-input">
-                <Input
-                  type="text"
-                  placeholder="Custom filename (optional)"
-                  value={customFilename}
-                  onChange={(e) => setCustomFilename(e.target.value)}
-                  helperText="Leave empty for auto-generated filename"
-                />
+        <div className="last-updated-info">
+          <div className="update-indicator">
+            <span className="update-dot"></span>
+            <span className="update-text">
+              Last updated: {new Date(state.lastUpdated).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Actions Grid */}
+      <div className="main-actions-grid">
+
+        {/* Export Section */}
+        <div className="action-section export-section">
+          <div className="section-header">
+            <div className="section-icon export">📤</div>
+            <div className="section-title">Export Data</div>
+            <div className="section-subtitle">Backup your budget data</div>
+          </div>
+
+          <div className="primary-action-card">
+            <div className="action-header">
+              <div className="action-icon">🗂️</div>
+              <div className="action-info">
+                <h4>Complete Backup</h4>
+                <p>Export all data as JSON for full backup</p>
               </div>
-              
+            </div>
+
+            <div className="action-form">
+              <Input
+                type="text"
+                placeholder="Custom filename (optional)"
+                value={customFilename}
+                onChange={(e) => setCustomFilename(e.target.value)}
+                className="filename-input"
+              />
+
               <Button
                 variant="primary"
                 onClick={handleExportJSON}
                 disabled={isProcessing}
+                className="primary-action-btn"
               >
-                {isProcessing ? 'Exporting...' : '📁 Export Complete Backup (JSON)'}
+                {isProcessing ? 'Exporting...' : 'Create Backup'}
               </Button>
             </div>
+          </div>
 
-            <div className="export-group">
-              <h4>CSV Export (Spreadsheet Compatible)</h4>
-              <p>Export specific data sections in CSV format for use in spreadsheet applications.</p>
-              
-              <div className="csv-options">
-                <Button
-                  variant="secondary"
-                  onClick={() => handleExportCSV('income')}
-                  disabled={isProcessing}
-                >
-                  💵 Export Income CSV
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleExportCSV('monthly')}
-                  disabled={isProcessing}
-                >
-                  💳 Export Monthly Expenses CSV
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleExportCSV('annual')}
-                  disabled={isProcessing}
-                >
-                  📅 Export Annual Expenses CSV
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => handleExportCSV('all')}
-                  disabled={isProcessing}
-                >
-                  📊 Export Complete CSV
-                </Button>
-              </div>
+          <div className="secondary-actions">
+            <div className="secondary-header">
+              <h5>📋 Spreadsheet Exports</h5>
+              <p>Export data in CSV format for Excel/Sheets</p>
+            </div>
+
+            <div className="csv-export-grid">
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV('income')}
+                disabled={isProcessing}
+                className="csv-btn"
+              >
+                <span className="btn-icon">💵</span>
+                <span>Income</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV('monthly')}
+                disabled={isProcessing}
+                className="csv-btn"
+              >
+                <span className="btn-icon">📅</span>
+                <span>Monthly</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV('annual')}
+                disabled={isProcessing}
+                className="csv-btn"
+              >
+                <span className="btn-icon">📆</span>
+                <span>Annual</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => handleExportCSV('all')}
+                disabled={isProcessing}
+                className="csv-btn featured"
+              >
+                <span className="btn-icon">📊</span>
+                <span>Complete</span>
+              </Button>
             </div>
           </div>
         </div>
-      </Card>
 
-      {/* Import Options */}
-      <Card title="📥 Import Data" className="import-card">
-        <div className="import-section">
-          <div className="import-warning">
+        {/* Import Section */}
+        <div className="action-section import-section">
+          <div className="section-header">
+            <div className="section-icon import">📥</div>
+            <div className="section-title">Import Data</div>
+            <div className="section-subtitle">Restore from backup</div>
+          </div>
+
+          <div className="warning-banner">
             <div className="warning-icon">⚠️</div>
-            <div className="warning-text">
-              <strong>Important:</strong> Importing data will replace your current budget information. 
-              Make sure to export a backup before importing new data.
+            <div className="warning-content">
+              <strong>Data Replacement Warning</strong>
+              <p>Importing will replace all current data. Export a backup first!</p>
             </div>
           </div>
 
-          <div className="import-options">
-            <div className="import-group">
-              <h4>JSON Import (Complete Restore)</h4>
-              <p>Import a complete budget backup from a JSON file exported from this application.</p>
-              
+          <div className="primary-action-card">
+            <div className="action-header">
+              <div className="action-icon">📂</div>
+              <div className="action-info">
+                <h4>Restore Backup</h4>
+                <p>Import complete data from JSON file</p>
+              </div>
+            </div>
+
+            <div className="action-form">
               <Button
                 variant="success"
                 onClick={handleImportJSON}
                 disabled={isProcessing}
+                className="primary-action-btn"
               >
-                {isProcessing ? 'Importing...' : '📂 Import Budget Data (JSON)'}
+                {isProcessing ? 'Importing...' : 'Select Backup File'}
               </Button>
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -279,77 +334,110 @@ const ImportExportPage = () => {
                 style={{ display: 'none' }}
               />
             </div>
+          </div>
 
-            <div className="import-instructions">
-              <h5>Import Instructions:</h5>
-              <ul>
-                <li>Only JSON files exported from this application are supported</li>
-                <li>The import will validate data integrity before proceeding</li>
-                <li>You will see a confirmation dialog with import statistics</li>
-                <li>All current data will be replaced with the imported data</li>
-              </ul>
+          <div className="import-requirements">
+            <h5>📋 Import Requirements</h5>
+            <ul>
+              <li>JSON files from this application only</li>
+              <li>Data validation before import</li>
+              <li>Confirmation dialog with statistics</li>
+              <li>Complete data replacement</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Management Tools */}
+      <div className="management-tools-grid">
+        <Card className="diagnostic-card">
+          <div className="tool-header">
+            <div className="tool-icon">🔍</div>
+            <div className="tool-info">
+              <h4>System Diagnostics</h4>
+              <p>Analyze data structure and identify issues</p>
             </div>
           </div>
-        </div>
-      </Card>
 
-      {/* Data Management Tools */}
-      <Card title="🔧 Data Management Tools" className="tools-card">
-        <div className="tools-section">
-          <div className="tool-group">
-            <h4>System Diagnostics</h4>
-            <p>Analyze your current data structure and identify potential issues.</p>
-            
-            <Button
-              variant="outline"
-              onClick={handleDataDiagnosis}
-              disabled={isProcessing}
-            >
-              🔍 Run Data Diagnosis
-            </Button>
+          <Button
+            variant="outline"
+            onClick={handleDataDiagnosis}
+            disabled={isProcessing}
+            className="diagnostic-btn"
+          >
+            Run Diagnosis
+          </Button>
+        </Card>
+
+        <Card className="danger-card">
+          <div className="tool-header">
+            <div className="tool-icon">⚠️</div>
+            <div className="tool-info">
+              <h4>Reset Data</h4>
+              <p>Permanently delete all budget data</p>
+            </div>
           </div>
 
-          <div className="tool-group danger-zone">
-            <h4>⚠️ Danger Zone</h4>
-            <p>These actions are irreversible. Use with extreme caution.</p>
-            
-            <Button
-              variant="danger"
-              onClick={handleDataReset}
-              disabled={isProcessing}
-            >
-              🗑️ Reset All Data
-            </Button>
+          <Button
+            variant="danger"
+            onClick={handleDataReset}
+            disabled={isProcessing}
+            className="danger-btn"
+          >
+            Reset All Data
+          </Button>
+        </Card>
+
+        <Card className="info-card">
+          <div className="tool-header">
+            <div className="tool-icon">ℹ️</div>
+            <div className="tool-info">
+              <h4>App Information</h4>
+              <p>Version {APP_VERSION} • Local Storage</p>
+            </div>
           </div>
-        </div>
-      </Card>
+
+          <div className="app-details">
+            <div className="detail-row">
+              <span>Data Format:</span>
+              <span>v2.0</span>
+            </div>
+            <div className="detail-row">
+              <span>Backup Frequency:</span>
+              <span>Weekly</span>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {/* Operation Results */}
       {lastOperation && (
-        <Card 
-          title={`${lastOperation.success ? '✅' : '❌'} Last Operation Result`} 
-          className={`result-card ${lastOperation.success ? 'success' : 'error'}`}
-        >
-          <div className="operation-result">
-            <div className="result-header">
-              <div className="result-type">
-                {lastOperation.type.charAt(0).toUpperCase() + lastOperation.type.slice(1)} Operation
-              </div>
-              <div className="result-timestamp">
-                {lastOperation.timestamp}
-              </div>
+        <div className={`operation-result-banner ${lastOperation.success ? 'success' : 'error'}`}>
+          <div className="result-content">
+            <div className="result-icon">
+              {lastOperation.success ? '✅' : '❌'}
             </div>
-            
-            <div className="result-message">
-              {lastOperation.message}
+
+            <div className="result-info">
+              <div className="result-title">
+                {lastOperation.type.charAt(0).toUpperCase() + lastOperation.type.slice(1)}
+                {lastOperation.success ? ' Completed' : ' Failed'}
+              </div>
+              <div className="result-message">
+                {lastOperation.message}
+              </div>
+              {lastOperation.timestamp && (
+                <div className="result-timestamp">
+                  {lastOperation.timestamp}
+                </div>
+              )}
             </div>
-            
+
             {lastOperation.stats && (
               <div className="result-stats">
-                <h5>Operation Statistics:</h5>
-                <div className="stats-grid">
-                  {Object.entries(lastOperation.stats).map(([key, value]) => (
-                    <div key={key} className="stat-item">
+                <div className="stats-summary">
+                  {Object.entries(lastOperation.stats).slice(0, 4).map(([key, value]) => (
+                    <div key={key} className="stat-summary-item">
                       <span className="stat-key">{key}:</span>
                       <span className="stat-value">{value}</span>
                     </div>
@@ -358,41 +446,17 @@ const ImportExportPage = () => {
               </div>
             )}
           </div>
-        </Card>
-      )}
 
-      {/* Application Information */}
-      <Card title="ℹ️ Application Information" className="info-card">
-        <div className="app-info">
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="info-label">Application Version:</span>
-              <span className="info-value">{APP_VERSION}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Data Format Version:</span>
-              <span className="info-value">2.0</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Browser Storage:</span>
-              <span className="info-value">Local Storage</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Backup Recommendation:</span>
-              <span className="info-value">Weekly JSON Export</span>
-            </div>
-          </div>
-          
-          <div className="compatibility-info">
-            <h5>File Compatibility:</h5>
-            <ul>
-              <li><strong>JSON Files:</strong> Full compatibility with all application features</li>
-              <li><strong>CSV Files:</strong> Compatible with Excel, Google Sheets, and other spreadsheet applications</li>
-              <li><strong>Legacy Support:</strong> Can import data from previous versions of the application</li>
-            </ul>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLastOperation(null)}
+            className="close-result-btn"
+          >
+            ✕
+          </Button>
         </div>
-      </Card>
+      )}
     </div>
   );
 };

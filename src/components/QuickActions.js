@@ -57,7 +57,7 @@ const QuickActions = () => {
         <h3>Quick Actions</h3>
         <p>Common tasks and shortcuts</p>
       </div>
-      
+
       <div className="actions-grid">
         <Button
           variant="primary"
@@ -105,13 +105,14 @@ const QuickActions = () => {
         </Button>
 
         <Button
-          variant="outline"
-          onClick={handlePrint}
+          variant="secondary"
+          onClick={actions.toggleCalculator}
           className="action-btn"
         >
-          <span className="btn-icon">🖨️</span>
-          Print Budget
+          <span className="btn-icon">🧮</span>
+          Calculator
         </Button>
+
       </div>
 
       {/* Hidden file input for import */}

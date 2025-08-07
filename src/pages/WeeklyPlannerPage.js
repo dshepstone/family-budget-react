@@ -1,6 +1,8 @@
 // src/pages/WeeklyPlannerPage.js - Complete Integration
 import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
+import { WeeklyPlannerPrint } from '../utils/printUtils';
+
 
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
@@ -98,6 +100,15 @@ const WeeklyPlannerPage = () => {
     };
   };
 
+  const handlePrint = () => {
+    const printContent = WeeklyPlannerPrint.generatePrintContent(
+      state.data,
+      calculations,
+      formatCurrency
+    );
+    WeeklyPlannerPrint.openPrintWindow(printContent, 'Weekly Budget Planner');
+  };
+  
   // Update planner data for expense
   const updateExpensePlannerData = (expenseName, newData) => {
     const updatedPlannerState = {
@@ -680,7 +691,7 @@ const WeeklyPlannerPage = () => {
           <button className="btn btn-success" onClick={() => window.location.reload()}>
             🔄 Refresh Data
           </button>
-          <button className="btn btn-secondary" onClick={() => window.print()}>
+          <button className="btn btn-secondary" onClick={() => handlePrint()}>
             🖨️ Print this Page
           </button>
         </div>

@@ -11,6 +11,7 @@ import WeeklyPlannerPage from './pages/WeeklyPlannerPage';
 import ImportExportPage from './pages/ImportExportPage';
 import LinksPage from './pages/LinksPage';
 import NotificationCenter from './components/NotificationCenter';
+import CalculatorModal from './components/CalculatorModal';
 import ThemeProvider from './context/ThemeContext';
 import './styles/globals.css';
 import './styles/themes.css';
@@ -67,7 +68,7 @@ function AppContent() {
     <div className="app-container">
       <Header />
       <Navigation />
-      
+
       <main className="main-content">
         <div className="page-container">
           <CurrentPage />
@@ -75,7 +76,10 @@ function AppContent() {
       </main>
 
       <NotificationCenter />
-      
+
+      {/* Render calculator based on global state */}
+      {state.isCalculatorOpen && <CalculatorModal onClose={actions.toggleCalculator} />}
+
       {/* Version indicator */}
       <div className="version-indicator">
         <span>Family Budget React v2.0.0</span>

@@ -1,0 +1,81 @@
+/* src/components/CalculatorModal.css */
+
+.calculator-modal {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    color: #ffffff;
+    background: #2c3e50;
+    border-radius: 12px;
+    padding: 20px;
+    width: 300px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.calculator-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    cursor: move;
+}
+
+.calculator-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    /* This rule explicitly makes the header text white */
+    color: #ffffff;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: inherit;
+}
+
+.calculator-display {
+    background: #34495e;
+    color: #ffffff;
+    font-size: 2rem;
+    padding: 15px;
+    text-align: right;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.keypad-button {
+    background: #34495e;
+    border: none;
+    color: #ffffff;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.keypad-button:hover {
+    background: #4a6fa5;
+}
+
+.keypad-button.clear {
+    background-color: #e74c3c;
+    color: white;
+    grid-column: span 4;
+    margin-bottom: 10px;
+}
+
+.keypad-button.clear:hover {
+    background-color: #c0392b;
+}
+
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}

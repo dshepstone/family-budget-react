@@ -9,6 +9,7 @@ const BudgetContext = createContext();
 const initialState = {
   data: createDefaultData(),
   currentPage: 'home',
+  isCalculatorOpen: false,
   theme: 'light',
   isLoading: false,
   lastUpdated: new Date().toISOString(),
@@ -106,6 +107,9 @@ export function BudgetProvider({ children }) {
 
     toggleTheme: () =>
       dispatch({ type: ACTIONS.TOGGLE_THEME }),
+
+    toggleCalculator: () =>
+      dispatch({ type: ACTIONS.TOGGLE_CALCULATOR }),
 
     distributeMonthlyToWeekly: (expenseName, monthlyAmount, dueDate) => {
       const existingData = state.data.plannerState[expenseName] || {
