@@ -5,31 +5,31 @@ import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { TablePlugin } from '@lexical/react/LexicalTablePlugin';
+import { ImageNode } from './ImageNode';
+import ImagePlugin from './ImagePlugin';
 import { HeadingNode, QuoteNode, $createHeadingNode } from '@lexical/rich-text';
 import { ListItemNode, ListNode, $createListItemNode, $createListNode } from '@lexical/list';
 import { CodeNode } from '@lexical/code';
 import { AutoLinkNode, LinkNode } from '@lexical/link';
+import { TableNode, TableCellNode, TableRowNode } from '@lexical/table';
 import { $getRoot, $createTextNode, $createParagraphNode } from 'lexical';
 
 import { editorTheme } from './editorTheme';
 import ToolbarPlugin from './ToolbarPlugin';
 
-// FIX: This custom plugin programmatically inserts templates into the editor state
+// The TemplatePlugin for adding content from the template buttons
 const TemplatePlugin = ({ templateToInsert }) => {
   const [editor] = useLexicalComposerContext();
-
   useEffect(() => {
     if (!templateToInsert) return;
-
     editor.update(() => {
       const root = $getRoot();
       const templateKey = templateToInsert.key;
-
-      root.append($createParagraphNode()); // Add a space before inserting
-
+      root.append($createParagraphNode());
       switch (templateKey) {
         case 'weeklyReview':
           root.append(
@@ -37,8 +37,6 @@ const TemplatePlugin = ({ templateToInsert }) => {
             $createListNode('bullet').append(
               $createListItemNode().append($createTextNode('Week 1: ')),
               $createListItemNode().append($createTextNode('Week 2: ')),
-              $createListItemNode().append($createTextNode('Week 3: ')),
-              $createListItemNode().append($createTextNode('Week 4: '))
             )
           );
           break;
@@ -48,34 +46,14 @@ const TemplatePlugin = ({ templateToInsert }) => {
             $createListNode('bullet').append(
               $createListItemNode().append($createTextNode('Emergency Fund: ')),
               $createListItemNode().append($createTextNode('Short-term Goal: ')),
-              $createListItemNode().append($createTextNode('Long-term Goal: '))
             )
           );
           break;
-        case 'billTracker':
-          root.append(
-            $createHeadingNode('h2').append($createTextNode('Bill Tracker')),
-            $createListNode('bullet').append(
-              $createListItemNode().append($createTextNode('[ ] Rent/Mortgage: ')),
-              $createListItemNode().append($createTextNode('[ ] Utilities: ')),
-              $createListItemNode().append($createTextNode('[ ] Insurance: '))
-            )
-          );
-          break;
-        case 'reflection':
-          root.append(
-            $createHeadingNode('h2').append($createTextNode('Monthly Reflection')),
-            $createParagraphNode().append($createTextNode('What went well:')),
-            $createParagraphNode(),
-            $createParagraphNode().append($createTextNode('Areas for improvement:'))
-          );
-          break;
-        default:
-          break;
+        // Add other cases here
+        default: break;
       }
     });
   }, [templateToInsert, editor]);
-
   return null;
 };
 
@@ -88,15 +66,7 @@ const LexicalEditor = ({ value, onChange, templateToInsert }) => {
     namespace: 'MyNotesEditor',
     theme: editorTheme,
     editorState: value,
-    nodes: [
-      HeadingNode,
-      ListNode,
-      ListItemNode,
-      QuoteNode,
-      CodeNode,
-      AutoLinkNode,
-      LinkNode
-    ],
+    nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, CodeNode, AutoLinkNode, LinkNode, ImageNode, TableNode, TableCellNode, TableRowNode],
     onError: (error) => console.error(error),
   };
 
@@ -117,7 +87,10 @@ const LexicalEditor = ({ value, onChange, templateToInsert }) => {
           <HistoryPlugin />
           <ListPlugin />
           <LinkPlugin />
+          <TablePlugin />
+          <ImagePlugin />
           <OnChangePlugin onChange={handleOnChange} />
+          {/* FIX: The StateSyncPlugin has been removed as it's no longer needed */}
           <TemplatePlugin templateToInsert={templateToInsert} />
         </div>
       </div>

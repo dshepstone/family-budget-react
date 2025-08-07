@@ -4,7 +4,10 @@
   "description": "A comprehensive React-based family budget management application with real-time calculations, import/export capabilities, and modular architecture.",
   "private": true,
   "dependencies": {
+    "@lexical/headless": "^0.33.1",
+    "@lexical/markdown": "^0.33.1",
     "@lexical/react": "^0.33.1",
+    "@lexical/table": "^0.33.1",
     "lexical": "^0.33.1",
     "lodash": "^4.17.21",
     "lucide-react": "^0.537.0",
