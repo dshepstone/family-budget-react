@@ -6,7 +6,7 @@ import UpcomingExpenses from '../components/UpcomingExpenses';
 import QuickActions from '../components/QuickActions';
 import CashFlowChart from '../components/charts/CashFlowChart';
 import ExpenseBreakdown from '../components/charts/ExpenseBreakdown';
-import Card from '../components/ui/Card';
+import Accordion from '../components/ui/Accordion';
 
 const HomePage = () => {
   const { state, calculations, formatCurrency, actions } = useBudget();
@@ -74,11 +74,11 @@ const HomePage = () => {
       {/* Summary Cards */}
       <SummaryCards />
 
-      {/* Main Content Grid */}
-      <div className="dashboard-grid">
-        
+      {/* Main Content Sections */}
+      <div className="dashboard-sections">
+
         {/* Financial Overview */}
-        <Card title="💰 Financial Overview" className="overview-card">
+        <Accordion title="💰 Financial Overview" className="overview-card" defaultOpen>
           <div className="overview-stats">
             <div className="overview-item">
               <div className="overview-label">Monthly Income</div>
@@ -115,20 +115,20 @@ const HomePage = () => {
               </div>
             </div>
           </div>
-        </Card>
+        </Accordion>
 
         {/* Cash Flow Chart */}
-        <Card title="📊 Monthly Cash Flow" className="chart-card">
+        <Accordion title="📊 Monthly Cash Flow" className="chart-card" defaultOpen>
           <CashFlowChart />
-        </Card>
+        </Accordion>
 
         {/* Expense Breakdown */}
-        <Card title="🥧 Expense Breakdown" className="chart-card">
+        <Accordion title="🥧 Expense Breakdown" className="chart-card" defaultOpen>
           <ExpenseBreakdown data={expenseData} />
-        </Card>
+        </Accordion>
 
         {/* Account Balances */}
-        <Card title="🏦 Account Balances" className="accounts-card">
+        <Accordion title="🏦 Account Balances" className="accounts-card" defaultOpen>
           <div className="accounts-grid">
             <div className="accounts-header">
               <span>Account</span>
@@ -156,23 +156,23 @@ const HomePage = () => {
               </div>
             ))}
           </div>
-        </Card>
+        </Accordion>
 
         {/* Upcoming Expenses */}
-        <Card title="⏰ Upcoming Expenses" className="upcoming-card">
+        <Accordion title="⏰ Upcoming Expenses" className="upcoming-card" defaultOpen>
           <UpcomingExpenses expenses={upcomingExpenses} />
-        </Card>
+        </Accordion>
 
         {/* Budget Health */}
-        <Card title="🩺 Budget Health" className="health-card">
+        <Accordion title="🩺 Budget Health" className="health-card" defaultOpen>
           <div className="health-metrics">
             <div className="health-item">
               <div className="health-label">Emergency Fund Status</div>
               <div className="health-indicator">
                 <div className="indicator-bar">
-                  <div 
+                  <div
                     className="indicator-fill"
-                    style={{ 
+                    style={{
                       width: `${Math.min((netMonthlyIncome * 6) / (totalMonthlyExpenses * 6) * 100, 100)}%`,
                       backgroundColor: netMonthlyIncome > 0 ? '#27ae60' : '#e74c3c'
                     }}
@@ -206,10 +206,10 @@ const HomePage = () => {
               </div>
             </div>
           </div>
-        </Card>
+        </Accordion>
 
         {/* Quick Insights */}
-        <Card title="💡 Quick Insights" className="insights-card">
+        <Accordion title="💡 Quick Insights" className="insights-card" defaultOpen>
           <div className="insights-list">
             {netMonthlyIncome < 0 && (
               <div className="insight-item warning">
@@ -237,7 +237,7 @@ const HomePage = () => {
                 </span>
               </div>
             )}
-            
+
             {netMonthlyIncome >= 0 && savingsRate >= 20 && (
               <div className="insight-item success">
                 <span className="insight-icon">✅</span>
@@ -247,7 +247,7 @@ const HomePage = () => {
               </div>
             )}
           </div>
-        </Card>
+        </Accordion>
       </div>
     </div>
   );
