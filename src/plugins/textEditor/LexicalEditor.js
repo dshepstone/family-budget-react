@@ -1,153 +1,127 @@
 // src/plugins/textEditor/LexicalEditor.js
-// Simplified text editor without Lexical dependencies
-import React, { useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
+import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { HeadingNode, QuoteNode, $createHeadingNode } from '@lexical/rich-text';
+import { ListItemNode, ListNode, $createListItemNode, $createListNode } from '@lexical/list';
+import { CodeNode } from '@lexical/code';
+import { AutoLinkNode, LinkNode } from '@lexical/link';
+import { $getRoot, $createTextNode, $createParagraphNode } from 'lexical';
 
-const LexicalEditor = ({
-  value = '',
-  onChange,
-  placeholder = 'Enter your text...',
-  className = '',
-  showToolbar = true,
-  readOnly = false,
-  autoFocus = false
-}) => {
-  const [textValue, setTextValue] = useState(value);
+import { editorTheme } from './editorTheme';
+import ToolbarPlugin from './ToolbarPlugin';
 
-  const handleChange = useCallback((e) => {
-    const newValue = e.target.value;
-    setTextValue(newValue);
-    if (onChange) {
-      onChange(newValue);
-    }
-  }, [onChange]);
+// FIX: This custom plugin programmatically inserts templates into the editor state
+const TemplatePlugin = ({ templateToInsert }) => {
+  const [editor] = useLexicalComposerContext();
 
-  const formatText = (format) => {
-    const textarea = document.getElementById('simple-editor');
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textValue.substring(start, end);
+  useEffect(() => {
+    if (!templateToInsert) return;
 
-    if (!selectedText) return;
+    editor.update(() => {
+      const root = $getRoot();
+      const templateKey = templateToInsert.key;
 
-    let formattedText = selectedText;
-    switch (format) {
-      case 'bold':
-        formattedText = `**${selectedText}**`;
-        break;
-      case 'italic':
-        formattedText = `*${selectedText}*`;
-        break;
-      case 'underline':
-        formattedText = `_${selectedText}_`;
-        break;
-      default:
-        break;
-    }
+      root.append($createParagraphNode()); // Add a space before inserting
 
-    const newValue = textValue.substring(0, start) + formattedText + textValue.substring(end);
-    setTextValue(newValue);
-    if (onChange) {
-      onChange(newValue);
-    }
+      switch (templateKey) {
+        case 'weeklyReview':
+          root.append(
+            $createHeadingNode('h2').append($createTextNode('Weekly Review')),
+            $createListNode('bullet').append(
+              $createListItemNode().append($createTextNode('Week 1: ')),
+              $createListItemNode().append($createTextNode('Week 2: ')),
+              $createListItemNode().append($createTextNode('Week 3: ')),
+              $createListItemNode().append($createTextNode('Week 4: '))
+            )
+          );
+          break;
+        case 'savingsGoals':
+          root.append(
+            $createHeadingNode('h2').append($createTextNode('Savings Goals')),
+            $createListNode('bullet').append(
+              $createListItemNode().append($createTextNode('Emergency Fund: ')),
+              $createListItemNode().append($createTextNode('Short-term Goal: ')),
+              $createListItemNode().append($createTextNode('Long-term Goal: '))
+            )
+          );
+          break;
+        case 'billTracker':
+          root.append(
+            $createHeadingNode('h2').append($createTextNode('Bill Tracker')),
+            $createListNode('bullet').append(
+              $createListItemNode().append($createTextNode('[ ] Rent/Mortgage: ')),
+              $createListItemNode().append($createTextNode('[ ] Utilities: ')),
+              $createListItemNode().append($createTextNode('[ ] Insurance: '))
+            )
+          );
+          break;
+        case 'reflection':
+          root.append(
+            $createHeadingNode('h2').append($createTextNode('Monthly Reflection')),
+            $createParagraphNode().append($createTextNode('What went well:')),
+            $createParagraphNode(),
+            $createParagraphNode().append($createTextNode('Areas for improvement:'))
+          );
+          break;
+        default:
+          break;
+      }
+    });
+  }, [templateToInsert, editor]);
+
+  return null;
+};
+
+function Placeholder() {
+  return <div className="editor-placeholder">Enter your notes...</div>;
+}
+
+const LexicalEditor = ({ value, onChange, templateToInsert }) => {
+  const initialConfig = {
+    namespace: 'MyNotesEditor',
+    theme: editorTheme,
+    editorState: value,
+    nodes: [
+      HeadingNode,
+      ListNode,
+      ListItemNode,
+      QuoteNode,
+      CodeNode,
+      AutoLinkNode,
+      LinkNode
+    ],
+    onError: (error) => console.error(error),
   };
 
-  const insertList = (listType) => {
-    const textarea = document.getElementById('simple-editor');
-    const start = textarea.selectionStart;
-    const listItem = listType === 'bullet' ? '• ' : '1. ';
-
-    const newValue = textValue.substring(0, start) + listItem + textValue.substring(start);
-    setTextValue(newValue);
-    if (onChange) {
-      onChange(newValue);
-    }
-  };
+  const handleOnChange = (editorState) => {
+    onChange(JSON.stringify(editorState.toJSON()));
+  }
 
   return (
-    <div className={`simple-editor-container ${className}`}>
-      {showToolbar && !readOnly && (
-        <div className="simple-toolbar">
-          <div className="toolbar-group">
-            <button
-              type="button"
-              className="toolbar-btn"
-              onClick={() => formatText('bold')}
-              title="Bold (Markdown: **text**)"
-            >
-              <strong>B</strong>
-            </button>
-            <button
-              type="button"
-              className="toolbar-btn"
-              onClick={() => formatText('italic')}
-              title="Italic (Markdown: *text*)"
-            >
-              <em>I</em>
-            </button>
-            <button
-              type="button"
-              className="toolbar-btn"
-              onClick={() => formatText('underline')}
-              title="Underline (Markdown: _text_)"
-            >
-              <u>U</u>
-            </button>
-          </div>
-
-          <div className="toolbar-divider"></div>
-
-          <div className="toolbar-group">
-            <button
-              type="button"
-              className="toolbar-btn"
-              onClick={() => insertList('bullet')}
-              title="Bullet List"
-            >
-              • List
-            </button>
-            <button
-              type="button"
-              className="toolbar-btn"
-              onClick={() => insertList('number')}
-              title="Numbered List"
-            >
-              1. List
-            </button>
-          </div>
+    <LexicalComposer initialConfig={initialConfig}>
+      <div className="editor-container">
+        <ToolbarPlugin />
+        <div className="editor-inner">
+          <RichTextPlugin
+            contentEditable={<ContentEditable className="editor-input" />}
+            placeholder={<Placeholder />}
+            ErrorBoundary={({ error }) => <div>{error.message}</div>}
+          />
+          <HistoryPlugin />
+          <ListPlugin />
+          <LinkPlugin />
+          <OnChangePlugin onChange={handleOnChange} />
+          <TemplatePlugin templateToInsert={templateToInsert} />
         </div>
-      )}
-
-      <div className="simple-editor-wrapper">
-        <textarea
-          id="simple-editor"
-          className="simple-editor-textarea"
-          value={textValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          autoFocus={autoFocus}
-          style={{
-            minHeight: '150px',
-            width: '100%',
-            padding: '12px',
-            border: '1px solid var(--input-border, #bdc3c7)',
-            borderRadius: '4px',
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            lineHeight: '1.5',
-            resize: 'vertical',
-            backgroundColor: readOnly ? 'var(--disabled-bg, #f5f5f5)' : 'var(--input-bg, #ffffff)',
-            color: 'var(--text-primary, #2c3e50)'
-          }}
-        />
       </div>
-
-      <div className="editor-help">
-        <small style={{ color: 'var(--text-muted, #95a5a6)', fontSize: '12px' }}>
-          Supports Markdown: **bold**, *italic*, _underline_, • bullets, 1. numbers
-        </small>
-      </div>
-    </div>
+    </LexicalComposer>
   );
 };
 

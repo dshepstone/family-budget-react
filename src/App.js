@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js - Updated to include Notes page and working calculator
 import React, { useEffect } from 'react';
 import { BudgetProvider, useBudget } from './context/BudgetContext';
 import Navigation from './components/Layout/Navigation';
@@ -8,6 +8,7 @@ import IncomePage from './pages/IncomePage';
 import MonthlyExpensesPage from './pages/MonthlyExpensesPage';
 import AnnualExpensesPage from './pages/AnnualExpensesPage';
 import WeeklyPlannerPage from './pages/WeeklyPlannerPage';
+import NotesPage from './pages/NotesPage'; // Import the new Notes page
 import ImportExportPage from './pages/ImportExportPage';
 import LinksPage from './pages/LinksPage';
 import NotificationCenter from './components/NotificationCenter';
@@ -18,13 +19,14 @@ import './styles/themes.css';
 import './styles/components.css';
 import './styles/responsive.css';
 
-// Page component mapping
+// Page component mapping - Added notes page
 const PAGES = {
   home: HomePage,
   income: IncomePage,
   monthly: MonthlyExpensesPage,
   annual: AnnualExpensesPage,
   planner: WeeklyPlannerPage,
+  notes: NotesPage, // Add notes page to mapping
   import: ImportExportPage,
   links: LinksPage
 };
@@ -58,11 +60,22 @@ function AppContent() {
             break;
         }
       }
+
+      // Calculator shortcuts
+      if (event.ctrlKey && event.shiftKey && event.key === 'C') {
+        event.preventDefault();
+        actions.toggleCalculator();
+      }
+
+      // Escape to close calculator
+      if (event.key === 'Escape' && state.showCalculator) {
+        actions.toggleCalculator();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [actions, state.showCalculator]);
 
   return (
     <div className="app-container">
@@ -75,10 +88,14 @@ function AppContent() {
         </div>
       </main>
 
-      <NotificationCenter />
+      {/* Calculator Modal with proper backdrop */}
+      {state.showCalculator && (
+        <div className="calculator-backdrop" onClick={actions.toggleCalculator}>
+          <CalculatorModal onClose={actions.toggleCalculator} />
+        </div>
+      )}
 
-      {/* Render calculator based on global state */}
-      {state.isCalculatorOpen && <CalculatorModal onClose={actions.toggleCalculator} />}
+      <NotificationCenter />
 
       {/* Version indicator */}
       <div className="version-indicator">

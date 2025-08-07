@@ -108,7 +108,7 @@ const WeeklyPlannerPage = () => {
     );
     WeeklyPlannerPrint.openPrintWindow(printContent, 'Weekly Budget Planner');
   };
-  
+
   // Update planner data for expense
   const updateExpensePlannerData = (expenseName, newData) => {
     const updatedPlannerState = {
@@ -337,50 +337,76 @@ const WeeklyPlannerPage = () => {
           min-width: 1200px;
         }
 
-        .planner-table th,
-        .planner-table td {
-          padding: 8px;
-          border: 1px solid #dee2e6;
-          text-align: center;
-          vertical-align: middle;
-        }
+   .planner-table th,
+.planner-table td {
+  padding: 8px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+  vertical-align: middle;
+}
 
-        .planner-table th {
-          background-color: #007bff;
-          color: white;
-          font-weight: 600;
-          font-size: 0.85rem;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-        }
+.planner-table th {
+  background-color: #007bff;
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 
-        .planner-table th:first-child {
-          text-align: left;
-          width: 25%;
-        }
+.planner-table th:first-child {
+  text-align: left;
+  width: 25%;
+}
 
-        .planner-table th.status-header {
-          min-width: 60px;
-          font-size: 0.8rem;
-        }
+.planner-table th.status-header {
+  min-width: 60px;
+  font-size: 0.8rem;
+}
 
-        .week-date-range-inputs {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          margin: 4px 0;
-        }
+.week-date-range-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0;
+}
 
-        .week-date-start,
-        .week-date-end {
-          font-size: 0.7rem;
-          padding: 1px 2px;
-          border: 1px solid rgba(255,255,255,0.3);
-          border-radius: 2px;
-          background-color: rgba(255,255,255,0.1);
-          color: white;
-        }
+/* Fixed date input styles with proper specificity */
+.planner-table th .week-date-start,
+.planner-table th .week-date-end {
+  font-size: 0.7rem !important;
+  padding: 1px 2px !important;
+  border: 1px solid rgba(255,255,255,0.5) !important;
+  border-radius: 2px !important;
+  background-color: rgba(255,255,255,0.9) !important;
+  color: #495057 !important;
+  transition: all 0.2s ease;
+  cursor: default;
+  outline: none;
+  /* Override browser date input styling */
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
+/* Ensure readability on hover */
+.planner-table th .week-date-start:hover,
+.planner-table th .week-date-end:hover {
+  background-color: white !important;
+  border-color: #007bff !important;
+  color: #495057 !important;
+}
+
+/* Even when disabled/readonly, keep readable */
+.planner-table th .week-date-start:disabled,
+.planner-table th .week-date-start[readonly],
+.planner-table th .week-date-end:disabled,
+.planner-table th .week-date-end[readonly] {
+  background-color: rgba(255,255,255,0.9) !important;
+  color: #495057 !important;
+  opacity: 1 !important;
+}
 
         .category-row {
           background-color: #f8f9fa !important;
