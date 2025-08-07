@@ -27,9 +27,24 @@ export const ACTIONS = {
 // Helper to migrate old planner data format to new weekly status structure
 export function migratePlannerDataToWeeklyStatus(plannerData = {}, weeklyStatus = {}) {
   const result = {};
+  const specialKeys = ['weeklyIncome', 'weeklyExpenses', 'monthlyTargets'];
+
+  // Preserve special non-expense keys without modification
+  specialKeys.forEach(key => {
+    if (weeklyStatus[key] !== undefined) {
+      result[key] = Array.isArray(weeklyStatus[key])
+        ? weeklyStatus[key].slice()
+        : { ...weeklyStatus[key] };
+    } else if (plannerData[key] !== undefined) {
+      result[key] = Array.isArray(plannerData[key])
+        ? plannerData[key].slice()
+        : { ...plannerData[key] };
+    }
+  });
+
   const keys = new Set([
-    ...Object.keys(plannerData || {}),
-    ...Object.keys(weeklyStatus || {})
+    ...Object.keys(plannerData || {}).filter(k => !specialKeys.includes(k)),
+    ...Object.keys(weeklyStatus || {}).filter(k => !specialKeys.includes(k))
   ]);
 
   keys.forEach(name => {
@@ -41,6 +56,8 @@ export function migratePlannerDataToWeeklyStatus(plannerData = {}, weeklyStatus 
       weeks = plannerEntry.slice();
     } else if (Array.isArray(plannerEntry.weeks)) {
       weeks = plannerEntry.weeks.slice();
+    } else if (Array.isArray(statusEntry.weeks)) {
+      weeks = statusEntry.weeks.slice();
     } else {
       weeks = Array(5).fill(0);
     }
@@ -72,6 +89,16 @@ export function budgetReducer(state, action) {
         incoming.accounts = incoming.accounts && typeof incoming.accounts === 'object'
           ? Object.values(incoming.accounts)
           : [];
+      }
+      if (incoming.plannerData && !incoming.plannerState) {
+        incoming.plannerState = incoming.plannerData;
+        delete incoming.plannerData;
+      }
+      if (incoming.plannerState) {
+        incoming.plannerState = migratePlannerDataToWeeklyStatus(
+          incoming.plannerState,
+          incoming.plannerState
+        );
       }
       return {
         ...state,
@@ -276,7 +303,7 @@ export function budgetReducer(state, action) {
     }
 
     case ACTIONS.UPDATE_EXPENSE_STATUS: {
-      const { expenseId, expenseName, weekIndex, statusType, checked, sourceModule } = action.payload;
+      const { expenseId, expenseName, weekIndex, statusType, checked } = action.payload;
 
       let updatedMonthly = { ...state.data.monthly };
       let updatedAnnual = { ...state.data.annual };
@@ -284,11 +311,9 @@ export function budgetReducer(state, action) {
 
       let overallStatus = checked;
 
-      // Ensure planner entry exists and update status for specific week
       if (expenseName) {
         let plannerExpense = updatedPlanner[expenseName];
 
-        // Create planner entry if missing using data from monthly or annual expenses
         if (!plannerExpense) {
           let weeks = Array(5).fill(0);
 
@@ -352,10 +377,7 @@ export function budgetReducer(state, action) {
         }
 
         updatedPlanner[expenseName] = plannerExpense;
-
-        if (sourceModule === 'weekly') {
-          overallStatus = plannerExpense[statusType].every(Boolean);
-        }
+        overallStatus = plannerExpense[statusType].every(Boolean);
       }
 
       // Update monthly expenses
