@@ -30,7 +30,6 @@ export function migratePlannerDataToWeeklyStatus(plannerData = {}, weeklyStatus 
   const result = {};
   const specialKeys = ['weeklyIncome', 'weeklyExpenses', 'monthlyTargets'];
 
-  // Preserve special non-expense keys without modification
   specialKeys.forEach(key => {
     if (weeklyStatus[key] !== undefined) {
       result[key] = Array.isArray(weeklyStatus[key])
@@ -101,6 +100,7 @@ export function budgetReducer(state, action) {
           incoming.plannerState
         );
       }
+      // FIX: Preserve the existing state for properties not in the payload
       return {
         ...state,
         data: { ...state.data, ...incoming },
@@ -381,7 +381,6 @@ export function budgetReducer(state, action) {
         overallStatus = plannerExpense[statusType].every(Boolean);
       }
 
-      // Update monthly expenses
       Object.keys(updatedMonthly).forEach((category) => {
         updatedMonthly[category] = updatedMonthly[category].map((expense) => {
           if (expense.id === expenseId || expense.name === expenseName) {
@@ -391,7 +390,6 @@ export function budgetReducer(state, action) {
         });
       });
 
-      // Update annual expenses
       Object.keys(updatedAnnual).forEach((category) => {
         updatedAnnual[category] = updatedAnnual[category].map((expense) => {
           if (expense.id === expenseId || expense.name === expenseName) {

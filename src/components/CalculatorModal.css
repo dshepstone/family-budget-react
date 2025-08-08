@@ -1,125 +1,37 @@
 /* src/components/CalculatorModal.css */
 
-.calculator-modal {
-    position: fixed;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    color: #ffffff;
-    background: #2c3e50;
-    border-radius: 12px;
-    padding: 20px;
-    width: 300px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.calculator-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    cursor: move;
-}
-
-.calculator-header h4 {
-    margin: 0;
-    font-size: 1.2rem;
-    /* This rule explicitly makes the header text white */
-    color: #ffffff;
-}
-
-.close-button {
-    background: none;
-    border: none;
-    font-size: 1.8rem;
-    cursor: pointer;
-    color: inherit;
-}
-
-.calculator-display {
-    background: #34495e;
-    color: #ffffff;
-    font-size: 2rem;
-    padding: 15px;
-    text-align: right;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    overflow-x: auto;
-    white-space: nowrap;
-}
-
-.keypad-button {
-    background: #34495e;
-    border: none;
-    color: #ffffff;
-    font-size: 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.keypad-button:hover {
-    background: #4a6fa5;
-}
-
-.keypad-button.clear {
-    background-color: #e74c3c;
-    color: white;
-    grid-column: span 4;
-    margin-bottom: 10px;
-}
-
-.keypad-button.clear:hover {
-    background-color: #c0392b;
-}
-
-.keypad-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-/* Add these styles to fix the calculator modal z-index and ensure it appears on top */
-
-/* Calculator Backdrop - ensures modal appears above all content */
 .calculator-backdrop {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.1);
-    z-index: 10000;
-    /* Highest z-index to ensure it's on top */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: transparent;
+        /* This makes the backdrop invisible */
+        z-index: 9999;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 10vh;
-    backdrop-filter: blur(1px);
+    padding-top: 15vh;
+    /* FIX: Allows clicks to pass through the backdrop */
+    pointer-events: none;
 }
 
-/* Updated Calculator Modal with proper z-index */
 .calculator-modal {
     position: relative;
-    /* Changed from fixed to relative since it's inside backdrop */
-    top: auto;
-    /* Reset positioning */
-    left: auto;
-    transform: none;
-    /* Reset transform */
     z-index: 10001;
-    /* Ensure it's above backdrop */
     color: #ffffff;
     background: #2c3e50;
     border-radius: 12px;
     padding: 20px;
     width: 300px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     animation: calculatorSlideIn 0.3s ease-out;
+    /* FIX: Re-enables clicks for the modal window itself */
+    pointer-events: auto;
 }
 
-/* Animation for calculator appearance */
 @keyframes calculatorSlideIn {
     from {
         opacity: 0;
@@ -132,13 +44,6 @@
     }
 }
 
-/* Ensure calculator is always visible */
-.calculator-modal {
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-/* Calculator header with improved visibility */
 .calculator-header {
     display: flex;
     justify-content: space-between;
@@ -152,25 +57,25 @@
 
 .calculator-header h4 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #ffffff;
     font-weight: 600;
 }
 
-/* Enhanced close button */
 .close-button {
     background: rgba(231, 76, 60, 0.8);
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     cursor: pointer;
     color: #ffffff;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    line-height: 1;
 }
 
 .close-button:hover {
@@ -178,12 +83,11 @@
     transform: scale(1.1);
 }
 
-/* Enhanced calculator display */
 .calculator-display {
     background: #34495e;
     color: #ffffff;
-    font-size: 2rem;
-    padding: 15px;
+    font-size: 1.5rem;
+    padding: 12px 15px;
     text-align: right;
     border-radius: 8px;
     margin-bottom: 15px;
@@ -191,131 +95,45 @@
     white-space: nowrap;
     border: 2px solid rgba(255, 255, 255, 0.1);
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    min-height: 60px;
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: flex-end;
 }
 
-/* Enhanced keypad buttons */
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
 .keypad-button {
     background: #34495e;
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #ffffff;
-    font-size: 1.2rem;
-    border-radius: 8px;
+    font-size: 1rem;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    height: 50px;
+    height: 45px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
 }
 
 .keypad-button:hover {
     background: #4a6fa5;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.keypad-button:active {
-    transform: translateY(0);
-}
-
-/* Special button styles */
 .keypad-button.clear {
     background-color: #e74c3c;
     color: white;
     grid-column: span 4;
-    margin-bottom: 10px;
-    font-weight: 700;
 }
 
 .keypad-button.clear:hover {
     background-color: #c0392b;
 }
 
-/* Enhanced keypad grid */
-.keypad-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-/* Floating calculator button (if you want to add one) */
-.calculator-toggle-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    font-size: 1.5rem;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.calculator-toggle-btn:hover {
-    background: var(--primary-dark);
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .calculator-modal {
-    background: #1a252f;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-[data-theme="dark"] .calculator-display {
-    background: #0d1117;
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-[data-theme="dark"] .keypad-button {
-    background: #21262d;
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .keypad-button:hover {
-    background: #30363d;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .calculator-backdrop {
-        padding-top: 5vh;
-    }
-
-    .calculator-modal {
-        width: 280px;
-        margin: 0 10px;
-    }
-
-    .calculator-display {
-        font-size: 1.5rem;
-        padding: 12px;
-    }
-
-    .keypad-button {
-        height: 45px;
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .calculator-modal {
-        width: 250px;
-    }
-
-    .keypad-button {
-        height: 40px;
-        font-size: 0.9rem;
-    }
-}

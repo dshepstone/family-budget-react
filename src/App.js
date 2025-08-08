@@ -1,4 +1,4 @@
-// src/App.js - Updated to include Notes page and working calculator
+// src/App.js
 import React, { useEffect } from 'react';
 import { BudgetProvider, useBudget } from './context/BudgetContext';
 import Navigation from './components/Layout/Navigation';
@@ -8,7 +8,7 @@ import IncomePage from './pages/IncomePage';
 import MonthlyExpensesPage from './pages/MonthlyExpensesPage';
 import AnnualExpensesPage from './pages/AnnualExpensesPage';
 import WeeklyPlannerPage from './pages/WeeklyPlannerPage';
-import NotesPage from './pages/NotesPage'; // Import the new Notes page
+import NotesPage from './pages/NotesPage';
 import ImportExportPage from './pages/ImportExportPage';
 import LinksPage from './pages/LinksPage';
 import NotificationCenter from './components/NotificationCenter';
@@ -19,63 +19,72 @@ import './styles/themes.css';
 import './styles/components.css';
 import './styles/responsive.css';
 
-// Page component mapping - Added notes page
 const PAGES = {
   home: HomePage,
   income: IncomePage,
   monthly: MonthlyExpensesPage,
   annual: AnnualExpensesPage,
   planner: WeeklyPlannerPage,
-  notes: NotesPage, // Add notes page to mapping
+  notes: NotesPage,
   import: ImportExportPage,
   links: LinksPage
 };
 
-// Main App content component (needs to be inside BudgetProvider)
+function PageRenderer() {
+  const { state } = useBudget();
+  const CurrentPage = PAGES[state.currentPage] || HomePage;
+  return <CurrentPage />;
+}
+
 function AppContent() {
   const { state, actions } = useBudget();
-  const CurrentPage = PAGES[state.currentPage] || HomePage;
 
-  // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', state.theme);
   }, [state.theme]);
 
-  // Handle keyboard shortcuts
+  useEffect(() => {
+    if (state.isCalculatorOpen) {
+      document.body.classList.add('calculator-open');
+    } else {
+      document.body.classList.remove('calculator-open');
+    }
+    return () => {
+      document.body.classList.remove('calculator-open');
+    };
+  }, [state.isCalculatorOpen]);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case 's':
-            event.preventDefault();
-            // Trigger export
-            const exportEvent = new CustomEvent('exportData');
-            window.dispatchEvent(exportEvent);
-            break;
-          case 'p':
-            event.preventDefault();
-            window.print();
-            break;
-          default:
-            break;
-        }
-      }
-
-      // Calculator shortcuts
-      if (event.ctrlKey && event.shiftKey && event.key === 'C') {
+      if (event.key === 'Escape' && state.isCalculatorOpen) {
         event.preventDefault();
         actions.toggleCalculator();
       }
 
-      // Escape to close calculator
-      if (event.key === 'Escape' && state.showCalculator) {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === 's') {
+          event.preventDefault();
+          const exportEvent = new CustomEvent('exportData');
+          window.dispatchEvent(exportEvent);
+        } else if (event.key === 'p') {
+          event.preventDefault();
+          window.print();
+        }
+      }
+
+      if (event.ctrlKey && event.shiftKey && event.key === 'C') {
+        event.preventDefault();
         actions.toggleCalculator();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [actions, state.showCalculator]);
+  }, [actions, state.isCalculatorOpen]);
 
   return (
     <div className="app-container">
@@ -84,31 +93,33 @@ function AppContent() {
 
       <main className="main-content">
         <div className="page-container">
-          <CurrentPage />
+          <PageRenderer />
         </div>
       </main>
 
-      {/* Calculator Modal with proper backdrop */}
-      {state.showCalculator && (
-        <div className="calculator-backdrop" onClick={actions.toggleCalculator}>
-          <CalculatorModal onClose={actions.toggleCalculator} />
-        </div>
-      )}
-
       <NotificationCenter />
 
-      {/* Version indicator */}
       <div className="version-indicator">
         <span>Family Budget React v2.0.0</span>
         <span className="last-updated">
           Updated: {new Date(state.lastUpdated).toLocaleString()}
         </span>
       </div>
+
+      {state.isCalculatorOpen && (
+        <div
+          className="calculator-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="calculator-title"
+        >
+          <CalculatorModal onClose={actions.toggleCalculator} />
+        </div>
+      )}
     </div>
   );
 }
 
-// Main App component with providers
 function App() {
   return (
     <ThemeProvider>

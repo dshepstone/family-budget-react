@@ -3708,21 +3708,7 @@
 }
 /* Add these styles to fix the calculator modal z-index and ensure it appears on top */
 
-/* Calculator Backdrop - ensures modal appears above all content */
-.calculator-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: 10000; /* Highest z-index to ensure it's on top */
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 10vh;
-  backdrop-filter: blur(1px);
-}
+
 
 /* Updated Calculator Modal with proper z-index */
 .calculator-modal {
@@ -3940,21 +3926,7 @@
     font-size: 0.9rem;
   }
 }
-/* Add this to components.css if you want to keep calculator styles separate */
-.calculator-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: 10000;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 10vh;
-  backdrop-filter: blur(1px);
-}
+
 /* Add this to your components.css file for the calculator navigation button */
 
 .calculator-nav-btn {
@@ -4091,5 +4063,124 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+/* Add this to your globals.css or components.css */
+
+/* Z-Index Hierarchy - Ensures calculator always stays on top */
+
+/* Base layer - Page content */
+.page-container,
+.main-content {
+  z-index: 1;
+  position: relative;
+}
+
+/* Navigation layer */
+.navigation,
+.nav-container,
+.sidebar {
+  z-index: 100;
+  position: relative;
+}
+
+/* Header layer */
+.header,
+.header-container {
+  z-index: 200;
+  position: relative;
+}
+
+/* Dropdown menus and tooltips */
+.dropdown-menu,
+.tooltip,
+.popover {
+  z-index: 1000;
+  position: absolute;
+}
+
+/* Modal dialogs and overlays */
+.modal,
+.modal-overlay,
+.dialog {
+  z-index: 5000;
+  position: fixed;
+}
+
+/* Notification center */
+.notification-center,
+.toast-container {
+  z-index: 8000;
+  position: fixed;
+}
+
+
+
+/* Ensure calculator content is above the overlay */
+.calculator-modal .calculator-container {
+  z-index: 10001 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Override any competing z-index values */
+.calculator-modal,
+.calculator-modal * {
+  z-index: inherit !important;
+}
+
+/* Special handling for fullscreen mode or other high z-index elements */
+.calculator-modal {
+  z-index: 2147483647 !important;
+  /* Maximum z-index value */
+}
+
+/* Ensure calculator works properly during page transitions */
+.page-transition .calculator-modal {
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  .calculator-modal {
+    z-index: 10000 !important;
+    position: fixed !important;
+    transform: none !important;
+  }
+}
+
+
+
+/* Additional safety nets for various UI libraries */
+.calculator-modal {
+  isolation: isolate;
+  contain: layout style paint;
+}
+
+/* Override Material-UI, Bootstrap, or other framework modals */
+.MuiModal-root .calculator-modal,
+.modal-backdrop .calculator-modal,
+.ant-modal-mask .calculator-modal {
+  z-index: 10000 !important;
+}
+
+/* Ensure the calculator overlay blocks interactions with underlying content */
+.calculator-modal {
+  pointer-events: auto !important;
+  user-select: none;
+}
+
+.calculator-modal .calculator-container {
+  pointer-events: auto !important;
+  user-select: auto;
+}
+
+/* Print media - hide calculator */
+@media print {
+  .calculator-modal {
+    display: none !important;
   }
 }

@@ -1,11 +1,11 @@
-// src/context/BudgetContext.js - Enhanced with Links Categories Support
+// src/context/BudgetContext.js - Enhanced with Links Categories Support AND Calculator
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { validateBudgetData, createDefaultData } from '../utils/validators';
+import { createDefaultData } from '../utils/validators';
 import { formatCurrency, parseAmount } from '../utils/formatters';
 
 const BudgetContext = createContext();
 
-// Enhanced action types
+// Enhanced action types - Added TOGGLE_CALCULATOR
 export const ACTIONS = {
   LOAD_DATA: 'LOAD_DATA',
   UPDATE_DATA: 'UPDATE_DATA',
@@ -26,13 +26,14 @@ export const ACTIONS = {
   SET_CURRENT_PAGE: 'SET_CURRENT_PAGE',
   RESET_DATA: 'RESET_DATA',
   TOGGLE_THEME: 'TOGGLE_THEME',
+  TOGGLE_CALCULATOR: 'TOGGLE_CALCULATOR', // Added this action
   UPDATE_LINKS: 'UPDATE_LINKS',
   UPDATE_LINK_CATEGORIES: 'UPDATE_LINK_CATEGORIES',
   ADD_LINK_CATEGORY: 'ADD_LINK_CATEGORY',
   REMOVE_LINK_CATEGORY: 'REMOVE_LINK_CATEGORY'
 };
 
-// Enhanced initial state
+// Enhanced initial state - Added isCalculatorOpen
 const initialState = {
   data: {
     ...createDefaultData(),
@@ -49,10 +50,11 @@ const initialState = {
   isLoading: false,
   lastUpdated: new Date().toISOString(),
   plannerState: {},
-  currentWeek: 1
+  currentWeek: 1,
+  isCalculatorOpen: false // Added calculator state
 };
 
-// Enhanced reducer
+// Enhanced reducer - Added TOGGLE_CALCULATOR case
 function budgetReducer(state, action) {
   switch (action.type) {
     case ACTIONS.LOAD_DATA:
@@ -270,6 +272,13 @@ function budgetReducer(state, action) {
         theme: state.theme === 'light' ? 'dark' : 'light'
       };
 
+    // Added TOGGLE_CALCULATOR case
+    case ACTIONS.TOGGLE_CALCULATOR:
+      return {
+        ...state,
+        isCalculatorOpen: !state.isCalculatorOpen
+      };
+
     default:
       return state;
   }
@@ -290,7 +299,10 @@ export function BudgetProvider({ children }) {
         }
       }
     } catch (error) {
-      console.error('Failed to load saved data:', error);
+      // Silently handle errors in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to load saved data:', error);
+      }
     }
   }, []);
 
@@ -299,11 +311,14 @@ export function BudgetProvider({ children }) {
     try {
       localStorage.setItem('family-budget-data', JSON.stringify(state.data));
     } catch (error) {
-      console.error('Failed to save data:', error);
+      // Silently handle errors in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to save data:', error);
+      }
     }
   }, [state.data]);
 
-  // Enhanced action creators
+  // Enhanced action creators - Added toggleCalculator
   const actions = {
     loadData: (data) => {
       dispatch({ type: ACTIONS.LOAD_DATA, payload: data });
@@ -359,6 +374,11 @@ export function BudgetProvider({ children }) {
 
     toggleTheme: () => {
       dispatch({ type: ACTIONS.TOGGLE_THEME });
+    },
+
+    // Added toggleCalculator action
+    toggleCalculator: () => {
+      dispatch({ type: ACTIONS.TOGGLE_CALCULATOR });
     },
 
     // Enhanced Links Actions
