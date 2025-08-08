@@ -1,6 +1,7 @@
 // src/pages/IncomePage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useBudget } from '../context/BudgetContext';
+import { DEFAULT_ACCOUNTS } from '../utils/constants';
 import { sanitizeInput } from '../utils/validators';
 import { parseAmount } from '../utils/formatters';
 
@@ -15,128 +16,6 @@ const ENHANCED_FREQUENCY_OPTIONS = [
   { value: 'one-time', label: 'One-time' }
 ];
 
-// How many pay-date inputs to show by frequency
-const getMaxPayDates = (freq) => {
-  switch (freq) {
-    case 'weekly': return 5;        // up to 5 in a month
-    case 'bi-weekly': return 3;     // covers 3-paycheque months
-    case 'monthly': return 1;
-    case 'one-time': return 1;
-    default: return 0;
-  }
-};
-
-// Simple, readable SVG bar chart used in the Analytics tab
-const ImprovedBarChart = ({
-  data,
-  width = 900,
-  height = 320,
-  topN = 8,
-  sortBy = 'projected',
-  currencyFormatter = (v) => `$${v.toFixed(2)}`
-}) => {
-  if (!Array.isArray(data) || data.length === 0) return null;
-
-  // sort + slice
-  const rows = [...data]
-    .sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0))
-    .slice(0, topN);
-
-  const pad = { t: 30, r: 20, b: 70, l: 60 };
-  const w = Math.max(300, width) - pad.l - pad.r;
-  const h = Math.max(200, height) - pad.t - pad.b;
-
-  const maxVal = Math.max(
-    1,
-    ...rows.map(r => Math.max(r.projected || 0, r.actual || 0))
-  );
-
-  const xBand = w / rows.length;
-  const gap = Math.min(14, Math.max(8, xBand * 0.12));
-  const barW = Math.max(12, Math.min(34, (xBand - gap) / 2));
-
-  const y = (v) => h - (v / maxVal) * h;
-
-  const yTicks = 4;
-  const tickVals = Array.from({ length: yTicks + 1 }, (_, i) => (maxVal / yTicks) * i);
-
-  return (
-    <svg width={w + pad.l + pad.r} height={h + pad.t + pad.b} style={{ display: 'block' }}>
-      <g transform={`translate(${pad.l},${pad.t})`}>
-        {/* Y grid & ticks */}
-        {tickVals.map((tv, i) => (
-          <g key={`yt-${i}`}>
-            <line
-              x1={0}
-              y1={y(tv)}
-              x2={w}
-              y2={y(tv)}
-              stroke="#e5e7eb"
-              strokeDasharray="3 3"
-            />
-            <text
-              x={-10}
-              y={y(tv)}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize="11"
-              fill="#6b7280"
-            >
-              {currencyFormatter(tv)}
-            </text>
-          </g>
-        ))}
-
-        {/* X axis */}
-        <line x1="0" y1={h} x2={w} y2={h} stroke="#e5e7eb" />
-
-        {/* Bars */}
-        {rows.map((d, i) => {
-          const cx = i * xBand + xBand / 2;
-          const px = cx - barW - gap / 2;
-          const ax = cx + gap / 2;
-          const ph = h - y(d.projected || 0);
-          const ah = h - y(d.actual || 0);
-
-          return (
-            <g key={d.id || d.name || i}>
-              <rect x={px} y={y(d.projected || 0)} width={barW} height={ph} fill="#10b981" rx="4" />
-              <rect x={ax} y={y(d.actual || 0)} width={barW} height={ah} fill="#3b82f6" rx="4" />
-
-              {/* value labels */}
-              <text x={px + barW / 2} y={y(d.projected || 0) - 6} fontSize="10" fill="#065f46" textAnchor="middle">
-                {currencyFormatter(d.projected || 0)}
-              </text>
-              <text x={ax + barW / 2} y={y(d.actual || 0) - 6} fontSize="10" fill="#1e3a8a" textAnchor="middle">
-                {currencyFormatter(d.actual || 0)}
-              </text>
-
-              {/* x labels */}
-              <text
-                x={cx}
-                y={h + 16}
-                textAnchor="middle"
-                fontSize="11"
-                fill="#374151"
-              >
-                {String(d.name).length > 16 ? `${String(d.name).slice(0, 16)}…` : d.name}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* legend */}
-        <g transform={`translate(0, -14)`}>
-          <rect x="0" y="-10" width="12" height="12" fill="#10b981" rx="2" />
-          <text x="18" y="0" fontSize="12" fill="#374151">Projected</text>
-          <rect x="100" y="-10" width="12" height="12" fill="#3b82f6" rx="2" />
-          <text x="118" y="0" fontSize="12" fill="#374151">Actual</text>
-        </g>
-      </g>
-    </svg>
-  );
-};
-
 const IncomePage = () => {
   const { state, actions, formatCurrency: formatCurrencyUtil } = useBudget();
   const [editingIndex, setEditingIndex] = useState(null);
@@ -149,123 +28,81 @@ const IncomePage = () => {
     projectedAmount: '',
     actualAmount: '',
     frequency: 'monthly',
-    account: '',
+    account: DEFAULT_ACCOUNTS[0],
     notes: '',
     weeks: Array(5).fill(0),
     actualWeeks: Array(5).fill(0),
     payDates: [],
-    payActuals: [],
-    // How to interpret 'overall actual' when per-date actuals are not used
-    actualMode: 'per-check' // 'per-check' | 'monthly-total'
+    payActuals: []
   });
 
-  // Trim per-date arrays when frequency changes
-  useEffect(() => {
-    const max = getMaxPayDates(formData.frequency);
-    if (!Array.isArray(formData.payDates)) return;
-
-    const nextPayDates = formData.payDates.length > max
-      ? formData.payDates.slice(0, max)
-      : formData.payDates;
-
-    const nextPayActualsBase = Array.isArray(formData.payActuals) ? formData.payActuals : [];
-    const nextPayActuals = nextPayActualsBase.length > max
-      ? nextPayActualsBase.slice(0, max)
-      : nextPayActualsBase;
-
-    if (nextPayDates !== formData.payDates || nextPayActuals !== formData.payActuals) {
-      setFormData(prev => ({ ...prev, payDates: nextPayDates, payActuals: nextPayActuals }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.frequency]);
-
-  // Build account options only from saved data (no defaults)
-  const accountsFromMonthly = Object.values(state?.data?.monthly || {})
-    .flat()
-    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
-    .filter(Boolean);
-
-  const accountsFromAnnual = Object.values(state?.data?.annual || {})
-    .flat()
-    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
-    .filter(Boolean);
-
-  const accountsFromState = Array.isArray(state?.data?.accounts)
-    ? state.data.accounts
-        .map(a => (typeof a === 'string' ? a.trim() : ''))
-        .filter(Boolean)
-    : [];
-
-  const ACCOUNT_OPTIONS = Array.from(
-    new Set([...accountsFromState, ...accountsFromMonthly, ...accountsFromAnnual])
-  );
-
-  // If nothing is selected, default to first option once options are known
-  useEffect(() => {
-    if (!formData.account && ACCOUNT_OPTIONS.length) {
-      setFormData(prev => ({ ...prev, account: ACCOUNT_OPTIONS[0] }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ACCOUNT_OPTIONS.length]);
-
-  // Month-aware monthly amount calculator
-  const getMonthAwareMonthlyAmount = (income, which = 'projected') => {
-    const hasDates = Array.isArray(income.payDates) && income.payDates.length > 0;
-    const perCheckProjected = (typeof income.projectedAmount === 'number' ? income.projectedAmount : parseAmount(income.projectedAmount));
-    const perCheckActual   = (typeof income.actualAmount === 'number' ? income.actualAmount : parseAmount(income.actualAmount));
-
-    if (which === 'actual') {
-      // 1) If per-date actuals exist, sum them (these are month-aware)
-      if (Array.isArray(income.payActuals) && income.payActuals.length > 0) {
-        return income.payActuals.reduce((sum, v) => sum + (parseAmount(v) || 0), 0);
-      }
-      // 2) If user says "overall actual is monthly total", just use it
-      if (income.actualMode === 'monthly-total') {
-        return perCheckActual || 0;
-      }
-      // 3) Otherwise treat overall actual as per-paycheck
-      switch (income.frequency) {
-        case 'weekly':
-          return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (52 / 12);
-        case 'bi-weekly':
-          return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (26 / 12);
-        case 'monthly':
-          return perCheckActual || 0;
-        case 'quarterly':
-          return (perCheckActual || 0) / 3;
-        case 'semi-annual':
-          return (perCheckActual || 0) / 6;
-        case 'annual':
-          return (perCheckActual || 0) / 12;
-        case 'one-time':
-          return 0;
-        default:
-          return perCheckActual || 0;
-      }
-    }
-
-    // PROJECTED path
-    switch (income.frequency) {
-      case 'weekly':
-        return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (52 / 12);
-      case 'bi-weekly':
-        return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (26 / 12);
-      case 'monthly':
-        return perCheckProjected || 0;
-      case 'quarterly':
-        return (perCheckProjected || 0) / 3;
-      case 'semi-annual':
-        return (perCheckProjected || 0) / 6;
-      case 'annual':
-        return (perCheckProjected || 0) / 12;
-      case 'one-time':
-        return 0;
-      default:
-        return perCheckProjected || 0;
+  // How many pay-date inputs to show by frequency
+  const getMaxPayDates = (freq) => {
+    switch (freq) {
+      case 'weekly': return 5;        // up to 5 in a month
+      case 'bi-weekly': return 3;     // covers 3-paycheque months
+      case 'monthly': return 1;
+      case 'one-time': return 1;
+      default: return 0;
     }
   };
 
-  // Normalize income data from state
+  // Trim per-date arrays when frequency changes
+  React.useEffect(() => {
+    const max = getMaxPayDates(formData.frequency);
+    if (!Array.isArray(formData.payDates)) return;
+
+    const next = { ...formData };
+    if (formData.payDates.length > max) next.payDates = formData.payDates.slice(0, max);
+    if (!Array.isArray(formData.payActuals)) next.payActuals = [];
+    if (formData.payActuals.length > max) next.payActuals = formData.payActuals.slice(0, max);
+
+    // Shallow compare objects; if different, update
+    if (
+      next.payDates !== formData.payDates ||
+      next.payActuals !== formData.payActuals
+    ) {
+      setFormData(prev => ({ ...prev, payDates: next.payDates, payActuals: next.payActuals }));
+    }
+  }, [formData.frequency]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Month-aware monthly amount (uses payDates/payActuals when present)
+  const getMonthAwareMonthlyAmount = (income, which = 'projected') => {
+    const hasDates = Array.isArray(income.payDates) && income.payDates.length > 0;
+
+    if (which === 'actual') {
+      // If per-date actuals exist, sum them (month-aware)
+      if (Array.isArray(income.payActuals) && income.payActuals.length > 0) {
+        return income.payActuals.reduce((sum, v) => sum + (parseAmount(v) || 0), 0);
+      }
+    }
+
+    const perCheck =
+      which === 'actual'
+        ? (typeof income.actualAmount === 'number' ? income.actualAmount : parseAmount(income.actualAmount))
+        : (typeof income.projectedAmount === 'number' ? income.projectedAmount : parseAmount(income.projectedAmount));
+
+    switch (income.frequency) {
+      case 'weekly':
+        return hasDates ? perCheck * income.payDates.length : perCheck * (52 / 12);
+      case 'bi-weekly':
+        return hasDates ? perCheck * income.payDates.length : perCheck * (26 / 12);
+      case 'monthly':
+        return perCheck;
+      case 'quarterly':
+        return perCheck / 3;
+      case 'semi-annual':
+        return perCheck / 6;
+      case 'annual':
+        return perCheck / 12;
+      case 'one-time':
+        return 0;
+      default:
+        return perCheck;
+    }
+  };
+
+  // Normalize income data
   const incomeData = (state.data.income || []).map((income) => {
     const weeks = Array.isArray(income.weeks) ? income.weeks : Array(5).fill(0);
     const actualWeeks = Array.isArray(income.actualWeeks) ? income.actualWeeks : Array(5).fill(0);
@@ -294,11 +131,10 @@ const IncomePage = () => {
       weeks,
       actualWeeks,
       frequency: income.frequency || 'monthly',
-      account: income.account || '',
+      account: income.account || DEFAULT_ACCOUNTS[0],
       notes: income.notes || '',
       payDates,
-      payActuals,
-      actualMode: income.actualMode || 'per-check'
+      payActuals
     };
   });
 
@@ -311,7 +147,7 @@ const IncomePage = () => {
     return total + getMonthAwareMonthlyAmount(income, 'actual');
   }, 0);
 
-  // Analytics builders
+  // === ANALYTICS HELPERS ===
   const buildIncomeAnalytics = (data) => {
     const rows = data.map((inc) => {
       const projected = getMonthAwareMonthlyAmount(inc, 'projected');
@@ -339,18 +175,19 @@ const IncomePage = () => {
       .map(([account, actual]) => ({ account, actual }))
       .sort((a, b) => b.actual - a.actual);
 
-    const chart = rows;
+    const chart = rows; // reuse rows (label + projected + actual)
     return { rows, topNegative, topPositive, byAccount, chart };
   };
 
+  // === ANALYTICS DATA ===
   const analytics = buildIncomeAnalytics(incomeData);
 
-  // Month totals / variance
+  // === MONTH TOTALS / VARIANCE ===
   const incomeVariance = totalActualIncome - totalProjectedIncome;
   const variancePercentage =
     totalProjectedIncome > 0 ? (incomeVariance / totalProjectedIncome) * 100 : 0;
 
-  // Form input handler
+  // === FORM INPUT HANDLER ===
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -393,7 +230,6 @@ const IncomePage = () => {
       actualWeeks,
       payDates: Array.isArray(formData.payDates) ? formData.payDates : [],
       payActuals: Array.isArray(formData.payActuals) ? formData.payActuals : [],
-      actualMode: formData.actualMode || 'per-check',
       id: editingIndex !== null ? incomeData[editingIndex].id : Date.now().toString()
     };
 
@@ -410,85 +246,107 @@ const IncomePage = () => {
     resetForm();
   };
 
-  // Edit
-  const handleEdit = (index) => {
-    const income = incomeData[index];
-    setFormData({
-      name: income.name || '',
-      projectedAmount: income.projectedAmount?.toString() || '',
-      actualAmount: income.actualAmount?.toString() || '',
-      frequency: income.frequency || 'monthly',
-      account: income.account || (ACCOUNT_OPTIONS[0] ?? ''),
-      notes: income.notes || '',
-      weeks: Array.isArray(income.weeks) ? income.weeks : Array(5).fill(0),
-      actualWeeks: Array.isArray(income.actualWeeks) ? income.actualWeeks : Array(5).fill(0),
-      payDates: Array.isArray(income.payDates) ? income.payDates : [],
-      payActuals: Array.isArray(income.payActuals) ? income.payActuals : [],
-      actualMode: income.actualMode || 'per-check'
-    });
-    setEditingIndex(index);
-    setShowAddForm(true);
-    setActiveTab('sources');
+  // Accounts list: collect from state + monthly/annual + defaults
+  const accountsFromMonthly = Object.values(state?.data?.monthly || {})
+    .flat()
+    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
+    .filter(Boolean);
 
-    setTimeout(() => {
-      const formElement = document.querySelector('.income-form');
-      if (formElement) {
-        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
-  };
+  const accountsFromAnnual = Object.values(state?.data?.annual || {})
+    .flat()
+    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
+    .filter(Boolean);
 
-  // Delete
-  const handleDelete = (index) => {
-    if (window.confirm('Are you sure you want to delete this income source?')) {
-      const newIncomeData = incomeData.filter((_, i) => i !== index);
-      actions.updateIncome(newIncomeData);
+  const accountsFromState = Array.isArray(state?.data?.accounts)
+    ? state.data.accounts
+        .map(a => (typeof a === 'string' ? a.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  // Build account options only from saved data (no defaults)
+const ACCOUNT_OPTIONS = Array.from(
+  new Set([...accountsFromState, ...accountsFromMonthly, ...accountsFromAnnual])
+);
+
+
+
+const handleEdit = (index) => {
+  const income = incomeData[index];
+  setFormData({
+    name: income.name || '',
+    projectedAmount: income.projectedAmount?.toString() || '',
+    actualAmount: income.actualAmount?.toString() || '',
+    frequency: income.frequency || 'monthly',
+    // If there isn't a valid account on the row, leave it blank
+    account: (typeof income.account === 'string' && income.account.trim())
+      ? income.account.trim()
+      : '',
+    notes: income.notes || '',
+    weeks: Array.isArray(income.weeks) ? income.weeks : Array(5).fill(0),
+    actualWeeks: Array.isArray(income.actualWeeks) ? income.actualWeeks : Array(5).fill(0),
+    payDates: Array.isArray(income.payDates) ? income.payDates : [],
+    payActuals: Array.isArray(income.payActuals) ? income.payActuals : []
+  });
+  setEditingIndex(index);
+  setShowAddForm(true);
+  setActiveTab('sources');
+
+  setTimeout(() => {
+    const formElement = document.querySelector('.income-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  };
+  }, 100);
+};
 
-  // Reset form
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      frequency: 'monthly',
-      projectedAmount: '',
-      actualAmount: '',
-      account: '',
-      notes: '',
-      weeks: Array(5).fill(0),
-      actualWeeks: Array(5).fill(0),
-      payDates: [],
-      payActuals: [],
-      actualMode: 'per-check'
-    });
-    setShowAddForm(false);
-    setEditingIndex(null);
-  };
+const handleDelete = (index) => {
+  if (window.confirm('Are you sure you want to delete this income source?')) {
+    const newIncomeData = incomeData.filter((_, i) => i !== index);
+    actions.updateIncome(newIncomeData);
+  }
+};
 
-  const handlePrint = () => {
-    window.print();
-  };
+const resetForm = () => {
+  setFormData({
+    name: '',
+    frequency: 'monthly',
+    projectedAmount: '',
+    actualAmount: '',
+    account: ACCOUNT_OPTIONS[0] ?? '', // <- leave blank if none exist
+    notes: '',
+    weeks: Array(5).fill(0),
+    actualWeeks: Array(5).fill(0),
+    payDates: [],
+    payActuals: []
+  });
+  setShowAddForm(false);
+  setEditingIndex(null);
+};
 
-  const exportIncomeCSV = () => {
-    const headers = ['Source', 'Projected Amount', 'Actual Amount', 'Variance', 'Frequency', 'Account', 'Notes'];
-    const csvRows = [headers.join(',')];
+const handlePrint = () => {
+  window.print();
+};
 
-    incomeData.forEach(income => {
-      const projectedMonthly = getMonthAwareMonthlyAmount(income, 'projected');
-      const actualMonthly = getMonthAwareMonthlyAmount(income, 'actual');
-      const variance = actualMonthly - projectedMonthly;
-      const row = [
-        income.name || '',
-        projectedMonthly || 0,
-        actualMonthly || 0,
-        variance,
-        income.frequency || 'monthly',
-        income.account || '',
-        income.notes || ''
-      ].map(field => `"${String(field).replace(/"/g, '""')}"`);
+const exportIncomeCSV = () => {
+  const headers = ['Source', 'Projected Amount', 'Actual Amount', 'Variance', 'Frequency', 'Account', 'Notes'];
+  const csvRows = [headers.join(',')];
 
-      csvRows.push(row.join(','));
-    });
+  incomeData.forEach(income => {
+    const projectedMonthly = getMonthAwareMonthlyAmount(income, 'projected');
+    const actualMonthly = getMonthAwareMonthlyAmount(income, 'actual');
+    const variance = actualMonthly - projectedMonthly;
+    const row = [
+      income.name || '',
+      projectedMonthly || 0,
+      actualMonthly || 0,
+      variance,
+      income.frequency || 'monthly',
+      income.account || '',
+      income.notes || ''
+    ].map(field => `"${String(field).replace(/"/g, '""')}"`);
+
+    csvRows.push(row.join(','));
+  });
 
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -507,13 +365,121 @@ const IncomePage = () => {
     <button
       className={`tab-button ${active ? 'active' : ''}`}
       onClick={onClick}
-      aria-selected={active}
-      role="tab"
-      id={`tab-${id}`}
     >
       {label}
     </button>
   );
+
+  // Simple, readable SVG bar chart used in the Analytics tab
+  const ImprovedBarChart = ({
+    data,
+    width = 900,
+    height = 320,
+    topN = 8,
+    sortBy = 'projected',
+    currencyFormatter = (v) => `$${v.toFixed(2)}`
+  }) => {
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    // sort + slice
+    const rows = [...data]
+      .sort((a, b) => (b[sortBy] || 0) - (a[sortBy] || 0))
+      .slice(0, topN);
+
+    const pad = { t: 30, r: 20, b: 70, l: 60 };
+    const w = Math.max(300, width) - pad.l - pad.r;
+    const h = Math.max(200, height) - pad.t - pad.b;
+
+    const maxVal = Math.max(
+      1,
+      ...rows.map(r => Math.max(r.projected || 0, r.actual || 0))
+    );
+
+    const xBand = w / rows.length;
+    const gap = Math.min(14, Math.max(8, xBand * 0.12));
+    const barW = Math.max(12, Math.min(34, (xBand - gap) / 2));
+
+    const y = (v) => h - (v / maxVal) * h;
+
+    const yTicks = 4;
+    const tickVals = Array.from({ length: yTicks + 1 }, (_, i) => (maxVal / yTicks) * i);
+
+    return (
+      <svg width={w + pad.l + pad.r} height={h + pad.t + pad.b} style={{ display: 'block' }}>
+        <g transform={`translate(${pad.l},${pad.t})`}>
+          {/* Y grid & ticks */}
+          {tickVals.map((tv, i) => (
+            <g key={`yt-${i}`}>
+              <line
+                x1={0}
+                y1={y(tv)}
+                x2={w}
+                y2={y(tv)}
+                stroke="#e5e7eb"
+                strokeDasharray="3 3"
+              />
+              <text
+                x={-10}
+                y={y(tv)}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fontSize="11"
+                fill="#6b7280"
+              >
+                {currencyFormatter(tv)}
+              </text>
+            </g>
+          ))}
+
+          {/* X axis */}
+          <line x1="0" y1={h} x2={w} y2={h} stroke="#e5e7eb" />
+
+          {/* Bars */}
+          {rows.map((d, i) => {
+            const cx = i * xBand + xBand / 2;
+            const px = cx - barW - gap / 2;
+            const ax = cx + gap / 2;
+            const ph = h - y(d.projected || 0);
+            const ah = h - y(d.actual || 0);
+
+            return (
+              <g key={d.id || d.name || i}>
+                <rect x={px} y={y(d.projected || 0)} width={barW} height={ph} fill="#10b981" rx="4" />
+                <rect x={ax} y={y(d.actual || 0)} width={barW} height={ah} fill="#3b82f6" rx="4" />
+
+                {/* value labels */}
+                <text x={px + barW / 2} y={y(d.projected || 0) - 6} fontSize="10" fill="#065f46" textAnchor="middle">
+                  {currencyFormatter(d.projected || 0)}
+                </text>
+                <text x={ax + barW / 2} y={y(d.actual || 0) - 6} fontSize="10" fill="#1e3a8a" textAnchor="middle">
+                  {currencyFormatter(d.actual || 0)}
+                </text>
+
+                {/* x labels */}
+                <text
+                  x={cx}
+                  y={h + 16}
+                  textAnchor="middle"
+                  fontSize="11"
+                  fill="#374151"
+                >
+                  {String(d.name).length > 16 ? `${String(d.name).slice(0, 16)}…` : d.name}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* legend */}
+          <g transform={`translate(0, -14)`}>
+            <rect x="0" y="-10" width="12" height="12" fill="#10b981" rx="2" />
+            <text x="18" y="0" fontSize="12" fill="#374151">Projected</text>
+            <rect x="100" y="-10" width="12" height="12" fill="#3b82f6" rx="2" />
+            <text x="118" y="0" fontSize="12" fill="#374151">Actual</text>
+          </g>
+        </g>
+      </svg>
+    );
+  };
 
   return (
     <div className="income-page">
@@ -1139,7 +1105,7 @@ const IncomePage = () => {
       </div>
 
       <div className="tabs-container">
-        <div className="tabs-header" role="tablist" aria-label="Income Tabs">
+        <div className="tabs-header">
           <TabButton
             id="overview"
             label="📊 Overview"
@@ -1160,7 +1126,7 @@ const IncomePage = () => {
           />
         </div>
 
-        <div className="tab-content" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
+        <div className="tab-content">
           {activeTab === 'overview' && (
             <>
               <div className="summary-grid">
@@ -1276,37 +1242,6 @@ const IncomePage = () => {
                         </select>
                       </div>
 
-                      {/* Actual amount mode */}
-                      <div className="form-group full-width">
-                        <label className="form-label" htmlFor="actual-mode">How should Overall Actual be treated?</label>
-                        <div id="actual-mode" role="radiogroup" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <input
-                              type="radio"
-                              name="actualMode"
-                              value="per-check"
-                              checked={formData.actualMode === 'per-check'}
-                              onChange={(e) => handleInputChange('actualMode', e.target.value)}
-                            />
-                            <span>Per-paycheck (multiply by # of checks)</span>
-                          </label>
-
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <input
-                              type="radio"
-                              name="actualMode"
-                              value="monthly-total"
-                              checked={formData.actualMode === 'monthly-total'}
-                              onChange={(e) => handleInputChange('actualMode', e.target.value)}
-                            />
-                            <span>Monthly total (don’t multiply)</span>
-                          </label>
-                        </div>
-                        <small style={{ color: '#6b7280' }}>
-                          Tip: If you record each pay in “Pay dates + actuals”, this setting is ignored and the per-date amounts are summed.
-                        </small>
-                      </div>
-
                       {/* Pay dates + actuals (dynamic by frequency) */}
                       {getMaxPayDates(formData.frequency) > 0 && (
                         <div className="form-group full-width">
@@ -1377,7 +1312,6 @@ const IncomePage = () => {
                           onChange={(e) => handleInputChange('account', e.target.value)}
                           required
                         >
-                          {ACCOUNT_OPTIONS.length === 0 && <option value="">No accounts found</option>}
                           {ACCOUNT_OPTIONS.map(acc => (
                             <option key={acc} value={acc}>{acc}</option>
                           ))}
