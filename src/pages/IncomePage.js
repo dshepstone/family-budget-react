@@ -466,8 +466,9 @@ const IncomePage = () => {
   };
 
   const handlePrint = () => {
-    window.print();
-  };
+  const html = IncomePagePrint.generatePrintContent(state.data, formatCurrencyUtil);
+  IncomePagePrint.openPrintWindow(html, 'Income Report');
+};
 
   const exportIncomeCSV = () => {
     const headers = ['Source', 'Projected Amount', 'Actual Amount', 'Variance', 'Frequency', 'Account', 'Notes'];
@@ -1355,7 +1356,7 @@ const IncomePage = () => {
                       )}
 
                       <div className="form-group">
-                        <label className="form-label">Projected Amount *</label>
+                        <label className="form-label">Projected Amount - per pay *</label>
                         <input
                           type="number"
                           step="0.01"
@@ -1631,22 +1632,254 @@ const IncomePage = () => {
           📘 Income Overview – Help & Definitions
         </h3>
         <ul style={{ lineHeight: '1.6', fontSize: '0.95rem', color: '#374151' }}>
-          <li>
-            <strong>Projected Monthly Income:</strong> The total amount you expect to earn each month from all income sources. Annual value = monthly × 12.
-          </li>
-          <li>
-            <strong>Actual Monthly Income:</strong> The total income you have actually received this month. Annual value = monthly × 12.
-          </li>
-          <li>
-            <strong>Income Variance:</strong> The difference between actual and projected income. Negative means under target, positive means over target.
-          </li>
-          <li>
-            <strong>Income Sources:</strong> The number of active income sources you’ve added to your budget.
-          </li>
-        </ul>
+  <li>
+    <strong>Projected Monthly Income:</strong> The total amount you expect to earn each month from all income sources. Annual value = monthly × 12.
+  </li>
+  <li>
+    <strong>Actual Monthly Income:</strong> The total income you have actually received this month. Annual value = monthly × 12.
+  </li>
+  <li>
+    <strong>Income Variance:</strong> The difference between actual and projected income. Negative means under target, positive means over target.
+  </li>
+  <li>
+    <strong>Income Sources:</strong> The number of active income sources you’ve added to your budget.
+  </li>
+  <li>
+    <strong>Per-paycheck (multiply by # of checks):</strong> Enter the amount of a single paycheck in “Actual Amount” and the system multiplies it by how many paychecks you get in that month (based on frequency). Example: $2,737.49 × 3 paychecks = $8,212.47 for the month.
+  </li>
+  <li>
+    <strong>Monthly total (don’t multiply):</strong> Enter the total for the month directly — the system does not multiply it. Example: Entering $2,737.49 means that’s the full month’s total, even if you had multiple paychecks.
+  </li>
+  <li>
+    <em>Tip:</em> If you fill in “Pay dates + actuals” for each paycheck, the above setting is ignored and the monthly total is simply the sum of those amounts.
+  </li>
+</ul>
+
+
       </div>
     </div>
+
+    
   );
 };
+// src/utils/printUtils.js
+
+export const IncomePagePrint = {
+  generatePrintContent(data, formatCurrency) {
+    // ------- helpers -------
+    const safe = (v) => (v == null ? '' : String(v));
+    const parseNum = (v) => {
+      if (typeof v === 'number') return v;
+      if (!v && v !== 0) return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return isNaN(n) ? 0 : n;
+    };
+
+    // month-aware calculator (mirrors page logic)
+    const monthAware = (income, which = 'projected') => {
+      const hasDates = Array.isArray(income.payDates) && income.payDates.length > 0;
+      const perCheckProj = parseNum(income.projectedAmount ?? income.amount);
+      const perCheckAct  = parseNum(income.actualAmount);
+
+      if (which === 'actual') {
+        // A) per-date actuals win
+        if (Array.isArray(income.payActuals) && income.payActuals.length > 0) {
+          return income.payActuals.reduce((s, v) => s + parseNum(v), 0);
+        }
+        // B) if user said monthly total, use as-is
+        if ((income.actualMode || 'per-check') === 'monthly-total') {
+          return perCheckAct || 0;
+        }
+      }
+
+      const base = which === 'projected' ? perCheckProj : perCheckAct;
+
+      switch (income.frequency) {
+        case 'weekly':     return hasDates ? base * income.payDates.length : base * (52 / 12);
+        case 'bi-weekly':  return hasDates ? base * income.payDates.length : base * (26 / 12);
+        case 'monthly':    return base;
+        case 'quarterly':  return base / 3;
+        case 'semi-annual':return base / 6;
+        case 'annual':     return base / 12;
+        case 'one-time':   return 0;
+        default:           return base;
+      }
+    };
+
+    const income = (data?.income || []).map((inc) => {
+      const name = inc.name || inc.source || 'Untitled';
+      const account = inc.account || inc.accountId || '';
+      const freq = inc.frequency || 'monthly';
+      const payDates = Array.isArray(inc.payDates) ? inc.payDates : [];
+      const payActuals = Array.isArray(inc.payActuals) ? inc.payActuals : [];
+      const projectedPerPay = parseNum(inc.projectedAmount ?? inc.amount);
+      const actualPerPay = parseNum(inc.actualAmount);
+      const actualMode = inc.actualMode || 'per-check';
+
+      const projMonthly = monthAware({ ...inc, projectedAmount: projectedPerPay }, 'projected');
+      const actMonthly  = monthAware({ ...inc, actualAmount: actualPerPay, actualMode, payDates, payActuals }, 'actual');
+      const variance    = actMonthly - projMonthly;
+
+      return {
+        id: inc.id || name,
+        name,
+        account,
+        frequency: freq,
+        projectedPerPay,
+        actualPerPay,
+        payDates,
+        payActuals,
+        projectedMonthly: projMonthly,
+        actualMonthly: actMonthly,
+        variance
+      };
+    });
+
+    const totals = income.reduce((a, r) => {
+      a.projected += r.projectedMonthly;
+      a.actual += r.actualMonthly;
+      return a;
+    }, { projected: 0, actual: 0 });
+    const totalVariance = totals.actual - totals.projected;
+
+    const today = new Date();
+    const printedDate = today.toLocaleDateString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric' });
+
+    // ------- HTML -------
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Income Report</title>
+<style>
+  @page { size: Letter; margin: 0.5in; }
+  * { box-sizing: border-box; }
+  html, body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; color: #111827; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  .sub { color: #6b7280; font-size: 12px; margin-bottom: 18px; }
+
+  .badges { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .pill {
+    font-size: 12px; padding: 6px 10px; border-radius: 999px;
+    border: 1px solid #e5e7eb; background: #f9fafb; display: inline-block;
+  }
+  .strong { font-weight: 700; }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  thead th {
+    font-size: 12px; text-transform: none; letter-spacing: 0;
+    text-align: left; color: #374151; padding: 10px 12px; border-bottom: 2px solid #e5e7eb;
+    position: relative;
+  }
+  tbody td {
+    padding: 10px 12px; font-size: 13px; vertical-align: top; border-bottom: 1px solid #f1f5f9;
+  }
+  tbody tr:nth-child(even) td { background: #fafafa; }
+  tfoot td {
+    padding: 12px; font-weight: 700; border-top: 2px solid #e5e7eb; font-size: 13px;
+  }
+
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .muted { color: #6b7280; }
+  .sourceCell { line-height: 1.35; }
+  .sourceTitle { font-weight: 700; margin-bottom: 4px; }
+  .acct { font-size: 12px; color: #6b7280; margin-bottom: 4px; }
+  .dates { margin-top: 8px; }
+  .dates ul { margin: 0; padding-left: 14px; }
+  .dates li { margin: 2px 0; color: #374151; }
+  .dates small { color: #6b7280; }
+
+  .variance-neg { color: #dc2626; }
+  .variance-pos { color: #059669; }
+
+  .grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .wrap { max-width: 8.5in; margin: 0 auto; }
+  .header { margin-bottom: 14px; }
+  .tableWrap { margin-top: 8px; }
+
+  /* Avoid splitting rows across pages */
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Income Summary</h1>
+      <div class="sub">Printed ${printedDate}</div>
+      <div class="badges">
+        <span class="pill"><span class="muted">Projected (month):</span> <span class="strong">${formatCurrency(totals.projected)}</span></span>
+        <span class="pill"><span class="muted">Actual (month):</span> <span class="strong">${formatCurrency(totals.actual)}</span></span>
+        <span class="pill"><span class="muted">Variance:</span> <span class="strong">${formatCurrency(totalVariance)}</span></span>
+      </div>
+    </div>
+
+    <div class="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 32%;">Source / Account / Pay Dates</th>
+            <th style="width: 10%;">Frequency</th>
+            <th class="num" style="width: 12%;">Projected<br/><span class="muted">(per pay)</span></th>
+            <th class="num" style="width: 12%;">Actual<br/><span class="muted">(per pay)</span></th>
+            <th class="num" style="width: 12%;">Projected<br/><span class="muted">(monthly)</span></th>
+            <th class="num" style="width: 12%;">Actual<br/><span class="muted">(monthly)</span></th>
+            <th class="num" style="width: 10%;">Variance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${income.map(r => {
+            const payLines = (r.payDates.length ? r.payDates : []).map((d, i) => {
+              const amt = r.payActuals?.[i];
+              const amtStr = (amt || amt === 0) ? ` — <small>${formatCurrency(parseNum(amt))}</small>` : '';
+              return `<li>${safe(d)}${amtStr}</li>`;
+            }).join('');
+            return `
+            <tr>
+              <td class="sourceCell">
+                <div class="sourceTitle">${safe(r.name)}</div>
+                ${r.account ? `<div class="acct">${safe(r.account)}</div>` : ''}
+                ${payLines ? `<div class="dates"><ul>${payLines}</ul></div>` : ''}
+              </td>
+              <td>${safe(r.frequency)}</td>
+              <td class="num">${formatCurrency(r.projectedPerPay)}</td>
+              <td class="num">${formatCurrency(r.actualPerPay)}</td>
+              <td class="num">${formatCurrency(r.projectedMonthly)}</td>
+              <td class="num">${formatCurrency(r.actualMonthly)}</td>
+              <td class="num ${r.variance < 0 ? 'variance-neg' : 'variance-pos'}">${formatCurrency(r.variance)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Totals</td>
+            <td></td>
+            <td class="num muted">—</td>
+            <td class="num muted">—</td>
+            <td class="num">${formatCurrency(totals.projected)}</td>
+            <td class="num">${formatCurrency(totals.actual)}</td>
+            <td class="num ${totalVariance < 0 ? 'variance-neg' : 'variance-pos'}">${formatCurrency(totalVariance)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</body>
+</html>`;
+  },
+
+  // keep your existing window+print helper; adding it here for completeness
+  openPrintWindow(html, title = 'Income Report') {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.onload = () => w.print();
+    w.document.title = title;
+  }
+};
+
 
 export default IncomePage;

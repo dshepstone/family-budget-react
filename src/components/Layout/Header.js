@@ -79,7 +79,7 @@ const Header = () => {
         {/* Version Info */}
         <div className="version-info">
           <span className="version-number">v{APP_VERSION}</span>
-          <span className="file-name">Family Budget React</span>
+          <span className="file-name">Family Budget</span>
         </div>
       </div>
     </header>

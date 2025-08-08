@@ -100,7 +100,7 @@ function AppContent() {
       <NotificationCenter />
 
       <div className="version-indicator">
-        <span>Family Budget React v2.0.0</span>
+        <span>Family Budget v2.0.0</span>
         <span className="last-updated">
           Updated: {new Date(state.lastUpdated).toLocaleString()}
         </span>
