@@ -5381,3 +5381,199 @@
   background: white;
   padding: 2px 4px;
 }
+/* Add this to your components.css file for better Import/Export button colors */
+
+/* ===============================================
+   ENHANCED IMPORT/EXPORT BUTTON COLORS
+   =============================================== */
+
+/* Export Data Button - Modern Purple Gradient */
+.quick-actions .action-btn[data-action="export"],
+.quick-actions .export-data-btn,
+.quick-actions .js-export-btn,
+.quick-actions .action-btn:nth-child(4),
+button:contains("Export Data"),
+button[aria-label*="Export" i] {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+  border: 2px solid #8b5cf6 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.quick-actions .action-btn[data-action="export"]:hover,
+.quick-actions .export-data-btn:hover,
+.quick-actions .js-export-btn:hover,
+.quick-actions .action-btn:nth-child(4):hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%) !important;
+  border-color: #7c3aed !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.4) !important;
+}
+
+/* Import Data Button - Modern Emerald Green Gradient */
+.quick-actions .action-btn[data-action="import"],
+.quick-actions .import-data-btn,
+.quick-actions .js-import-btn,
+.quick-actions .action-btn:nth-child(5),
+button:contains("Import Data"),
+button[aria-label*="Import" i] {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%) !important;
+  border: 2px solid #10b981 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.quick-actions .action-btn[data-action="import"]:hover,
+.quick-actions .import-data-btn:hover,
+.quick-actions .js-import-btn:hover,
+.quick-actions .action-btn:nth-child(5):hover {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+  border-color: #059669 !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4) !important;
+}
+
+/* Alternative Color Scheme Option 1 - Ocean Theme */
+.quick-actions.ocean-theme .action-btn[data-action="export"] {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+}
+
+.quick-actions.ocean-theme .action-btn[data-action="export"]:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
+  border-color: #2563eb !important;
+}
+
+.quick-actions.ocean-theme .action-btn[data-action="import"] {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3) !important;
+}
+
+.quick-actions.ocean-theme .action-btn[data-action="import"]:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+  border-color: #0891b2 !important;
+}
+
+/* Alternative Color Scheme Option 2 - Warm Theme */
+.quick-actions.warm-theme .action-btn[data-action="export"] {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3) !important;
+}
+
+.quick-actions.warm-theme .action-btn[data-action="export"]:hover {
+  background: linear-gradient(135deg, #d97706 0%, #ea580c 100%) !important;
+  border-color: #d97706 !important;
+}
+
+.quick-actions.warm-theme .action-btn[data-action="import"] {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3) !important;
+}
+
+.quick-actions.warm-theme .action-btn[data-action="import"]:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+  border-color: #b91c1c !important;
+}
+
+/* Enhanced button styling for better visual appeal */
+.quick-actions .action-btn[data-action="export"],
+.quick-actions .action-btn[data-action="import"] {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+/* Add a subtle shine effect */
+.quick-actions .action-btn[data-action="export"]::before,
+.quick-actions .action-btn[data-action="import"]::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.6s ease;
+  opacity: 0;
+}
+
+.quick-actions .action-btn[data-action="export"]:hover::before,
+.quick-actions .action-btn[data-action="import"]:hover::before {
+  opacity: 1;
+  animation: shine 0.6s ease-in-out;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+/* Icon styling improvements */
+.quick-actions .action-btn[data-action="export"] .btn-icon,
+.quick-actions .action-btn[data-action="import"] .btn-icon {
+  font-size: 1.5rem !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.quick-actions .action-btn[data-action="export"]:hover .btn-icon,
+.quick-actions .action-btn[data-action="import"]:hover .btn-icon {
+  transform: scale(1.1);
+}
+
+/* Text styling improvements */
+.quick-actions .action-btn[data-action="export"],
+.quick-actions .action-btn[data-action="import"] {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  letter-spacing: 0.5px;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .quick-actions .action-btn[data-action="export"] {
+  background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%) !important;
+  border-color: #a855f7 !important;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
+}
+
+[data-theme="dark"] .quick-actions .action-btn[data-action="import"] {
+  background: linear-gradient(135deg, #34d399 0%, #6ee7b7 100%) !important;
+  border-color: #34d399 !important;
+  box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4) !important;
+}
+
+/* Focus states for accessibility */
+.quick-actions .action-btn[data-action="export"]:focus,
+.quick-actions .action-btn[data-action="import"]:focus {
+  outline: 3px solid rgba(255, 255, 255, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+/* Active states */
+.quick-actions .action-btn[data-action="export"]:active,
+.quick-actions .action-btn[data-action="import"]:active {
+  transform: translateY(1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .quick-actions .action-btn[data-action="export"],
+  .quick-actions .action-btn[data-action="import"] {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .quick-actions .action-btn[data-action="export"]:hover,
+  .quick-actions .action-btn[data-action="import"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+}
