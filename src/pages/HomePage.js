@@ -1,5 +1,5 @@
-// src/pages/HomePage.js - Enhanced with Better Income Explanations
-import React, { useMemo } from 'react';
+// src/pages/HomePage.js - Complete with BudgetContext Calculations
+import React, { useMemo, useState } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import SummaryCards from '../components/SummaryCards';
 import UpcomingExpenses from '../components/UpcomingExpenses';
@@ -13,6 +13,25 @@ import { HomePagePrint } from '../utils/printUtils';
 const HomePage = () => {
   const { state, calculations, formatCurrency, actions } = useBudget();
 
+  // Add help accordion state
+  const [helpAccordions, setHelpAccordions] = useState({
+    actualIncome: false,
+    netCashFlow: false,
+    projectedIncome: false,
+    monthlyExpenses: false,
+    savingsRate: false,
+    monthComplete: false,
+    legalDisclaimer: false
+  });
+
+  // Helper function to toggle help accordions
+  const toggleHelpAccordion = (cardType) => {
+    setHelpAccordions(prev => ({
+      ...prev,
+      [cardType]: !prev[cardType]
+    }));
+  };
+
   // Helper function to parse amounts safely
   const parseAmount = (value) => {
     if (typeof value === 'number') return value;
@@ -21,11 +40,10 @@ const HomePage = () => {
     return isNaN(parsed) ? 0 : parsed;
   };
 
-  // UPDATED: Use the same calculation logic as Income Sources page for consistency
+  // Calculate projected income using the same logic as Income Sources page
   const totalProjectedIncome = useMemo(() => {
     const income = state.data.income || [];
     return income.reduce((total, item) => {
-      // Use the same month-aware calculation as Income Sources page
       const hasDates = Array.isArray(item.payDates) && item.payDates.length > 0;
       const perCheckProjected = parseAmount(item.projectedAmount || item.amount);
 
@@ -38,42 +56,63 @@ const HomePage = () => {
         case 'bi-weekly':
           monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * (26 / 12);
           break;
+        case 'semi-monthly':
+          monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * 2;
+          break;
         case 'monthly':
-          monthlyProjected = perCheckProjected;
-          break;
-        case 'quarterly':
-          monthlyProjected = perCheckProjected / 3;
-          break;
-        case 'semi-annual':
-          monthlyProjected = perCheckProjected / 6;
-          break;
-        case 'annual':
-          monthlyProjected = perCheckProjected / 12;
-          break;
-        case 'one-time':
-          monthlyProjected = 0;
+          monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected;
           break;
         default:
           monthlyProjected = perCheckProjected;
       }
-      
+
       return total + monthlyProjected;
     }, 0);
   }, [state.data.income]);
 
+  // Calculate actual income received to date (FIXED - original behavior)
   const totalActualIncome = useMemo(() => {
     const income = state.data.income || [];
     return income.reduce((total, item) => {
-      // For actual income, check if payActuals exist (per-paycheck actuals)
+      const hasDates = Array.isArray(item.payDates) && item.payDates.length > 0;
+      
+      // 1) If per-date actuals exist, sum them (these are month-aware)
       if (Array.isArray(item.payActuals) && item.payActuals.length > 0) {
-        return total + item.payActuals.reduce((sum, v) => sum + parseAmount(v), 0);
+        return total + item.payActuals.reduce((sum, v) => sum + (parseAmount(v) || 0), 0);
       }
-      // Otherwise use the actualAmount (or 0 if not set)
-      return total + parseAmount(item.actualAmount || 0);
+      
+      // 2) Use actualAmount only (never fall back to projected)
+      const perCheckActual = parseAmount(item.actualAmount || 0);
+      
+      // 3) If user says "overall actual is monthly total", just use it
+      if (item.actualMode === 'monthly-total') {
+        return total + perCheckActual;
+      }
+      
+      // 4) Otherwise treat as per-paycheck and multiply by frequency
+      let monthlyActual = 0;
+      switch (item.frequency) {
+        case 'weekly':
+          monthlyActual = hasDates ? perCheckActual * item.payDates.length : perCheckActual * (52 / 12);
+          break;
+        case 'bi-weekly':
+          monthlyActual = hasDates ? perCheckActual * item.payDates.length : perCheckActual * (26 / 12);
+          break;
+        case 'semi-monthly':
+          monthlyActual = hasDates ? perCheckActual * item.payDates.length : perCheckActual * 2;
+          break;
+        case 'monthly':
+          monthlyActual = hasDates ? perCheckActual * item.payDates.length : perCheckActual;
+          break;
+        default:
+          monthlyActual = perCheckActual;
+      }
+
+      return total + monthlyActual;
     }, 0);
   }, [state.data.income]);
 
-  // Income analysis using simplified calculations
+  // Enhanced income analysis using corrected calculations
   const incomeAnalysis = useMemo(() => {
     const variance = totalActualIncome - totalProjectedIncome;
     const percentReceived = totalProjectedIncome > 0 ? (totalActualIncome / totalProjectedIncome) * 100 : 0;
@@ -103,16 +142,17 @@ const HomePage = () => {
 
   // Use existing BudgetContext calculations for expenses
   const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();
+  const monthlyAnnualImpact = calculations.getMonthlyAnnualImpact ? calculations.getMonthlyAnnualImpact() : calculations.getTotalAnnualExpenses() / 12;
   
-  // Calculate net income using both projected and actual (REMOVED Annual Impact)
-  const projectedNetMonthlyIncome = totalProjectedIncome - totalMonthlyExpenses;
-  const actualNetIncome = totalActualIncome - totalMonthlyExpenses;
+  // Calculate net income using both projected and actual
+  const projectedNetMonthlyIncome = totalProjectedIncome - totalMonthlyExpenses - monthlyAnnualImpact;
+  const actualNetIncome = totalActualIncome - totalMonthlyExpenses - monthlyAnnualImpact;
   
   // Calculate savings rates
   const projectedSavingsRate = totalProjectedIncome > 0 ? (projectedNetMonthlyIncome / totalProjectedIncome) * 100 : 0;
   const actualSavingsRate = totalActualIncome > 0 ? (actualNetIncome / totalActualIncome) * 100 : 0;
   
-  const upcomingExpenses = calculations.getUpcomingExpenses();
+  const upcomingExpenses = calculations.getUpcomingExpenses ? calculations.getUpcomingExpenses() : [];
 
   // Calculate category totals for expense breakdown
   const getExpenseBreakdownData = () => {
@@ -222,93 +262,59 @@ const HomePage = () => {
         }
         
         .income-stat {
-          text-align: center;
-          padding: 12px 8px;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.15);
+          padding: 12px;
           border-radius: 8px;
-          position: relative;
+          text-align: center;
         }
         
         .income-stat-value {
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 700;
           margin-bottom: 4px;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }
         
         .income-stat-label {
-          font-size: 0.7rem;
-          opacity: 0.8;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
+          font-size: 0.75rem;
+          opacity: 0.9;
+          font-weight: 600;
         }
         
         .income-stat-explanation {
-          font-size: 0.65rem;
-          opacity: 0.7;
-          line-height: 1.3;
-          font-style: italic;
-        }
-        
-        .variance-indicator {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          margin-left: 8px;
-        }
-        
-        .variance-positive {
-          background: rgba(16, 185, 129, 0.2);
-          color: #10b981;
-        }
-        
-        .variance-negative {
-          background: rgba(239, 68, 68, 0.2);
-          color: #ef4444;
-        }
-        
-        .variance-neutral {
-          background: rgba(107, 114, 128, 0.2);
-          color: #6b7280;
+          font-size: 0.7rem;
+          opacity: 0.8;
+          margin-top: 4px;
+          line-height: 1.2;
         }
         
         .month-progress-indicator {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 8px 12px;
           margin-top: 12px;
-          font-size: 0.8rem;
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 600;
         }
         
         .income-explanation-section {
           margin-top: 16px;
           padding: 12px;
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          border-left: 3px solid rgba(255, 255, 255, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .income-explanation-title {
-          font-size: 0.8rem;
-          font-weight: 600;
+          font-weight: 700;
           margin-bottom: 8px;
-          opacity: 0.9;
+          font-size: 0.9rem;
         }
         
         .income-explanation-text {
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           line-height: 1.4;
-          opacity: 0.8;
-        }
-        
-        .financial-overview-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 1rem;
+          opacity: 0.95;
         }
         
         .financial-overview-alternative {
@@ -319,7 +325,7 @@ const HomePage = () => {
         
         .financial-overview-row {
           display: grid;
-          gap: 12px;
+          gap: 16px;
         }
         
         .financial-overview-row.featured-row {
@@ -327,74 +333,16 @@ const HomePage = () => {
         }
         
         .financial-overview-row.second-row {
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(2, 1fr);
         }
         
         .financial-overview-row.third-row {
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        }
-        
-        .overview-stat.full-width {
-          min-height: 80px;
-        }
-        
-        .overview-stat.full-width .stat-content {
-          width: 100%;
-        }
-        
-        .stat-icon.income {
-          background: rgba(39, 174, 96, 0.1);
-          color: #27ae60;
-        }
-
-        .stat-icon.expense {
-          background: rgba(231, 76, 60, 0.1);
-          color: #e74c3c;
-        }
-
-        .stat-icon.positive {
-          background: rgba(39, 174, 96, 0.1);
-          color: #27ae60;
-        }
-
-        .stat-icon.negative {
-          background: rgba(231, 76, 60, 0.1);
-          color: #e74c3c;
-        }
-
-        .stat-icon.warning {
-          background: rgba(243, 156, 18, 0.1);
-          color: #f39c12;
-        }
-
-        .stat-value.income {
-          color: #27ae60;
-        }
-
-        .stat-value.expense {
-          color: #e74c3c;
-        }
-
-        .stat-value.positive {
-          color: #27ae60;
-        }
-
-        .stat-value.negative {
-          color: #e74c3c;
-        }
-
-        .stat-value.warning {
-          color: #f39c12;
-        }
-
-        .overview-stat.highlight {
-          background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), #f8fafc);
-          border: 2px solid #4f46e5;
-          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+          grid-template-columns: repeat(2, 1fr);
         }
         
         .overview-stat.actual-performance {
-          background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+          background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+          border: 1px solid #0891b2;
           color: white;
         }
         
@@ -424,6 +372,7 @@ const HomePage = () => {
           border-radius: 0.75rem;
           transition: all 0.2s ease;
           min-height: 70px;
+          position: relative;
         }
         
         .overview-stat:hover {
@@ -460,11 +409,117 @@ const HomePage = () => {
           font-weight: 500;
         }
         
+        .two-column-stat {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+          text-align: center;
+        }
+        
+        /* Help Accordion Styles */
+        .card-with-help {
+          position: relative;
+        }
+
+        .help-toggle {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.2);
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 12px;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          z-index: 10;
+        }
+
+        .help-toggle:hover {
+          background: rgba(0, 0, 0, 0.2);
+          color: #374151;
+          transform: scale(1.1);
+        }
+
+        .overview-stat.actual-performance .help-toggle {
+          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .overview-stat.actual-performance .help-toggle:hover {
+          background: rgba(0, 0, 0, 0.4);
+          color: white;
+        }
+
+        .help-accordion {
+          margin-top: 12px;
+          overflow: hidden;
+          transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .help-accordion.closed {
+          max-height: 0;
+          opacity: 0;
+        }
+
+        .help-accordion.open {
+          max-height: 500px;
+          opacity: 1;
+        }
+
+        .help-content {
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 12px;
+          font-size: 0.875rem;
+          line-height: 1.5;
+          color: #374151;
+        }
+
+        .overview-stat.actual-performance .help-content {
+          background: rgba(255, 255, 255, 0.95);
+          color: #374151;
+        }
+
+        .help-content h4 {
+          margin: 0 0 8px 0;
+          font-weight: 600;
+          color: #111827;
+          font-size: 0.9rem;
+        }
+
+        .help-content ul {
+          margin: 8px 0 0 0;
+          padding-left: 16px;
+        }
+
+        .help-content li {
+          margin-bottom: 4px;
+        }
+
+        .help-content strong {
+          color: #1f2937;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
-          .financial-overview-row.second-row,
+          .financial-overview-row.second-row {
+            flex-direction: column;
+          }
+          
           .financial-overview-row.third-row {
             grid-template-columns: 1fr;
+          }
+          
+          .overview-stat.cash-flow-card {
+            min-width: auto;
           }
           
           .overview-stat.full-width .stat-content > div {
@@ -474,95 +529,24 @@ const HomePage = () => {
           }
           
           .variance-indicator {
-            margin-left: 0 !important;
+            margin-left: 0;
             margin-top: 8px;
           }
-        }
-        
-        .two-column-stat {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          text-align: center;
-        }
-        
-        .two-column-stat > div {
-          padding: 8px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 6px;
-        }
-        
-        .stat-comparison {
-          margin-top: 8px;
-          padding: 8px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
-          font-size: 0.8rem;
-        }
-        
-        /* FIXED: Import/Export Button Styling */
-        .quick-actions .action-btn:nth-child(4),
-        .quick-actions button[class*="export" i],
-        .action-btn:has(.btn-icon:contains("📁")) {
-          background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%) !important;
-          color: white !important;
-          border: 2px solid #7c3aed !important;
-          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
-        }
-        
-        .quick-actions .action-btn:nth-child(4):hover,
-        .quick-actions button[class*="export" i]:hover,
-        .action-btn:has(.btn-icon:contains("📁")):hover {
-          background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%) !important;
-          transform: translateY(-3px) !important;
-          box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4) !important;
-        }
-        
-        .quick-actions .action-btn:nth-child(5),
-        .quick-actions button[class*="import" i],
-        .action-btn:has(.btn-icon:contains("📂")) {
-          background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-          color: white !important;
-          border: 2px solid #059669 !important;
-          box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
-        }
-        
-        .quick-actions .action-btn:nth-child(5):hover,
-        .quick-actions button[class*="import" i]:hover,
-        .action-btn:has(.btn-icon:contains("📂")):hover {
-          background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
-          transform: translateY(-3px) !important;
-          box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4) !important;
+          
+          .financial-overview-row.featured-row {
+            grid-template-columns: 1fr;
+          }
         }
 
-        /* Debugging info (temporary) */
-        .debug-info {
-          position: fixed;
-          bottom: 10px;
-          left: 10px;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 10px;
-          border-radius: 5px;
-          font-size: 12px;
-          font-family: monospace;
-          z-index: 9999;
-          max-width: 300px;
+        /* Give Net Cash Flow a little more breathing room */
+        .overview-stat.net-cash {
+          min-height: 96px;
         }
-          /* Make the full-width rows truly single-column */
-.financial-overview-row.featured-row {
-  grid-template-columns: 1fr;
-}
 
-/* Give Net Cash Flow a little more breathing room */
-.overview-stat.net-cash {
-  min-height: 96px;
-}
-
-/* Prevent the two numbers from squishing on narrower widths */
-.overview-stat.net-cash .two-column-stat {
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
-}
+        /* Prevent the two numbers from squishing on narrower widths */
+        .overview-stat.net-cash .two-column-stat {
+          grid-template-columns: repeat(2, minmax(160px, 1fr));
+        }
 
       `}</style>
 
@@ -667,12 +651,19 @@ const HomePage = () => {
         {/* Left Column - Primary Content */}
         <div className="homepage-left-column">
 
-          {/* Financial Overview with Reorganized Layout - REMOVED Annual Impact */}
+          {/* Financial Overview with Help Accordions - ENHANCED */}
           <Card title="💰 Financial Overview" className="financial-overview-card">
             <div className="financial-overview-alternative">
-              {/* First Row: Full-width Actual Monthly Income with variance indicator */}
+              {/* First Row: Full-width Actual Monthly Income with help */}
               <div className="financial-overview-row featured-row">
-                <div className="overview-stat actual-performance full-width">
+                <div className="overview-stat actual-performance full-width card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('actualIncome')}
+                    aria-label="Help for Actual Monthly Income"
+                  >
+                    ?
+                  </button>
                   <div className="stat-icon">💵</div>
                   <div className="stat-content">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -684,94 +675,181 @@ const HomePage = () => {
                         {incomeAnalysis.variance >= 0 ? '↗' : '↘'} {formatCurrency(Math.abs(incomeAnalysis.variance))} vs projected
                       </span>
                     </div>
+                    <div className={`help-accordion ${helpAccordions.actualIncome ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>💵 Actual Monthly Income</h4>
+                        <p><strong>What it shows:</strong> The real money you've received this month from all income sources.</p>
+                        <p><strong>How it's calculated:</strong></p>
+                        <ul>
+                          <li>Takes your actual income amounts from each paycheck</li>
+                          <li>Multiplies by pay frequency (weekly, bi-weekly, etc.)</li>
+                          <li>Shows month-to-date total across all income sources</li>
+                        </ul>
+                        <p><strong>The variance indicator</strong> shows how much you're above or below your projected income target for the month.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Net Cash Flow – full-width row under Actual Monthly Income */}
-<div className="financial-overview-row featured-row">
-  <div className="overview-stat highlight net-cash full-width">
-    <div className={`stat-icon ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-      {projectedNetMonthlyIncome >= 0 ? '📈' : '📉'}
-    </div>
-    <div className="stat-content">
-      <div className="two-column-stat">
-        <div>
-          <div className={`stat-value ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-            {formatCurrency(projectedNetMonthlyIncome)}
-          </div>
-          <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Projected</div>
-        </div>
-        <div>
-          <div className={`stat-value ${actualNetIncome >= 0 ? 'positive' : 'negative'}`}>
-            {formatCurrency(actualNetIncome)}
-          </div>
-          <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Actual</div>
-        </div>
-      </div>
-      <div className="stat-label">Net Cash Flow</div>
-    </div>
-  </div>
-</div>
-
-{/* Next Row: Projected Income + Expenses */}
-<div className="financial-overview-row second-row">
-  <div className="overview-stat">
-    <div className="stat-icon income">🎯</div>
-    <div className="stat-content">
-      <div className="stat-value income">{formatCurrency(incomeAnalysis.totalProjectedIncome)}</div>
-      <div className="stat-label">Projected Monthly Income</div>
-    </div>
-  </div>
-
-  <div className="overview-stat">
-    <div className="stat-icon expense">💳</div>
-    <div className="stat-content">
-      <div className="stat-value expense">{formatCurrency(totalMonthlyExpenses)}</div>
-      <div className="stat-label">Monthly Expenses</div>
-    </div>
-  </div>
-</div>
-
-
-              {/* Third Row: Savings Rate and Month Progress */}
-              <div className="financial-overview-row third-row">
-                <div className="overview-stat">
-                  <div className={`stat-icon ${projectedSavingsRate >= 20 ? 'positive' : projectedSavingsRate >= 10 ? 'warning' : 'negative'}`}>
-                    💰
-                  </div>
+              {/* Second Row: Net Cash Flow (Two Numbers) with help */}
+              <div className="financial-overview-row featured-row">
+                <div className="overview-stat net-cash full-width card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('netCashFlow')}
+                    aria-label="Help for Net Cash Flow"
+                  >
+                    ?
+                  </button>
+                  <div className="stat-icon">📈</div>
                   <div className="stat-content">
                     <div className="two-column-stat">
                       <div>
-                        <div className={`stat-value ${projectedSavingsRate >= 20 ? 'positive' : projectedSavingsRate >= 10 ? 'warning' : 'negative'}`}>
-                          {projectedSavingsRate.toFixed(1)}%
+                        <div className={`stat-value ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
+                          {formatCurrency(projectedNetMonthlyIncome)}
                         </div>
                         <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Projected</div>
                       </div>
                       <div>
-                        <div className={`stat-value ${actualSavingsRate >= 20 ? 'positive' : actualSavingsRate >= 10 ? 'warning' : 'negative'}`}>
-                          {actualSavingsRate.toFixed(1)}%
+                        <div className={`stat-value ${actualNetIncome >= 0 ? 'positive' : 'negative'}`}>
+                          {formatCurrency(actualNetIncome)}
                         </div>
                         <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Actual</div>
                       </div>
                     </div>
-                    <div className="stat-label">Savings Rate</div>
-                    {Math.abs(actualSavingsRate - projectedSavingsRate) > 1 && (
-                      <div className="stat-comparison">
-                        {actualSavingsRate > projectedSavingsRate ? '📈' : '📉'} 
-                        {Math.abs(actualSavingsRate - projectedSavingsRate).toFixed(1)}% vs projected
+                    <div className="stat-label">Net Cash Flow</div>
+                    <div className={`help-accordion ${helpAccordions.netCashFlow ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>📈 Net Cash Flow</h4>
+                        <p><strong>What it shows:</strong> How much money you have left after paying all monthly expenses.</p>
+                        <p><strong>Formula:</strong> Income - Monthly Expenses = Net Cash Flow</p>
+                        <ul>
+                          <li><strong>Projected:</strong> Expected leftover money based on projected income</li>
+                          <li><strong>Actual:</strong> Real leftover money based on actual income received</li>
+                          <li><strong>Positive (green):</strong> You have money left over for savings/goals</li>
+                          <li><strong>Negative (red):</strong> You're spending more than you earn this month</li>
+                        </ul>
+                        <p><strong>Goal:</strong> Keep this positive to build emergency funds and reach financial goals.</p>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Row: Projected Income + Expenses with help */}
+              <div className="financial-overview-row second-row">
+                <div className="overview-stat card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('projectedIncome')}
+                    aria-label="Help for Projected Income"
+                  >
+                    ?
+                  </button>
+                  <div className="stat-icon income">🎯</div>
+                  <div className="stat-content">
+                    <div className="stat-value income">{formatCurrency(incomeAnalysis.totalProjectedIncome)}</div>
+                    <div className="stat-label">Projected Monthly Income</div>
+                    <div className={`help-accordion ${helpAccordions.projectedIncome ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>🎯 Projected Monthly Income</h4>
+                        <p><strong>What it shows:</strong> Expected total income for the entire month.</p>
+                        <p><strong>Based on:</strong></p>
+                        <ul>
+                          <li>Your projected income amounts per paycheck</li>
+                          <li>Pay frequency (weekly = 4-5 checks, bi-weekly = 2-3 checks, etc.)</li>
+                          <li>All active income sources combined</li>
+                        </ul>
+                        <p><strong>Use this to:</strong> Plan monthly spending, set savings goals, and budget for upcoming expenses.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="overview-stat">
-                  <div className="stat-icon income">📅</div>
+                <div className="overview-stat card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('monthlyExpenses')}
+                    aria-label="Help for Monthly Expenses"
+                  >
+                    ?
+                  </button>
+                  <div className="stat-icon expenses">🧾</div>
                   <div className="stat-content">
-                    <div className="stat-value">{incomeAnalysis.monthProgress.toFixed(0)}%</div>
+                    <div className="stat-value expenses">{formatCurrency(totalMonthlyExpenses)}</div>
+                    <div className="stat-label">Monthly Expenses</div>
+                    <div className={`help-accordion ${helpAccordions.monthlyExpenses ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>🧾 Monthly Expenses</h4>
+                        <p><strong>What it includes:</strong></p>
+                        <ul>
+                          <li>All monthly recurring expenses (rent, utilities, subscriptions)</li>
+                          <li>Monthly portion of annual expenses (car insurance, taxes)</li>
+                          <li>Based on your actual or budgeted amounts</li>
+                        </ul>
+                        <p><strong>Goal:</strong> Keep this number lower than your projected income to maintain positive cash flow.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Third Row: Savings Rates + Month Complete with help */}
+              <div className="financial-overview-row third-row">
+                <div className="overview-stat card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('savingsRate')}
+                    aria-label="Help for Savings Rate"
+                  >
+                    ?
+                  </button>
+                  <div className="stat-icon savings">💰</div>
+                  <div className="stat-content">
+                    <div className="stat-value savings">{actualSavingsRate.toFixed(1)}%</div>
+                    <div className="stat-label">Actual Savings Rate</div>
+                    <div className={`help-accordion ${helpAccordions.savingsRate ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>💰 Savings Rate</h4>
+                        <p><strong>What it shows:</strong> What percentage of your income you're able to save.</p>
+                        <p><strong>Formula:</strong> (Net Cash Flow ÷ Income) × 100</p>
+                        <p><strong>Benchmarks:</strong></p>
+                        <ul>
+                          <li><strong>20%+:</strong> Excellent - building wealth quickly</li>
+                          <li><strong>10-20%:</strong> Good - on track for financial goals</li>
+                          <li><strong>5-10%:</strong> Okay - but could improve</li>
+                          <li><strong>Below 5%:</strong> Consider reducing expenses</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overview-stat projected card-with-help">
+                  <button 
+                    className="help-toggle"
+                    onClick={() => toggleHelpAccordion('monthComplete')}
+                    aria-label="Help for Month Complete"
+                  >
+                    ?
+                  </button>
+                  <div className="stat-icon">📅</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{incomeAnalysis.monthProgress.toFixed(1)}%</div>
                     <div className="stat-label">Month Complete</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>
-                      Day {new Date().getDate()} of {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()}
+                    <div className={`help-accordion ${helpAccordions.monthComplete ? 'open' : 'closed'}`}>
+                      <div className="help-content">
+                        <h4>📅 Month Complete</h4>
+                        <p><strong>What it shows:</strong> How far through the current month you are, as a percentage.</p>
+                        <p><strong>Why it matters:</strong></p>
+                        <ul>
+                          <li>Helps evaluate if your income is on track</li>
+                          <li>Useful for pacing monthly spending</li>
+                          <li>Context for interpreting other financial metrics</li>
+                        </ul>
+                        <p><strong>Example:</strong> If you're 50% through the month, you should ideally have received about 50% of your expected monthly income.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1042,16 +1120,73 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Debug Info - Shows calculation details (remove in production) */}
-      <div className="debug-info">
-        <strong>Debug Info (Updated Calculations):</strong><br/>
-        Projected Income: {formatCurrency(incomeAnalysis.totalProjectedIncome)} (should match Income Sources page)<br/>
-        Actual Income: {formatCurrency(incomeAnalysis.totalActualIncome)}<br/>
-        Monthly Expenses: {formatCurrency(totalMonthlyExpenses)}<br/>
-        Projected Net: {formatCurrency(projectedNetMonthlyIncome)} (Annual Impact REMOVED)<br/>
-        Actual Net: {formatCurrency(actualNetIncome)}<br/>
-        <small>Should now match Income Sources total of $9,347.15</small>
-      </div>
+      {/* Collapsible Legal Disclaimer Footer */}
+      <footer className="legal-disclaimer-footer" style={{
+        marginTop: '3rem',
+        padding: '1rem',
+        backgroundColor: 'var(--bg-tertiary, #f8fafc)',
+        borderRadius: '8px',
+        border: '1px solid var(--border-light, #e5e7eb)'
+      }}>
+        <button
+          onClick={() => setHelpAccordions(prev => ({ ...prev, legalDisclaimer: !prev.legalDisclaimer }))}
+          style={{
+            width: '100%',
+            padding: '0.5rem',
+            backgroundColor: 'transparent',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            color: 'var(--text-muted, #6b7280)',
+            borderRadius: '4px',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = 'var(--bg-secondary, #f1f5f9)'}
+          onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+        >
+          <span>📋 Legal Disclaimer & Terms of Use</span>
+          <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>
+            {helpAccordions.legalDisclaimer ? '▲' : '▼'}
+          </span>
+        </button>
+        
+        <div className={`help-accordion ${helpAccordions.legalDisclaimer ? 'open' : 'closed'}`}>
+          <div style={{
+            backgroundColor: 'var(--bg-primary, #ffffff)',
+            borderRadius: '6px',
+            padding: '1rem',
+            marginTop: '0.5rem',
+            fontSize: '0.75rem',
+            color: 'var(--text-muted, #6b7280)',
+            lineHeight: '1.4',
+            border: '1px solid var(--border-light, #e5e7eb)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+              <strong style={{ color: 'var(--text-secondary, #4b5563)' }}>Important Legal Notice</strong>
+            </div>
+            <p style={{ margin: '0 0 0.5rem 0' }}>
+              <strong>Family Budget Simplified</strong> is provided for informational and educational purposes only. 
+              This application is not intended to provide financial, investment, legal, tax, or accounting advice. 
+              The creators, developers, and distributors of this application disclaim any and all liability for 
+              decisions made based on information provided by this software.
+            </p>
+            <p style={{ margin: '0 0 0.5rem 0' }}>
+              Users acknowledge that all financial decisions are made at their own risk and discretion. 
+              This application does not constitute professional financial advice, and users are strongly 
+              encouraged to consult with qualified financial advisors, accountants, or other professionals 
+              before making any financial decisions.
+            </p>
+            <p style={{ margin: '0' }}>
+              No warranty, express or implied, is provided regarding the accuracy, completeness, or reliability 
+              of any calculations, projections, or information provided. Users assume full responsibility for 
+              verifying all data and calculations before making financial decisions.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

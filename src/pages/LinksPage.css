@@ -192,7 +192,11 @@
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    color: #495057;
+    color: white !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
 }
 
 .empty-content p {

@@ -1132,12 +1132,12 @@ const IncomePage = () => {
         }
       `}</style>
 
-      <div className="page-header">
-        <h1 className="page-title">💵 Income Management</h1>
-        <p className="page-description">
-          Track projected vs actual income with comprehensive analysis
-        </p>
-      </div>
+      <div className="page-header income-page-header">
+  <h1 className="page-title">💵 Income Management</h1>
+  <p className="page-description">
+    Track projected vs actual income with comprehensive analysis
+  </p>
+</div>
 
       <div className="tabs-container">
         <div className="tabs-header" role="tablist" aria-label="Income Tabs">

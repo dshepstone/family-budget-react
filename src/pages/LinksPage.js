@@ -372,27 +372,39 @@ const LinksPage = () => {
             </div>
           </div>
 
-          {/* Suggested Categories */}
+{/* Suggested Categories */}
           <div className="suggested-categories">
             <h4>Suggested Categories</h4>
             <div className="suggestions-grid">
-              {suggestedCategories.map((category, index) => (
-                <div
-                  key={index}
-                  className="suggestion-card"
-                  onClick={() => addSuggestedCategory(category)}
-                >
-                  <div className="suggestion-header">
-                    <span className="suggestion-icon" style={{ color: category.color }}>
-                      {category.icon}
-                    </span>
-                    <span className="suggestion-name">{category.name}</span>
+              {suggestedCategories.map((category, index) => {
+                // Create a category key for data attribute
+                const categoryKey = category.name.toLowerCase()
+                  .replace(/[^a-z0-9]/g, '')
+                  .replace(/finance|medical|professional|garden/, '');
+                
+                return (
+                  <div
+                    key={index}
+                    className="suggestion-card"
+                    data-category={categoryKey}
+                    onClick={() => addSuggestedCategory(category)}
+                    style={{
+                      '--suggestion-color': category.color,
+                      '--suggestion-color-light': category.color + '90'
+                    }}
+                  >
+                    <div className="suggestion-header">
+                      <span className="suggestion-icon" style={{ color: category.color }}>
+                        {category.icon}
+                      </span>
+                      <span className="suggestion-name">{category.name}</span>
+                    </div>
+                    <div className="suggestion-examples">
+                      {category.examples.join(', ')}
+                    </div>
                   </div>
-                  <div className="suggestion-examples">
-                    {category.examples.join(', ')}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
