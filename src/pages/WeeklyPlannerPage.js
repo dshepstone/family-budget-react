@@ -8,6 +8,7 @@ const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
   const [hideZeroRows, setHideZeroRows] = useState(false);
+
   // Get month/year from first pay date instead of current date - FIXED DATE PARSING
   const getBudgetMonthYear = useCallback(() => {
     // Find the first income source with pay dates to determine the budget month/year
@@ -44,13 +45,8 @@ const WeeklyPlannerPage = () => {
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Debug: Log current month/year
-    // console.log('Budget month/year:', currentMonth, currentYear);
-
     // Process each income source
     (state.data.income || []).forEach(income => {
-      // console.log('Processing income:', income.name, 'Pay dates:', income.payDates);
-      
       // First priority: Use actual pay dates if available (this is the most accurate)
       const payDates = Array.isArray(income.payDates) ? income.payDates : [];
       const perPayAmount = parseAmount(income.projectedAmount || income.amount);
@@ -64,8 +60,6 @@ const WeeklyPlannerPage = () => {
           const payMonth = month - 1; // Convert to 0-indexed month
           const payYear = year;
           const dayOfMonth = day;
-          
-          // console.log(`Date ${dateStr}: payMonth=${payMonth}, payYear=${payYear}, dayOfMonth=${dayOfMonth}`);
           
           // Only process dates that are in the current month being viewed
           if (payMonth === currentMonth && payYear === currentYear) {
@@ -85,13 +79,9 @@ const WeeklyPlannerPage = () => {
               weekIndex = 4; // Week 5: days 29+
             }
             
-            // console.log(`${dateStr} (day ${dayOfMonth}) → Week ${weekIndex + 1}, amount: ${perPayAmount}`);
-            
             if (weekIndex >= 0 && weekIndex < 5) {
               weeklyIncome[weekIndex] += perPayAmount;
             }
-          } else {
-            // console.log(`Skipping ${dateStr} - not in current month (${payMonth} vs ${currentMonth}, ${payYear} vs ${currentYear})`);
           }
         });
       } else if (income.weeks && Array.isArray(income.weeks)) {
@@ -103,7 +93,6 @@ const WeeklyPlannerPage = () => {
         });
       } else {
         // Fallback: Distribute based on frequency pattern when no specific dates
-        const hasDates = false; // No dates available
         let monthlyAmount = 0;
         
         // Calculate monthly amount using same logic as IncomePage.js
@@ -169,7 +158,6 @@ const WeeklyPlannerPage = () => {
       }
     });
 
-    // console.log('Final weekly income:', weeklyIncome);
     return weeklyIncome;
   }, [state.data.income, currentMonth, currentYear]);
 
@@ -329,17 +317,23 @@ const WeeklyPlannerPage = () => {
     handleWeekAmountChange(expenseName, weekIndex, newValue);
   };
 
-  // Calculate week totals - fix to return proper array structure
+  // Calculate week totals - FIXED to only use planner week data
   const calculateWeekTotals = () => {
     const weekTotals = [0, 0, 0, 0, 0]; // Initialize 5 weeks
     const plannerData = state.data.plannerState || {};
 
     // Calculate expense totals for each week
-    Object.values(plannerData).forEach(expense => {
-      if (expense.weeks && Array.isArray(expense.weeks)) {
-        expense.weeks.forEach((amount, weekIndex) => {
+    Object.entries(plannerData).forEach(([expenseName, expenseData]) => {
+      // Skip non-expense entries like 'weeklyIncome', 'weeklyExpenses', etc.
+      if (expenseName === 'weeklyIncome' || expenseName === 'weeklyExpenses' || expenseName === 'monthlyTargets') {
+        return; // Skip these system entries
+      }
+
+      if (expenseData && expenseData.weeks && Array.isArray(expenseData.weeks)) {
+        expenseData.weeks.forEach((amount, weekIndex) => {
           if (weekIndex < 5) {
-            weekTotals[weekIndex] += parseFloat(amount) || 0;
+            const parsedAmount = parseFloat(amount) || 0;
+            weekTotals[weekIndex] += parsedAmount;
           }
         });
       }
@@ -377,32 +371,61 @@ const WeeklyPlannerPage = () => {
     setWeekVisibility(newVisibility);
   };
 
-  // Reset week
+  // Reset week - FIXED to work with actual planner data
   const resetWeek = (weekIndex) => {
     if (!window.confirm(`Are you sure you want to reset all Week ${weekIndex + 1} planned amounts to zero?`)) {
       return;
     }
 
-    const allExpenses = getAllExpenses();
-    allExpenses.forEach(expense => {
-      handleWeekAmountChange(expense.name, weekIndex, 0);
+    const plannerData = state.data.plannerState || {};
+    const updatedPlannerState = { ...plannerData };
+
+    // Reset the specific week for all expenses in planner state
+    Object.entries(plannerData).forEach(([expenseName, expenseData]) => {
+      // Skip non-expense entries
+      if (expenseName === 'weeklyIncome' || expenseName === 'weeklyExpenses' || expenseName === 'monthlyTargets') {
+        return;
+      }
+
+      if (expenseData && expenseData.weeks && Array.isArray(expenseData.weeks)) {
+        const newWeeks = [...expenseData.weeks];
+        newWeeks[weekIndex] = 0;
+        
+        updatedPlannerState[expenseName] = {
+          ...expenseData,
+          weeks: newWeeks
+        };
+      }
     });
+
+    actions.updatePlanner(updatedPlannerState);
   };
 
-  // Reset all weeks
+  // Reset all weeks - FIXED to work with actual planner data
   const resetAllWeeks = () => {
     if (!window.confirm('Are you sure you want to reset all weekly planned amounts to zero?')) {
       return;
     }
 
-    const allExpenses = getAllExpenses();
-    allExpenses.forEach(expense => {
-      const currentData = getExpensePlannerData(expense.name);
-      updateExpensePlannerData(expense.name, {
-        ...currentData,
-        weeks: Array(5).fill(0)
-      });
+    const plannerData = state.data.plannerState || {};
+    const updatedPlannerState = { ...plannerData };
+
+    // Reset all expense entries in planner state
+    Object.entries(plannerData).forEach(([expenseName, expenseData]) => {
+      // Skip non-expense entries
+      if (expenseName === 'weeklyIncome' || expenseName === 'weeklyExpenses' || expenseName === 'monthlyTargets') {
+        return;
+      }
+
+      if (expenseData && expenseData.weeks && Array.isArray(expenseData.weeks)) {
+        updatedPlannerState[expenseName] = {
+          ...expenseData,
+          weeks: Array(5).fill(0)
+        };
+      }
     });
+
+    actions.updatePlanner(updatedPlannerState);
   };
 
   // Calculate week date ranges using budget month/year - FIXED DATE PARSING
@@ -736,8 +759,17 @@ const WeeklyPlannerPage = () => {
         }
 
         .table-footer td {
-          padding: 10px 8px;
-          font-size: 0.9rem;
+          padding: 12px 8px;
+          font-size: 0.85rem;
+          vertical-align: top;
+        }
+
+        .table-footer .cash-flow-positive {
+          color: #28a745;
+        }
+
+        .table-footer .cash-flow-negative {
+          color: #dc3545;
         }
 
         .cash-flow-analysis {
@@ -1109,21 +1141,41 @@ const WeeklyPlannerPage = () => {
 
           <tfoot>
             <tr className="table-footer">
-              <td><strong>Weekly Expense Totals</strong></td>
+              <td><strong>Weekly Totals</strong></td>
               <td></td>
               {Array.from({ length: 5 }, (_, weekIndex) => (
                 <React.Fragment key={weekIndex}>
                   <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                    <strong>{formatCurrency(weekTotals[weekIndex] || 0)}</strong>
-                    <div style={{ fontSize: '0.8em', fontWeight: 'normal' }}>
-                      Net: {formatCurrency((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0))}
+                    <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                      <strong>Income: {formatCurrency(weeklyIncome[weekIndex] || 0)}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                      <strong>Expenses: {formatCurrency(weekTotals[weekIndex] || 0)}</strong>
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.9rem', 
+                      fontWeight: 'bold',
+                      color: ((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0)) >= 0 ? '#28a745' : '#dc3545',
+                      borderTop: '1px solid #dee2e6',
+                      paddingTop: '4px'
+                    }}>
+                      Cash Flow: {formatCurrency((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0))}
                     </div>
                   </td>
                   <td className={`week-${weekIndex + 1}-status-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}></td>
                 </React.Fragment>
               ))}
-              <td>
-                <strong>{formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}</strong>
+              <td style={{ fontSize: '0.9rem' }}>
+                <div><strong>Total Income: {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0))}</strong></div>
+                <div><strong>Total Expenses: {formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}</strong></div>
+                <div style={{ 
+                  fontWeight: 'bold',
+                  color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? '#28a745' : '#dc3545',
+                  borderTop: '1px solid #dee2e6',
+                  paddingTop: '4px'
+                }}>
+                  Net Cash Flow: {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
+                </div>
               </td>
             </tr>
           </tfoot>
@@ -1132,26 +1184,84 @@ const WeeklyPlannerPage = () => {
 
       {/* Cash Flow Analysis */}
       <div className="cash-flow-analysis">
-        <h3>📊 Weekly Cash Flow Analysis</h3>
+        <h3>📊 Weekly Cash Flow Summary</h3>
         <div className="cash-flow-grid">
           {Array.from({ length: 5 }, (_, weekIndex) => {
             const income = weeklyIncome[weekIndex] || 0;
             const expenses = weekTotals[weekIndex] || 0;
-            const balance = income - expenses;
+            const cashFlow = income - expenses;
+            
             return (
               <div
                 key={weekIndex}
                 className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
               >
-                <div className="week-label">Week {weekIndex + 1}</div>
-                <div className="week-label">Income: {formatCurrency(income)}</div>
-                <div className="week-label">Expenses: {formatCurrency(expenses)}</div>
-                <div className={`balance-amount ${balance >= 0 ? 'positive' : 'negative'}`}>
-                  Balance: {formatCurrency(balance)}
+                <div className="week-label"><strong>Week {weekIndex + 1}</strong></div>
+                <div className="week-label" style={{ color: '#28a745', fontWeight: '600' }}>
+                  📈 Income: {formatCurrency(income)}
                 </div>
+                <div className="week-label" style={{ color: '#dc3545', fontWeight: '600' }}>
+                  📉 Expenses: {formatCurrency(expenses)}
+                </div>
+                <div style={{ 
+                  fontSize: '1.1rem', 
+                  fontWeight: 'bold',
+                  color: cashFlow >= 0 ? '#28a745' : '#dc3545',
+                  borderTop: '2px solid #dee2e6',
+                  paddingTop: '8px',
+                  marginTop: '8px'
+                }}>
+                  💰 Cash Flow: {formatCurrency(cashFlow)}
+                </div>
+                {cashFlow < 0 && (
+                  <div style={{ fontSize: '0.8rem', color: '#dc3545', marginTop: '4px', fontStyle: 'italic' }}>
+                    ⚠️ Deficit
+                  </div>
+                )}
+                {cashFlow > 0 && (
+                  <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '4px', fontStyle: 'italic' }}>
+                    ✅ Surplus
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+        
+        {/* Monthly Summary */}
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '15px', 
+          backgroundColor: 'rgba(255,255,255,0.9)', 
+          borderRadius: '8px',
+          border: '2px solid #007bff',
+          textAlign: 'center'
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>📋 Monthly Summary</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Total Monthly Income</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#28a745' }}>
+                {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Total Planned Expenses</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#dc3545' }}>
+                {formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Net Monthly Cash Flow</div>
+              <div style={{ 
+                fontSize: '1.3rem', 
+                fontWeight: 'bold', 
+                color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? '#28a745' : '#dc3545'
+              }}>
+                {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
