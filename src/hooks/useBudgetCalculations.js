@@ -1,10 +1,10 @@
-// src/hooks/useBudgetCalculations.js
+// src/hooks/useBudgetCalculations.js - Updated with Month-Aware Income Calculations
 import { useMemo } from 'react';
 import { currencyCalculator } from '../plugins/calculators/CurrencyCalculator';
 import { DUE_DATE_THRESHOLDS } from '../utils/constants';
 
 /**
- * Custom hook that provides budget calculation utilities
+ * Custom hook that provides budget calculation utilities with proper actual vs projected income tracking
  * @param {Object} budgetData - The budget data object
  */
 export function useBudgetCalculations(budgetData) {
@@ -14,11 +14,16 @@ export function useBudgetCalculations(budgetData) {
     if (!budgetData) {
       return {
         getTotalIncome: () => 0,
+        getTotalActualIncome: () => 0,
+        getTotalProjectedIncome: () => 0,
         getTotalMonthlyExpenses: () => 0,
         getTotalAnnualExpenses: () => 0,
         getMonthlyAnnualImpact: () => 0,
         getNetMonthlyIncome: () => 0,
+        getActualNetIncome: () => 0,
         getSavingsRate: () => 0,
+        getActualSavingsRate: () => 0,
+        getIncomeProgress: () => ({}),
         getUpcomingExpenses: () => [],
         getCategoryTotals: () => ({}),
         getAccountAllocations: () => ({}),
@@ -33,10 +38,117 @@ export function useBudgetCalculations(budgetData) {
 
     const { income = [], monthly = {}, annual = {}, plannerState = {} } = budgetData;
 
-    // Basic totals
+    // Helper function to parse amounts safely
+    const parseAmount = (value) => {
+      if (typeof value === 'number') return value;
+      if (!value && value !== 0) return 0;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Month-aware income calculation (mirrors IncomePage.js logic)
+    const getMonthAwareMonthlyAmount = (income, which = 'projected') => {
+      const hasDates = Array.isArray(income.payDates) && income.payDates.length > 0;
+      const perCheckProjected = parseAmount(income.projectedAmount || income.amount);
+      const perCheckActual = parseAmount(income.actualAmount);
+
+      if (which === 'actual') {
+        // 1) If per-date actuals exist, sum them (these are month-aware)
+        if (Array.isArray(income.payActuals) && income.payActuals.length > 0) {
+          return income.payActuals.reduce((sum, v) => sum + (parseAmount(v) || 0), 0);
+        }
+        // 2) If user says "overall actual is monthly total", just use it
+        if (income.actualMode === 'monthly-total') {
+          return perCheckActual || 0;
+        }
+        // 3) Otherwise treat overall actual as per-paycheck
+        switch (income.frequency) {
+          case 'weekly':
+            return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (52 / 12);
+          case 'bi-weekly':
+            return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (26 / 12);
+          case 'monthly':
+            return perCheckActual || 0;
+          case 'quarterly':
+            return (perCheckActual || 0) / 3;
+          case 'semi-annual':
+            return (perCheckActual || 0) / 6;
+          case 'annual':
+            return (perCheckActual || 0) / 12;
+          case 'one-time':
+            return 0;
+          default:
+            return perCheckActual || 0;
+        }
+      }
+
+      // PROJECTED path
+      switch (income.frequency) {
+        case 'weekly':
+          return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (52 / 12);
+        case 'bi-weekly':
+          return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (26 / 12);
+        case 'monthly':
+          return perCheckProjected || 0;
+        case 'quarterly':
+          return (perCheckProjected || 0) / 3;
+        case 'semi-annual':
+          return (perCheckProjected || 0) / 6;
+        case 'annual':
+          return (perCheckProjected || 0) / 12;
+        case 'one-time':
+          return 0;
+        default:
+          return perCheckProjected || 0;
+      }
+    };
+
+    // NEW: Get total projected income for the month
+    const getTotalProjectedIncome = () => {
+      return income.reduce((total, item) => {
+        return total + getMonthAwareMonthlyAmount(item, 'projected');
+      }, 0);
+    };
+
+    // NEW: Get total actual income received so far this month
+    const getTotalActualIncome = () => {
+      return income.reduce((total, item) => {
+        return total + getMonthAwareMonthlyAmount(item, 'actual');
+      }, 0);
+    };
+
+    // LEGACY: Keep for backward compatibility (now uses projected)
     const getTotalIncome = () => {
-      return income.reduce((total, item) => 
-        currencyCalculator.add(total, item.amount || 0), 0);
+      return getTotalProjectedIncome();
+    };
+
+    // NEW: Income progress tracking
+    const getIncomeProgress = () => {
+      const projected = getTotalProjectedIncome();
+      const actual = getTotalActualIncome();
+      const variance = actual - projected;
+      const percentReceived = projected > 0 ? (actual / projected) * 100 : 0;
+      
+      // Calculate expected income based on how far through the month we are
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const daysInMonth = endOfMonth.getDate();
+      const dayOfMonth = now.getDate();
+      const monthProgress = (dayOfMonth / daysInMonth) * 100;
+      const expectedAtThisPoint = (projected * monthProgress) / 100;
+      const progressVariance = actual - expectedAtThisPoint;
+
+      return {
+        projected,
+        actual,
+        variance,
+        percentReceived,
+        monthProgress,
+        expectedAtThisPoint,
+        progressVariance,
+        isOnTrack: progressVariance >= 0
+      };
     };
 
     const getTotalMonthlyExpenses = () => {
@@ -63,17 +175,34 @@ export function useBudgetCalculations(budgetData) {
       return currencyCalculator.divide(getTotalAnnualExpenses(), 12);
     };
 
+    // UPDATED: Net income using projected income (for budget planning)
     const getNetMonthlyIncome = () => {
-      const totalIncome = getTotalIncome();
+      const projectedIncome = getTotalProjectedIncome();
       const monthlyExpenses = getTotalMonthlyExpenses();
       const annualImpact = getMonthlyAnnualImpact();
-      return currencyCalculator.subtract(totalIncome, currencyCalculator.add(monthlyExpenses, annualImpact));
+      return currencyCalculator.subtract(projectedIncome, currencyCalculator.add(monthlyExpenses, annualImpact));
     };
 
+    // NEW: Actual net income using actual income received so far
+    const getActualNetIncome = () => {
+      const actualIncome = getTotalActualIncome();
+      const monthlyExpenses = getTotalMonthlyExpenses();
+      const annualImpact = getMonthlyAnnualImpact();
+      return currencyCalculator.subtract(actualIncome, currencyCalculator.add(monthlyExpenses, annualImpact));
+    };
+
+    // UPDATED: Savings rate using projected income (for planning)
     const getSavingsRate = () => {
-      const totalIncome = getTotalIncome();
+      const projectedIncome = getTotalProjectedIncome();
       const netIncome = getNetMonthlyIncome();
-      return totalIncome > 0 ? currencyCalculator.percentageOf(netIncome, totalIncome) : 0;
+      return projectedIncome > 0 ? currencyCalculator.percentageOf(netIncome, projectedIncome) : 0;
+    };
+
+    // NEW: Actual savings rate based on income received so far
+    const getActualSavingsRate = () => {
+      const actualIncome = getTotalActualIncome();
+      const actualNetIncome = getActualNetIncome();
+      return actualIncome > 0 ? currencyCalculator.percentageOf(actualNetIncome, actualIncome) : 0;
     };
 
     // Upcoming expenses analysis
@@ -163,23 +292,54 @@ export function useBudgetCalculations(budgetData) {
       return allocations;
     };
 
-    // Budget health metrics
+    // UPDATED: Budget health metrics with actual vs projected
     const getBudgetHealth = () => {
-      const totalIncome = getTotalIncome();
+      const projectedIncome = getTotalProjectedIncome();
+      const actualIncome = getTotalActualIncome();
       const totalExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
-      const netIncome = getNetMonthlyIncome();
+      const projectedNetIncome = getNetMonthlyIncome();
+      const actualNetIncome = getActualNetIncome();
       const savingsRate = getSavingsRate();
+      const actualSavingsRate = getActualSavingsRate();
       const upcomingExpenses = getUpcomingExpenses();
+      const incomeProgress = getIncomeProgress();
 
       return {
-        incomeToExpenseRatio: totalIncome > 0 ? currencyCalculator.divide(totalIncome, totalExpenses) : 0,
-        debtToIncomeRatio: totalIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, totalIncome) : 0,
+        // Traditional metrics (projected)
+        incomeToExpenseRatio: projectedIncome > 0 ? currencyCalculator.divide(projectedIncome, totalExpenses) : 0,
+        debtToIncomeRatio: projectedIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, projectedIncome) : 0,
         savingsRate,
-        emergencyFundWeeks: netIncome > 0 ? currencyCalculator.divide(netIncome * 4, totalExpenses) : 0,
+        emergencyFundWeeks: projectedNetIncome > 0 ? currencyCalculator.divide(projectedNetIncome * 4, totalExpenses) : 0,
+        
+        // NEW: Actual performance metrics
+        actualIncomeToExpenseRatio: actualIncome > 0 ? currencyCalculator.divide(actualIncome, totalExpenses) : 0,
+        actualSavingsRate,
+        incomeProgress: incomeProgress.percentReceived,
+        isIncomeOnTrack: incomeProgress.isOnTrack,
+        
+        // Expense tracking
         upcomingExpensesCount: upcomingExpenses.length,
         overdueExpensesCount: upcomingExpenses.filter(exp => exp.daysUntil < 0).length,
-        budgetUtilization: totalIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, totalIncome) : 0,
-        cashFlowStatus: netIncome >= 0 ? 'positive' : 'negative'
+        budgetUtilization: projectedIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, projectedIncome) : 0,
+        cashFlowStatus: projectedNetIncome >= 0 ? 'positive' : 'negative',
+        actualCashFlowStatus: actualNetIncome >= 0 ? 'positive' : 'negative'
+      };
+    };
+
+    // Variance analysis between planned and actual
+    const getVarianceAnalysis = () => {
+      const incomeProgress = getIncomeProgress();
+      const projectedExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
+      
+      return {
+        incomeVariance: incomeProgress.variance,
+        incomeProgressVariance: incomeProgress.progressVariance,
+        incomeVariancePercent: incomeProgress.projected > 0 ? 
+          currencyCalculator.percentageOf(incomeProgress.variance, incomeProgress.projected) : 0,
+        monthProgress: incomeProgress.monthProgress,
+        isIncomeOnTrack: incomeProgress.isOnTrack,
+        projectedNetFlow: getNetMonthlyIncome(),
+        actualNetFlow: getActualNetIncome()
       };
     };
 
@@ -204,7 +364,7 @@ export function useBudgetCalculations(budgetData) {
     // Monthly projections
     const getMonthlyProjections = () => {
       const months = [];
-      const baseIncome = getTotalIncome();
+      const baseIncome = getTotalProjectedIncome();
       const baseExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
       
       for (let i = 0; i < 12; i++) {
@@ -244,30 +404,6 @@ export function useBudgetCalculations(budgetData) {
       });
     };
 
-    // Variance analysis between planned and actual
-    const getVarianceAnalysis = () => {
-      const plannedIncome = (plannerState.weeklyIncome || []).reduce((sum, income) => 
-        currencyCalculator.add(sum, income), 0);
-      const plannedExpenses = (plannerState.weeklyExpenses || []).reduce((sum, expense) => 
-        currencyCalculator.add(sum, expense), 0);
-      
-      const actualIncome = getTotalIncome();
-      const actualExpenses = getTotalMonthlyExpenses();
-
-      return {
-        incomeVariance: currencyCalculator.subtract(actualIncome, plannedIncome),
-        expenseVariance: currencyCalculator.subtract(actualExpenses, plannedExpenses),
-        netVariance: currencyCalculator.subtract(
-          currencyCalculator.subtract(actualIncome, actualExpenses),
-          currencyCalculator.subtract(plannedIncome, plannedExpenses)
-        ),
-        incomeVariancePercent: plannedIncome > 0 ? 
-          currencyCalculator.percentageOf(currencyCalculator.subtract(actualIncome, plannedIncome), plannedIncome) : 0,
-        expenseVariancePercent: plannedExpenses > 0 ? 
-          currencyCalculator.percentageOf(currencyCalculator.subtract(actualExpenses, plannedExpenses), plannedExpenses) : 0
-      };
-    };
-
     // Top expense categories
     const getTopExpenseCategories = (limit = 5) => {
       const categoryTotals = getCategoryTotals();
@@ -289,20 +425,34 @@ export function useBudgetCalculations(budgetData) {
     };
 
     return {
-      getTotalIncome,
+      // Income calculations (NEW and UPDATED)
+      getTotalIncome, // Legacy - returns projected for compatibility
+      getTotalProjectedIncome,
+      getTotalActualIncome,
+      getIncomeProgress,
+      
+      // Expense calculations
       getTotalMonthlyExpenses,
       getTotalAnnualExpenses,
       getMonthlyAnnualImpact,
-      getNetMonthlyIncome,
-      getSavingsRate,
+      
+      // Net income calculations (UPDATED)
+      getNetMonthlyIncome, // Uses projected income
+      getActualNetIncome, // NEW - uses actual income
+      
+      // Savings rate calculations (UPDATED)
+      getSavingsRate, // Uses projected income
+      getActualSavingsRate, // NEW - uses actual income
+      
+      // Analysis functions
       getUpcomingExpenses,
       getCategoryTotals,
       getAccountAllocations,
-      getBudgetHealth,
+      getBudgetHealth, // UPDATED with actual vs projected metrics
       getExpensesByFrequency,
       getMonthlyProjections,
       getCashFlowProjection,
-      getVarianceAnalysis,
+      getVarianceAnalysis, // UPDATED with income progress tracking
       getTopExpenseCategories
     };
   }, [budgetData]);
