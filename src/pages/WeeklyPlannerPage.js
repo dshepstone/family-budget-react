@@ -1,4 +1,4 @@
-// src/pages/WeeklyPlannerPage.js - Complete Integration
+// src/pages/WeeklyPlannerPage.js - Complete Integration with Fixed Income Calculations
 import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { WeeklyPlannerPrint } from '../utils/printUtils';
@@ -7,8 +7,171 @@ import { WeeklyPlannerPrint } from '../utils/printUtils';
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const [hideZeroRows, setHideZeroRows] = useState(false);
+  // Get month/year from first pay date instead of current date - FIXED DATE PARSING
+  const getBudgetMonthYear = useCallback(() => {
+    // Find the first income source with pay dates to determine the budget month/year
+    for (const income of (state.data.income || [])) {
+      if (income.payDates && income.payDates.length > 0) {
+        const dateString = income.payDates[0];
+        // Parse date string manually to avoid timezone issues
+        // Format: "YYYY-MM-DD"
+        const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+        return {
+          month: month - 1, // Convert to 0-indexed month (August = 7)
+          year: year
+        };
+      }
+    }
+    // Fallback to current date if no pay dates found
+    return {
+      month: new Date().getMonth(),
+      year: new Date().getFullYear()
+    };
+  }, [state.data.income]);
+
+  const { month: currentMonth, year: currentYear } = getBudgetMonthYear();
+
+  // FIXED: Get weekly income amounts using actual pay dates from IncomePage.js
+  const getWeeklyIncomeAmounts = useCallback(() => {
+    const weeklyIncome = [0, 0, 0, 0, 0];
+
+    // Helper function to parse amounts (same as IncomePage.js)
+    const parseAmount = (value) => {
+      if (typeof value === 'number') return value;
+      if (!value && value !== 0) return 0;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Debug: Log current month/year
+    // console.log('Budget month/year:', currentMonth, currentYear);
+
+    // Process each income source
+    (state.data.income || []).forEach(income => {
+      // console.log('Processing income:', income.name, 'Pay dates:', income.payDates);
+      
+      // First priority: Use actual pay dates if available (this is the most accurate)
+      const payDates = Array.isArray(income.payDates) ? income.payDates : [];
+      const perPayAmount = parseAmount(income.projectedAmount || income.amount);
+
+      if (payDates.length > 0) {
+        // Distribute based on actual pay dates within the current month
+        payDates.forEach(dateStr => {
+          // Parse date string manually to avoid timezone issues
+          // Format: "YYYY-MM-DD"
+          const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+          const payMonth = month - 1; // Convert to 0-indexed month
+          const payYear = year;
+          const dayOfMonth = day;
+          
+          // console.log(`Date ${dateStr}: payMonth=${payMonth}, payYear=${payYear}, dayOfMonth=${dayOfMonth}`);
+          
+          // Only process dates that are in the current month being viewed
+          if (payMonth === currentMonth && payYear === currentYear) {
+            
+            // Calculate which week this date falls into based on the actual week ranges
+            // Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22-28, Week 5: 29+
+            let weekIndex;
+            if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+              weekIndex = 0; // Week 1: days 1-7
+            } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+              weekIndex = 1; // Week 2: days 8-14
+            } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+              weekIndex = 2; // Week 3: days 15-21
+            } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+              weekIndex = 3; // Week 4: days 22-28
+            } else if (dayOfMonth >= 29) {
+              weekIndex = 4; // Week 5: days 29+
+            }
+            
+            // console.log(`${dateStr} (day ${dayOfMonth}) → Week ${weekIndex + 1}, amount: ${perPayAmount}`);
+            
+            if (weekIndex >= 0 && weekIndex < 5) {
+              weeklyIncome[weekIndex] += perPayAmount;
+            }
+          } else {
+            // console.log(`Skipping ${dateStr} - not in current month (${payMonth} vs ${currentMonth}, ${payYear} vs ${currentYear})`);
+          }
+        });
+      } else if (income.weeks && Array.isArray(income.weeks)) {
+        // Second priority: Use manually set weekly amounts only if no pay dates
+        income.weeks.forEach((amount, index) => {
+          if (index < 5) {
+            weeklyIncome[index] += parseAmount(amount);
+          }
+        });
+      } else {
+        // Fallback: Distribute based on frequency pattern when no specific dates
+        const hasDates = false; // No dates available
+        let monthlyAmount = 0;
+        
+        // Calculate monthly amount using same logic as IncomePage.js
+        switch (income.frequency) {
+          case 'weekly':
+            monthlyAmount = perPayAmount * (52 / 12);
+            break;
+          case 'bi-weekly':
+            monthlyAmount = perPayAmount * (26 / 12);
+            break;
+          case 'monthly':
+            monthlyAmount = perPayAmount;
+            break;
+          case 'quarterly':
+            monthlyAmount = perPayAmount / 3;
+            break;
+          case 'semi-annual':
+            monthlyAmount = perPayAmount / 6;
+            break;
+          case 'annual':
+            monthlyAmount = perPayAmount / 12;
+            break;
+          case 'one-time':
+            monthlyAmount = 0;
+            break;
+          default:
+            monthlyAmount = perPayAmount;
+        }
+
+        // Distribute based on frequency pattern
+        switch (income.frequency) {
+          case 'weekly':
+            // Distribute weekly income across 4-5 weeks
+            const weeklyAmount = monthlyAmount / 4.33;
+            for (let i = 0; i < 4; i++) {
+              weeklyIncome[i] += weeklyAmount;
+            }
+            break;
+            
+          case 'bi-weekly':
+            // Typical bi-weekly: weeks 1 and 3, with potential third paycheck in week 5
+            weeklyIncome[0] += perPayAmount;
+            weeklyIncome[2] += perPayAmount;
+            
+            // Handle third paycheck months (2-3 times per year)
+            if (monthlyAmount > perPayAmount * 2) {
+              weeklyIncome[4] += (monthlyAmount - perPayAmount * 2);
+            }
+            break;
+            
+          case 'monthly':
+            // Most monthly income comes in first week by default
+            weeklyIncome[0] += monthlyAmount;
+            break;
+            
+          default:
+            // Distribute evenly across first 4 weeks
+            const evenAmount = monthlyAmount / 4;
+            for (let i = 0; i < 4; i++) {
+              weeklyIncome[i] += evenAmount;
+            }
+        }
+      }
+    });
+
+    // console.log('Final weekly income:', weeklyIncome);
+    return weeklyIncome;
+  }, [state.data.income, currentMonth, currentYear]);
 
   // Auto-populate planner when component mounts or when monthly/annual data changes
   useEffect(() => {
@@ -166,9 +329,38 @@ const WeeklyPlannerPage = () => {
     handleWeekAmountChange(expenseName, weekIndex, newValue);
   };
 
-  // Calculate week totals
+  // Calculate week totals - fix to return proper array structure
   const calculateWeekTotals = () => {
-    return calculations.getWeeklyPlannerTotals();
+    const weekTotals = [0, 0, 0, 0, 0]; // Initialize 5 weeks
+    const plannerData = state.data.plannerState || {};
+
+    // Calculate expense totals for each week
+    Object.values(plannerData).forEach(expense => {
+      if (expense.weeks && Array.isArray(expense.weeks)) {
+        expense.weeks.forEach((amount, weekIndex) => {
+          if (weekIndex < 5) {
+            weekTotals[weekIndex] += parseFloat(amount) || 0;
+          }
+        });
+      }
+    });
+
+    return weekTotals;
+  };
+
+  // Check if an expense row has all zero values
+  const hasAllZeroValues = (expense) => {
+    const expenseData = getExpensePlannerData(expense.name);
+    const monthlyAmount = expense.monthlyAmount || 0;
+    const weeklySum = expenseData.weeks.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+    
+    // Hide if monthly amount is 0 AND all weekly amounts are 0
+    return monthlyAmount === 0 && weeklySum === 0;
+  };
+
+  // Toggle zero rows visibility
+  const toggleZeroRows = () => {
+    setHideZeroRows(!hideZeroRows);
   };
 
   // Calculate remaining balance for expense
@@ -213,21 +405,33 @@ const WeeklyPlannerPage = () => {
     });
   };
 
-  // Calculate week date ranges
+  // Calculate week date ranges using budget month/year - FIXED DATE PARSING
   const getWeekDateRange = (weekIndex) => {
-    const weekStartDate = new Date(currentYear, currentMonth, 1 + weekIndex * 7);
+    const { month: budgetMonth, year: budgetYear } = getBudgetMonthYear();
+    
+    // Create dates manually to avoid timezone issues
+    const weekStartDay = 1 + weekIndex * 7;
+    const weekStartDate = new Date(budgetYear, budgetMonth, weekStartDay);
     const weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
 
     // Ensure week end doesn't go past month end
-    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+    const monthEnd = new Date(budgetYear, budgetMonth + 1, 0);
     if (weekEndDate > monthEnd) {
       weekEndDate.setTime(monthEnd.getTime());
     }
 
+    // Format dates as YYYY-MM-DD to match input format
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     return {
-      start: weekStartDate.toISOString().split('T')[0],
-      end: weekEndDate.toISOString().split('T')[0]
+      start: formatDate(weekStartDate),
+      end: formatDate(weekEndDate)
     };
   };
 
@@ -267,7 +471,8 @@ const WeeklyPlannerPage = () => {
   };
 
   const weekTotals = calculateWeekTotals();
-  const weeklyIncome = calculations.getWeeklyIncome();
+  // FIXED: Use the improved weekly income calculation
+  const weeklyIncome = getWeeklyIncomeAmounts();
   const groupedExpenses = groupExpensesByCategory();
 
   return (
@@ -645,6 +850,11 @@ const WeeklyPlannerPage = () => {
           background-color: #1e7e34;
         }
 
+        .btn-success.active {
+          background-color: #155724;
+          border-color: #155724;
+        }
+
         .btn-danger {
           background-color: #dc3545;
           color: white;
@@ -708,6 +918,13 @@ const WeeklyPlannerPage = () => {
         </div>
 
         <div className="action-controls">
+          <button 
+            className={`btn ${hideZeroRows ? 'btn-success active' : 'btn-secondary'}`}
+            onClick={toggleZeroRows}
+            title={hideZeroRows ? 'Currently hiding rows with $0.00 values. Click to show all rows.' : 'Currently showing all rows. Click to hide rows with $0.00 values.'}
+          >
+            {hideZeroRows ? '👁️ Show $0 Rows' : '🚫 Hide $0 Rows'}
+          </button>
           <button className="btn btn-primary" onClick={autoDistributeExpenses}>
             Auto-Distribute
           </button>
@@ -724,6 +941,19 @@ const WeeklyPlannerPage = () => {
       </div>
 
       <div className="planner-table-container">
+        {hideZeroRows && (
+          <div style={{ 
+            padding: '8px 15px', 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderBottom: 'none',
+            borderRadius: '8px 8px 0 0',
+            fontSize: '0.9rem',
+            color: '#856404'
+          }}>
+            ℹ️ Filtering: Rows with $0.00 values are hidden. Click "Show $0 Rows" to see all expenses.
+          </div>
+        )}
         <table className="planner-table" id="planner-table">
           <thead>
             <tr>
@@ -773,95 +1003,107 @@ const WeeklyPlannerPage = () => {
                 </td>
               </tr>
             ) : (
-              Object.entries(groupedExpenses).map(([categoryKey, category]) => (
-                <React.Fragment key={categoryKey}>
-                  {/* Category Header */}
-                  <tr className="category-row">
-                    <td colSpan="13">{category.name}</td>
-                  </tr>
+              Object.entries(groupedExpenses).map(([categoryKey, category]) => {
+                // Filter visible expenses for this category
+                const visibleExpenses = category.expenses.filter(expense => 
+                  !hideZeroRows || !hasAllZeroValues(expense)
+                );
+                
+                // Don't render category if no visible expenses
+                if (visibleExpenses.length === 0) {
+                  return null;
+                }
 
-                  {/* Expense Rows */}
-                  {category.expenses.map((expense, index) => {
-                    const expenseData = getExpensePlannerData(expense.name);
-                    const remaining = calculateRemainingBalance(expense, expenseData.weeks);
+                return (
+                  <React.Fragment key={categoryKey}>
+                    {/* Category Header */}
+                    <tr className="category-row">
+                      <td colSpan="13">{category.name}</td>
+                    </tr>
 
-                    return (
-                      <tr key={`${categoryKey}-${index}`} data-expense-id={expense.id}>
-                        <td className="expense-name" style={{ textAlign: 'left', paddingLeft: '20px' }}>
-                          {expense.name}
-                          {expense.isAnnual && (
-                            <div className="annual-indicator">
-                              (Annual: {formatCurrency(expense.originalAnnualAmount)})
-                            </div>
-                          )}
-                        </td>
-                        <td>
-                          <strong>{formatCurrency(expense.monthlyAmount)}</strong>
-                        </td>
+                    {/* Expense Rows */}
+                    {visibleExpenses.map((expense, index) => {
+                      const expenseData = getExpensePlannerData(expense.name);
+                      const remaining = calculateRemainingBalance(expense, expenseData.weeks);
 
-                        {/* Week Columns */}
-                        {Array.from({ length: 5 }, (_, weekIndex) => (
-                          <React.Fragment key={weekIndex}>
-                            <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                              <div className="planner-input-group">
-                                <input
-                                  type="number"
-                                  className={`table-input ${expenseData.weeks[weekIndex] > 0 ? 'has-value' : 'zero-value'}`}
-                                  value={expenseData.weeks[weekIndex].toFixed(2)}
-                                  step="0.01"
-                                  onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
-                                />
-                                <select
-                                  className="planner-action-select"
-                                  onChange={(e) => {
-                                    handleQuickAction(expense.name, weekIndex, e.target.value, expense.monthlyAmount);
-                                    e.target.value = '';
-                                  }}
-                                >
-                                  <option value="">Quick Fill</option>
-                                  <option value="reset">Reset to $0</option>
-                                  <option value="full">Full Amount ({formatCurrency(expense.monthlyAmount)})</option>
-                                  <option value="half">Half Amount ({formatCurrency(expense.monthlyAmount / 2)})</option>
-                                  <option value="quarter">Quarter Amount ({formatCurrency(expense.monthlyAmount / 4)})</option>
-                                </select>
+                      return (
+                        <tr key={`${categoryKey}-${index}`} data-expense-id={expense.id}>
+                          <td className="expense-name" style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                            {expense.name}
+                            {expense.isAnnual && (
+                              <div className="annual-indicator">
+                                (Annual: {formatCurrency(expense.originalAnnualAmount)})
                               </div>
-                            </td>
-                            <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                              <div className="status-checkboxes">
-                                <input
-                                  type="checkbox"
-                                  className="transferred-checkbox"
-                                  title="Transferred"
-                                  checked={expenseData.transferred[weekIndex]}
-                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
-                                />
-                                <br />
-                                <input
-                                  type="checkbox"
-                                  className="paid-checkbox"
-                                  title="Paid"
-                                  checked={expenseData.paid[weekIndex]}
-                                  onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
-                                />
-                              </div>
-                            </td>
-                          </React.Fragment>
-                        ))}
+                            )}
+                          </td>
+                          <td>
+                            <strong>{formatCurrency(expense.monthlyAmount)}</strong>
+                          </td>
 
-                        <td
-                          className="remaining-amount"
-                          style={{
-                            fontWeight: 'bold',
-                            color: Math.abs(remaining) < 0.001 ? 'black' : 'red'
-                          }}
-                        >
-                          {formatCurrency(remaining)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </React.Fragment>
-              ))
+                          {/* Week Columns */}
+                          {Array.from({ length: 5 }, (_, weekIndex) => (
+                            <React.Fragment key={weekIndex}>
+                              <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                                <div className="planner-input-group">
+                                  <input
+                                    type="number"
+                                    className={`table-input ${expenseData.weeks[weekIndex] > 0 ? 'has-value' : 'zero-value'}`}
+                                    value={expenseData.weeks[weekIndex].toFixed(2)}
+                                    step="0.01"
+                                    onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
+                                  />
+                                  <select
+                                    className="planner-action-select"
+                                    onChange={(e) => {
+                                      handleQuickAction(expense.name, weekIndex, e.target.value, expense.monthlyAmount);
+                                      e.target.value = '';
+                                    }}
+                                  >
+                                    <option value="">Quick Fill</option>
+                                    <option value="reset">Reset to $0</option>
+                                    <option value="full">Full Amount ({formatCurrency(expense.monthlyAmount)})</option>
+                                    <option value="half">Half Amount ({formatCurrency(expense.monthlyAmount / 2)})</option>
+                                    <option value="quarter">Quarter Amount ({formatCurrency(expense.monthlyAmount / 4)})</option>
+                                  </select>
+                                </div>
+                              </td>
+                              <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                                <div className="status-checkboxes">
+                                  <input
+                                    type="checkbox"
+                                    className="transferred-checkbox"
+                                    title="Transferred"
+                                    checked={expenseData.transferred[weekIndex]}
+                                    onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
+                                  />
+                                  <br />
+                                  <input
+                                    type="checkbox"
+                                    className="paid-checkbox"
+                                    title="Paid"
+                                    checked={expenseData.paid[weekIndex]}
+                                    onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
+                                  />
+                                </div>
+                              </td>
+                            </React.Fragment>
+                          ))}
+
+                          <td
+                            className="remaining-amount"
+                            style={{
+                              fontWeight: 'bold',
+                              color: Math.abs(remaining) < 0.001 ? 'black' : 'red'
+                            }}
+                          >
+                            {formatCurrency(remaining)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
 
@@ -872,16 +1114,16 @@ const WeeklyPlannerPage = () => {
               {Array.from({ length: 5 }, (_, weekIndex) => (
                 <React.Fragment key={weekIndex}>
                   <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                    <strong>{formatCurrency(weekTotals[weekIndex])}</strong>
+                    <strong>{formatCurrency(weekTotals[weekIndex] || 0)}</strong>
                     <div style={{ fontSize: '0.8em', fontWeight: 'normal' }}>
-                      Net: {formatCurrency(weeklyIncome[weekIndex] - weekTotals[weekIndex])}
+                      Net: {formatCurrency((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0))}
                     </div>
                   </td>
                   <td className={`week-${weekIndex + 1}-status-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}></td>
                 </React.Fragment>
               ))}
               <td>
-                <strong>{formatCurrency(weekTotals.reduce((sum, total) => sum + total, 0))}</strong>
+                <strong>{formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}</strong>
               </td>
             </tr>
           </tfoot>
@@ -893,15 +1135,17 @@ const WeeklyPlannerPage = () => {
         <h3>📊 Weekly Cash Flow Analysis</h3>
         <div className="cash-flow-grid">
           {Array.from({ length: 5 }, (_, weekIndex) => {
-            const balance = weeklyIncome[weekIndex] - weekTotals[weekIndex];
+            const income = weeklyIncome[weekIndex] || 0;
+            const expenses = weekTotals[weekIndex] || 0;
+            const balance = income - expenses;
             return (
               <div
                 key={weekIndex}
                 className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
               >
                 <div className="week-label">Week {weekIndex + 1}</div>
-                <div className="week-label">Income: {formatCurrency(weeklyIncome[weekIndex])}</div>
-                <div className="week-label">Expenses: {formatCurrency(weekTotals[weekIndex])}</div>
+                <div className="week-label">Income: {formatCurrency(income)}</div>
+                <div className="week-label">Expenses: {formatCurrency(expenses)}</div>
                 <div className={`balance-amount ${balance >= 0 ? 'positive' : 'negative'}`}>
                   Balance: {formatCurrency(balance)}
                 </div>
