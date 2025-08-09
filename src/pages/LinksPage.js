@@ -30,6 +30,48 @@ const LinksPage = () => {
   const linksData = state.data.links || {};
   const categories = state.data.linkCategories || {};
 
+  // Helper function to safely get hostname from URL
+  const getHostnameFromUrl = (url) => {
+    if (!url || typeof url !== 'string') {
+      return 'Invalid URL';
+    }
+    
+    try {
+      // Add protocol if missing
+      let processedUrl = url;
+      if (!url.match(/^https?:\/\//)) {
+        processedUrl = 'https://' + url;
+      }
+      
+      const urlObj = new URL(processedUrl);
+      return urlObj.hostname;
+    } catch (error) {
+      console.warn('Invalid URL detected:', url, error);
+      return 'Invalid URL';
+    }
+  };
+
+  // Safe openLink function
+  const openLink = (url) => {
+    if (!url || typeof url !== 'string') {
+      alert('Invalid URL');
+      return;
+    }
+    
+    try {
+      let processedUrl = url;
+      if (!url.match(/^https?:\/\//)) {
+        processedUrl = 'https://' + url;
+      }
+      
+      // Validate URL before opening
+      new URL(processedUrl);
+      window.open(processedUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      alert('Invalid URL: ' + url);
+    }
+  };
+
   // Suggested categories to help users get started
   const suggestedCategories = [
     { name: 'Banking & Finance', icon: '🏦', color: '#27ae60', examples: ['Online banking', 'Credit cards', 'Investment accounts'] },
@@ -62,7 +104,11 @@ const LinksPage = () => {
     if (!link.name || !link.url || !link.category) return false;
 
     try {
-      new URL(link.url);
+      let processedUrl = link.url;
+      if (!link.url.match(/^https?:\/\//)) {
+        processedUrl = 'https://' + link.url;
+      }
+      new URL(processedUrl);
       return true;
     } catch {
       return false;
@@ -164,10 +210,6 @@ const LinksPage = () => {
     });
     setShowAddForm(false);
     setEditingLink(null);
-  };
-
-  const openLink = (url) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const filteredLinks = useMemo(() => {
@@ -317,49 +359,63 @@ const LinksPage = () => {
             <h2>Let's Get Started!</h2>
             <p>
               Create your first category and add links to websites you visit frequently.
-              Here are some popular categories to get you started:
+              Choose from our suggested categories below or create your own.
             </p>
+            <div className="empty-actions">
+              <Button
+                variant="primary"
+                onClick={() => setShowAddForm(true)}
+                size="lg"
+              >
+                Add Your First Link
+              </Button>
+            </div>
+          </div>
 
-            <div className="suggested-categories">
-              {suggestedCategories.slice(0, 6).map((suggested, index) => (
-                <button
+          {/* Suggested Categories */}
+          <div className="suggested-categories">
+            <h4>Suggested Categories</h4>
+            <div className="suggestions-grid">
+              {suggestedCategories.map((category, index) => (
+                <div
                   key={index}
-                  className="suggested-category"
-                  onClick={() => addSuggestedCategory(suggested)}
-                  style={{ borderLeft: `4px solid ${suggested.color}` }}
+                  className="suggestion-card"
+                  onClick={() => addSuggestedCategory(category)}
                 >
-                  <span className="suggested-icon">{suggested.icon}</span>
-                  <div className="suggested-info">
-                    <div className="suggested-name">{suggested.name}</div>
-                    <div className="suggested-examples">
-                      {suggested.examples.slice(0, 2).join(', ')}
-                    </div>
+                  <div className="suggestion-header">
+                    <span className="suggestion-icon" style={{ color: category.color }}>
+                      {category.icon}
+                    </span>
+                    <span className="suggestion-name">{category.name}</span>
                   </div>
-                </button>
+                  <div className="suggestion-examples">
+                    {category.examples.join(', ')}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Add Category Form */}
+      {/* Category Form */}
       {showCategoryForm && (
         <Card className="form-overlay">
           <div className="form-header">
             <h3>Create New Category</h3>
-            <button
-              className="close-btn"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowCategoryForm(false)}
             >
-              ×
-            </button>
+              ✕
+            </Button>
           </div>
           <form onSubmit={handleCategorySubmit} className="category-form">
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="category-name">Category Name *</label>
+                <label>Category Name *</label>
                 <Input
-                  id="category-name"
                   type="text"
                   value={categoryFormData.name}
                   onChange={(e) => handleCategoryInputChange('name', e.target.value)}
@@ -367,34 +423,24 @@ const LinksPage = () => {
                   required
                 />
               </div>
-
               <div className="form-group">
-                <label htmlFor="category-icon">Icon</label>
-                <div className="icon-input-group">
-                  <Input
-                    id="category-icon"
-                    type="text"
-                    value={categoryFormData.icon}
-                    onChange={(e) => handleCategoryInputChange('icon', e.target.value)}
-                    placeholder="🔗"
-                    className="icon-input"
-                  />
-                  <div className="icon-preview">{categoryFormData.icon}</div>
-                </div>
+                <label>Icon</label>
+                <Input
+                  type="text"
+                  value={categoryFormData.icon}
+                  onChange={(e) => handleCategoryInputChange('icon', e.target.value)}
+                  placeholder="🔗"
+                />
               </div>
-
               <div className="form-group">
-                <label htmlFor="category-color">Color</label>
-                <input
-                  id="category-color"
+                <label>Color</label>
+                <Input
                   type="color"
                   value={categoryFormData.color}
                   onChange={(e) => handleCategoryInputChange('color', e.target.value)}
-                  className="color-input"
                 />
               </div>
             </div>
-
             <div className="form-actions">
               <Button type="submit" variant="primary">
                 Create Category
@@ -407,24 +453,24 @@ const LinksPage = () => {
         </Card>
       )}
 
-      {/* Add/Edit Link Form */}
+      {/* Link Form */}
       {showAddForm && (
         <Card className="form-overlay">
           <div className="form-header">
             <h3>{editingLink ? 'Edit Link' : 'Add New Link'}</h3>
-            <button
-              className="close-btn"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={resetForm}
             >
-              ×
-            </button>
+              ✕
+            </Button>
           </div>
           <form onSubmit={handleSubmit} className="link-form">
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="link-name">Link Name *</label>
+                <label>Link Name *</label>
                 <Input
-                  id="link-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
@@ -432,11 +478,9 @@ const LinksPage = () => {
                   required
                 />
               </div>
-
               <div className="form-group">
-                <label htmlFor="link-url">URL *</label>
+                <label>URL *</label>
                 <Input
-                  id="link-url"
                   type="url"
                   value={formData.url}
                   onChange={(e) => handleInputChange('url', e.target.value)}
@@ -444,65 +488,41 @@ const LinksPage = () => {
                   required
                 />
               </div>
-
               <div className="form-group">
-                <label htmlFor="link-category">Category *</label>
+                <label>Category *</label>
                 <select
-                  id="link-category"
                   value={formData.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
-                  className="form-select"
                   required
+                  className="form-select"
                 >
                   <option value="">Select a category</option>
-                  {Object.keys(categories).map(categoryKey => {
-                    const category = getCategoryInfo(categoryKey);
-                    return (
-                      <option key={categoryKey} value={categoryKey}>
-                        {category.icon} {category.name}
-                      </option>
-                    );
-                  })}
+                  {Object.keys(categories).map(categoryKey => (
+                    <option key={categoryKey} value={categoryKey}>
+                      {getCategoryInfo(categoryKey).name}
+                    </option>
+                  ))}
                 </select>
-                {Object.keys(categories).length === 0 && (
-                  <p className="form-help">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowCategoryForm(true)}
-                    >
-                      Create your first category
-                    </Button>
-                  </p>
-                )}
               </div>
-
               <div className="form-group full-width">
-                <label htmlFor="link-description">Description</label>
-                <textarea
-                  id="link-description"
+                <label>Description</label>
+                <Input
+                  type="text"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Optional description or notes about this link..."
-                  rows="3"
-                  className="form-textarea"
+                  placeholder="Optional description"
                 />
               </div>
-
               <div className="form-group full-width">
-                <label htmlFor="link-tags">Tags</label>
+                <label>Tags</label>
                 <Input
-                  id="link-tags"
                   type="text"
                   value={formData.tags}
                   onChange={(e) => handleInputChange('tags', e.target.value)}
-                  placeholder="e.g., checking, primary, mobile"
+                  placeholder="banking, finance, credit (comma separated)"
                 />
-                <p className="form-help">Separate tags with commas for easier searching</p>
               </div>
             </div>
-
             <div className="form-actions">
               <Button type="submit" variant="primary">
                 {editingLink ? 'Update Link' : 'Add Link'}
@@ -578,7 +598,7 @@ const LinksPage = () => {
                               <span className="link-icon">🔗</span>
                               <div className="link-info">
                                 <div className="link-name">{link.name}</div>
-                                <div className="link-url">{new URL(link.url).hostname}</div>
+                                <div className="link-url">{getHostnameFromUrl(link.url)}</div>
                               </div>
                             </button>
 

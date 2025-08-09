@@ -1,4 +1,4 @@
-/* src/styles/components.css - Cleaned and Organized */
+/* src/styles/components.css - Restored Original with Specific Fixes */
 
 /* ===============================================
    HEADER COMPONENT
@@ -64,6 +64,38 @@
   font-size: 0.875rem;
 }
 
+/* Fix dropdown options contrast - this is the key fix */
+.month-select option {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  padding: 0.5rem;
+}
+
+/* Ensure proper contrast in both themes */
+[data-theme="light"] .month-select option {
+  background: #ffffff;
+  color: #2c3e50;
+}
+
+[data-theme="dark"] .month-select option {
+  background: #2c3e50;
+  color: #ffffff;
+}
+
+/* Improve dropdown appearance on focus */
+.month-select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Add hover state for better UX */
+.month-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .theme-toggle {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -82,9 +114,11 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Header Statistics */
 .header-stats {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
+  align-items: center;
 }
 
 .stat-item {
@@ -92,24 +126,79 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  min-width: 150px;   /* was 120px – gives the pill room */
+}
+
+/* Keep the number pill on one line and let it grow */
+.app-header .stat-value {
+  white-space: nowrap;
+  display: inline-block;
+  line-height: 1.2;
+}
+
+/* Optional: on very small screens, allow the tile to grow instead of clipping */
+@media (max-width: 480px) {
+  .stat-item { min-width: 170px; } /* or drop font-size slightly if you prefer */
+  .app-header .stat-value { font-size: 0.95rem; }
 }
 
 .stat-label {
   font-size: 0.75rem;
-  opacity: 0.8;
+  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+.app-header .stat-label {
+  opacity: 1;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .stat-value {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
 .stat-value.positive {
-  color: var(--success-light);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .stat-value.negative {
-  color: var(--danger-light);
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.stat-value.income-value {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.stat-value[data-changed="true"] {
+  animation: valueChange 0.6s ease;
+}
+
+@keyframes valueChange {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .version-info {
@@ -119,7 +208,6 @@
   font-size: 0.75rem;
   opacity: 0.7;
 }
-
 /* ===============================================
    NAVIGATION COMPONENT
    =============================================== */
@@ -131,9 +219,16 @@
   margin-bottom: 0;
   flex-wrap: wrap;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Sticky, but starts after the header */
+  position: sticky;
+  top: 134px; /* adjust this to match your header height */
+  z-index: 1000;
 }
 
-.nav-btn {
+
+.nav-btn,
+.calculator-nav-btn {
   background: none;
   color: var(--nav-text);
   border: none;
@@ -149,7 +244,8 @@
   min-width: 0;
 }
 
-.nav-btn:hover {
+.nav-btn:hover,
+.calculator-nav-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--nav-text);
 }
@@ -157,6 +253,21 @@
 .nav-btn.active {
   background-color: var(--nav-active-bg);
   border-bottom-color: var(--nav-active-border);
+}
+
+.calculator-nav-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: auto;
+}
+
+.calculator-nav-btn:hover {
+  border-bottom-color: #f39c12;
+}
+
+.calculator-nav-btn.active {
+  background-color: rgba(243, 156, 18, 0.2);
+  border-bottom-color: #f39c12;
+  color: #f39c12;
 }
 
 .nav-icon {
@@ -167,8 +278,9 @@
   white-space: nowrap;
 }
 
+
 /* ===============================================
-   BUTTON COMPONENT
+   BUTTON COMPONENTS
    =============================================== */
 .btn {
   display: inline-flex;
@@ -271,7 +383,7 @@
 }
 
 /* ===============================================
-   CARD COMPONENT
+   CARD COMPONENTS
    =============================================== */
 .card {
   background: var(--card-bg);
@@ -803,6 +915,7 @@
   border-radius: 4px;
   font-size: 90%;
 }
+
 /* ===============================================
    ACCOUNTS MANAGER COMPONENT
    =============================================== */
@@ -1172,187 +1285,7 @@
 }
 
 /* ===============================================
-   DARK THEME OVERRIDES
-   =============================================== */
-[data-theme="dark"] .simple-toolbar {
-  background: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .toolbar-btn {
-  background: var(--btn-secondary-bg);
-  color: var(--btn-secondary-text);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .toolbar-btn:hover {
-  background: var(--btn-secondary-hover);
-}
-
-[data-theme="dark"] .add-account-section {
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-}
-
-[data-theme="dark"] .account-stat-card {
-  background: var(--card-bg);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .account-item {
-  background: var(--bg-tertiary);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .account-details-grid {
-  background: var(--bg-primary);
-  border-color: var(--border-medium);
-}
-
-/* ===============================================
-   RESPONSIVE DESIGN
-   =============================================== */
-@media (max-width: 768px) {
-  .header-content {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-  }
-
-  .nav-bar {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-
-  .nav-btn {
-    flex-shrink: 0;
-    padding: 0.75rem 1rem;
-  }
-
-  .nav-label {
-    display: none;
-  }
-
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-card {
-    grid-column: span 1;
-  }
-
-  .overview-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .actions-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .version-indicator {
-    position: static;
-    margin: 1rem;
-    align-items: center;
-    text-align: center;
-  }
-
-  /* Text Editor Responsive */
-  .simple-toolbar {
-    padding: 0.375rem;
-    gap: 0.375rem;
-  }
-
-  .toolbar-btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-  }
-
-  .simple-editor-textarea {
-    min-height: 120px !important;
-    padding: 0.75rem !important;
-  }
-
-  /* Accounts Manager Responsive */
-  .accounts-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .account-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .account-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .account-details-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .account-balance {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.5rem;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .add-account-section {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .actions-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-btn {
-    flex-direction: row;
-    min-height: auto;
-    justify-content: flex-start;
-  }
-
-  .theme-toggle {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.75rem;
-  }
-
-  .app-title {
-    font-size: 1.25rem;
-  }
-
-  /* Accounts Manager Mobile */
-  .account-details-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-value {
-    font-size: 1.5rem;
-  }
-
-  .account-name {
-    font-size: 1.125rem;
-  }
-  
-}
-/* ===============================================
-   HOMEPAGE SPECIFIC STYLES - Add to components.css
+   HOMEPAGE SPECIFIC STYLES
    =============================================== */
 
 .homepage-container {
@@ -1415,7 +1348,6 @@
   flex-direction: column;
   gap: 1rem;
   max-height: 500px;
-  /* Prevent excessive height */
 }
 
 .expense-breakdown-summary {
@@ -1603,31 +1535,13 @@
 }
 
 /* ===============================================
-   REDESIGNED HOMEPAGE LAYOUT - Replace existing homepage CSS
+   REDESIGNED HOMEPAGE LAYOUT
    =============================================== */
 
 .homepage-redesigned {
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.page-description {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  margin: 0;
 }
 
 /* Main Two-Column Layout */
@@ -1660,23 +1574,30 @@
 
 .financial-overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .overview-stat {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  background: var(--bg-secondary);
+  padding: 1.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 0.75rem;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .overview-stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .overview-stat.highlight {
@@ -1690,39 +1611,47 @@
   justify-content: center;
   width: 3rem;
   height: 3rem;
-  border-radius: 50%;
+  border-radius: 0.75rem;
   font-size: 1.25rem;
   flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon.income {
-  background: rgba(39, 174, 96, 0.1);
-  color: var(--success);
+  background: rgba(16, 185, 129, 0.2);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-icon.expense {
-  background: rgba(231, 76, 60, 0.1);
-  color: var(--danger);
+  background: rgba(239, 68, 68, 0.2);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-icon.annual {
-  background: rgba(243, 156, 18, 0.1);
-  color: var(--warning);
+  background: rgba(251, 191, 36, 0.2);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-icon.positive {
-  background: rgba(39, 174, 96, 0.1);
-  color: var(--success);
+  background: rgba(16, 185, 129, 0.3);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-icon.negative {
-  background: rgba(231, 76, 60, 0.1);
-  color: var(--danger);
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-icon.warning {
-  background: rgba(243, 156, 18, 0.1);
-  color: var(--warning);
+  background: rgba(251, 191, 36, 0.3);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 
 .stat-content {
@@ -1734,38 +1663,189 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
-  color: var(--text-primary);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  color: var(--text-primary);
 }
 
 .stat-value.income {
-  color: var(--success);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .stat-value.expense {
-  color: var(--danger);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .stat-value.annual {
-  color: var(--warning);
+  color: #f59e0b;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 .stat-value.positive {
-  color: var(--success);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-weight: 700;
 }
 
 .stat-value.negative {
-  color: var(--danger);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 700;
 }
 
 .stat-value.warning {
-  color: var(--warning);
+  color: #f59e0b;
+  background: rgba(251, 191, 36, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  font-weight: 700;
 }
 
 .stat-label {
   font-size: 0.875rem;
-  color: var(--text-secondary);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  opacity: 0.9;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* ===============================================
+   ACTUAL PERFORMANCE CARD (Special Styling) - FIXED
+   =============================================== */
+.overview-stat.actual-performance {
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  color: white;
+  border: 1px solid #0891b2;
+  padding: 1.5rem;
+  min-height: 140px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  min-width: 280px;
+}
+
+.overview-stat.actual-performance .stat-content {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.overview-stat.actual-performance .stat-icon {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+}
+
+.overview-stat.actual-performance .stat-value {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 1.125rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: fit-content;
+  display: inline-block;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.overview-stat.actual-performance .stat-label {
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+  margin-top: 0.5rem;
+  white-space: nowrap;
+}
+
+.overview-stat.actual-performance .variance-indicator {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  margin-top: 0.5rem;
+  display: inline-block;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  min-width: fit-content;
+}
+
+.overview-stat.actual-performance:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
+  background: linear-gradient(135deg, #0a7c97 0%, #0c6b7a 100%);
+}
+
+/* ===============================================
+   VARIANCE INDICATORS
+   =============================================== */
+.variance-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.variance-indicator.variance-positive {
+  background: rgba(16, 185, 129, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.variance-indicator.variance-negative {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 /* ===============================================
@@ -2043,1411 +2123,280 @@
 }
 
 /* ===============================================
-   RESPONSIVE DESIGN
+   CALCULATOR COMPONENT - FULLY RESTORED
    =============================================== */
-
-@media (max-width: 1200px) {
-  .homepage-main-content {
-    grid-template-columns: 1.5fr 1fr;
-  }
-
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
-
-  .financial-overview-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 968px) {
-  .homepage-main-content {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .charts-row {
-    grid-template-columns: 1fr;
-  }
-
-  .financial-overview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .accounts-table-header,
-  .accounts-table-row {
-    grid-template-columns: 1.5fr 1fr 1fr 1fr;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .account-name {
-    font-size: 0.875rem;
-  }
-
-  .account-details {
-    display: none;
-    /* Hide on mobile to save space */
-  }
-
-  .balance-cell {
-    font-size: 0.8rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .homepage-redesigned {
-    padding: 0.5rem;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-  }
-
-  .overview-stat {
-    padding: 0.75rem;
-    gap: 0.75rem;
-  }
-
-  .stat-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 1rem;
-  }
-
-  .stat-value {
-    font-size: 1.125rem;
-  }
-
-  .chart-container {
-    height: 250px;
-  }
-
-  .accounts-table-header,
-  .accounts-table-row {
-    grid-template-columns: 1fr 80px 80px 80px;
-    font-size: 0.75rem;
-  }
-
-  .balance-input-compact {
-    max-width: 70px;
-    font-size: 0.75rem;
-    padding: 0.25rem;
-  }
-}
-
-@media (max-width: 480px) {
-
-  .accounts-table-header,
-  .accounts-table-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    text-align: left;
-  }
-
-  .balance-cell {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.25rem;
-  }
-
-  .balance-cell:before {
-    content: attr(data-label);
-    font-weight: 500;
-    color: var(--text-secondary);
-  }
-
-  /* Add data labels for mobile */
-  .accounts-table-row .balance-cell:nth-child(2):before {
-    content: 'Current: ';
-  }
-
-  .accounts-table-row .balance-cell:nth-child(3):before {
-    content: 'Projected: ';
-  }
-
-  .accounts-table-row .balance-cell:nth-child(4):before {
-    content: 'Net: ';
-  }
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .overview-stat {
-  background: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .accounts-table-header {
-  background: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .accounts-table-row.totals {
-  background: var(--bg-tertiary);
-}
-
-[data-theme="dark"] .health-item-compact {
-  background: var(--bg-tertiary);
-}
-/* ===============================================
-   IMPORT/EXPORT PAGE REDESIGNED STYLES - Add to components.css
-   =============================================== */
-
-.import-export-redesigned {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.page-description {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  margin: 0;
-}
-
-/* ===============================================
-   DATA OVERVIEW DASHBOARD
-   =============================================== */
-
-.data-overview-dashboard {
-  margin-bottom: 2.5rem;
-}
-
-.overview-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.stat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--card-shadow);
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  transition: background 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.stat-card.primary::before {
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-}
-
-.stat-card.success::before {
-  background: linear-gradient(90deg, var(--success), #2ecc71);
-}
-
-.stat-card.info::before {
-  background: linear-gradient(90deg, var(--info), #5dade2);
-}
-
-.stat-card.warning::before {
-  background: linear-gradient(90deg, var(--warning), #f1c40f);
-}
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 1rem;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.stat-card.primary .stat-icon {
-  background: rgba(52, 152, 219, 0.1);
-  color: var(--primary);
-}
-
-.stat-card.success .stat-icon {
-  background: rgba(39, 174, 96, 0.1);
-  color: var(--success);
-}
-
-.stat-card.info .stat-icon {
-  background: rgba(52, 152, 219, 0.1);
-  color: var(--info);
-}
-
-.stat-card.warning .stat-icon {
-  background: rgba(255, 193, 7, 0.1);
-  color: var(--warning);
-}
-
-.stat-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  color: var(--text-primary);
-  font-weight: 500;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-/* ===============================================
-   MAIN ACTIONS GRID
-   =============================================== */
-
-.main-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  margin-bottom: 2.5rem;
-}
-
-.action-section {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  padding: 2rem;
-  transition: all 0.3s ease;
-  box-shadow: var(--card-shadow);
-}
-
-.action-section:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.section-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 4rem;
-  height: 4rem;
-  border-radius: 1rem;
-  font-size: 1.75rem;
-  flex-shrink: 0;
-}
-
-.export-section .section-icon {
-  background: rgba(40, 167, 69, 0.1);
-  color: var(--success);
-}
-
-.import-section .section-icon {
-  background: rgba(52, 152, 219, 0.1);
-  color: var(--primary);
-}
-
-.section-info h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.section-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-/* Primary Action Cards */
-.primary-action-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.action-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.action-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
-  background: var(--primary-alpha);
-  color: var(--primary);
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.action-info h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.action-info p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.action-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.filename-input {
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-}
-
-.filename-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-alpha);
-}
-
-.primary-action-btn {
-  align-self: flex-start;
-  min-width: 150px;
-}
-
-/* Secondary Actions */
-.secondary-actions {
-  margin-top: 1.5rem;
-}
-
-.secondary-header {
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.secondary-header h5 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.secondary-header p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.csv-export-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.csv-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 0.75rem;
-  min-height: 80px;
-  font-size: 0.875rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border-light);
-  transition: all 0.2s ease;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  color: var(--text-primary);
-}
-
-.csv-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary);
-  text-decoration: none;
-  color: var(--primary);
-}
-
-.csv-btn.featured {
-  background: var(--primary-alpha);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.csv-btn .btn-icon {
-  font-size: 1.25rem;
-}
-
-/* Warning Banner */
-.warning-banner {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: var(--warning-bg);
-  border: 1px solid var(--warning);
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.warning-icon {
-  font-size: 1.5rem;
-  color: var(--warning);
-  flex-shrink: 0;
-}
-
-.warning-content strong {
-  display: block;
-  color: var(--warning);
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.warning-content p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* Import Requirements */
-.import-requirements {
-  background: var(--info-bg);
-  border: 1px solid var(--info);
-  border-radius: 0.75rem;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
-.import-requirements h5 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--info);
-  margin-bottom: 0.75rem;
-}
-
-.import-requirements ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.import-requirements li {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-  padding-left: 1.25rem;
-  position: relative;
-}
-
-.import-requirements li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: var(--info);
-  font-weight: bold;
-}
-
-/* File Upload Area */
-.file-upload-area {
-  border: 2px dashed var(--border-light);
-  border-radius: 0.75rem;
-  padding: 2rem;
-  text-align: center;
-  margin-top: 1rem;
-  transition: all 0.3s ease;
-  background: var(--bg-secondary);
-}
-
-.file-upload-area:hover {
-  border-color: var(--primary);
-  background: var(--primary-alpha);
-}
-
-.file-upload-area.drag-over {
-  border-color: var(--primary);
-  background: var(--primary-alpha);
-  transform: scale(1.02);
-}
-
-.upload-icon {
-  font-size: 3rem;
-  color: var(--text-secondary);
-  margin-bottom: 1rem;
-}
-
-.upload-text {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.upload-subtext {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-.file-input {
-  display: none;
-}
-
-/* ===============================================
-   MANAGEMENT TOOLS GRID
-   =============================================== */
-
-.management-tools-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.management-tools-grid .card {
-  padding: 1.5rem;
-  transition: all 0.2s ease;
-}
-
-.management-tools-grid .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.tool-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.tool-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.5rem;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.diagnostic-card .tool-icon {
-  background: rgba(52, 152, 219, 0.1);
-  color: var(--info);
-}
-
-.danger-card .tool-icon {
-  background: rgba(231, 76, 60, 0.1);
-  color: var(--danger);
-}
-
-.info-card .tool-icon {
-  background: rgba(108, 117, 125, 0.1);
-  color: var(--text-secondary);
-}
-
-.tool-info h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.tool-info p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.diagnostic-btn,
-.danger-btn {
-  width: 100%;
-}
-
-.app-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-}
-
-.detail-row span:first-child {
-  color: var(--text-secondary);
-}
-
-.detail-row span:last-child {
-  color: var(--text-primary);
-  font-weight: 500;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-/* ===============================================
-   OPERATION RESULTS BANNER
-   =============================================== */
-
-.operation-result-banner {
+.calculator-backdrop {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  max-width: 500px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  animation: slideInUp 0.3s ease-out;
-}
-
-.operation-result-banner.success {
-  border-left: 4px solid var(--success);
-}
-
-.operation-result-banner.error {
-  border-left: 4px solid var(--danger);
-}
-
-.operation-result-banner.warning {
-  border-left: 4px solid var(--warning);
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.result-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.result-icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.result-icon.success {
-  color: var(--success);
-}
-
-.result-icon.error {
-  color: var(--danger);
-}
-
-.result-icon.warning {
-  color: var(--warning);
-}
-
-.result-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.result-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.result-message {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-}
-
-.result-timestamp {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.result-stats {
-  margin-left: 2.5rem;
-  margin-top: 1rem;
-}
-
-.stats-summary {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-}
-
-.stat-summary-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.stat-key {
-  color: var(--text-secondary);
-}
-
-.stat-value {
-  color: var(--text-primary);
-  font-weight: 500;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.close-result-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  font-size: 0.875rem;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.close-result-btn:hover {
-  background: var(--danger);
-  color: white;
-  border-color: var(--danger);
-}
-
-/* ===============================================
-   PROGRESS INDICATORS
-   =============================================== */
-
-.progress-container {
-  margin: 1rem 0;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.3s ease;
-  border-radius: 4px;
-}
-
-.progress-text {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
-  text-align: center;
-}
-
-/* ===============================================
-   DATA PREVIEW TABLES
-   =============================================== */
-
-.data-preview {
-  margin-top: 1.5rem;
-  border: 1px solid var(--border-light);
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.preview-header {
-  background: var(--bg-secondary);
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.preview-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.preview-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.preview-table th,
-.preview-table td {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-light);
-  font-size: 0.875rem;
-}
-
-.preview-table th {
-  background: var(--bg-tertiary);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.preview-table td {
-  color: var(--text-secondary);
-}
-
-.preview-table tbody tr:hover {
-  background: var(--bg-secondary);
-}
-
-/* ===============================================
-   VALIDATION MESSAGES
-   =============================================== */
-
-.validation-message {
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  margin: 1rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.validation-message.error {
-  background: var(--danger-bg);
-  border: 1px solid var(--danger);
-  color: var(--danger);
-}
-
-.validation-message.warning {
-  background: var(--warning-bg);
-  border: 1px solid var(--warning);
-  color: var(--warning);
-}
-
-.validation-message.success {
-  background: var(--success-bg);
-  border: 1px solid var(--success);
-  color: var(--success);
-}
-
-.validation-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-/* ===============================================
-   BACKUP SECTION
-   =============================================== */
-
-.backup-section {
-  background: var(--card-bg);
-  border: 1px solid var(--border-light);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin: 2rem 0;
-}
-
-.backup-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.backup-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 193, 7, 0.1);
-  color: var(--warning);
-  font-size: 1.25rem;
-}
-
-.backup-info h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-}
-
-.backup-info p {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.backup-controls {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.backup-frequency-select {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--border-light);
-  border-radius: 0.5rem;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-}
-
-.backup-status {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  font-style: italic;
-}
-
-/* ===============================================
-   RESPONSIVE DESIGN
-   =============================================== */
-
-@media (max-width: 1024px) {
-  .main-actions-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .management-tools-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .import-export-redesigned {
-    padding: 0.5rem;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
-  }
-
-  .overview-stats {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .stat-card {
-    padding: 1rem;
-  }
-
-  .stat-icon {
-    width: 3rem;
-    height: 3rem;
-    font-size: 1.25rem;
-  }
-
-  .stat-number {
-    font-size: 1.5rem;
-  }
-
-  .action-section {
-    padding: 1.5rem;
-  }
-
-  .section-icon {
-    width: 3rem;
-    height: 3rem;
-    font-size: 1.5rem;
-  }
-
-  .section-title {
-    font-size: 1.25rem;
-  }
-
-  .csv-export-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .operation-result-banner {
-    position: relative;
-    bottom: auto;
-    right: auto;
-    margin: 1rem 0;
-    max-width: none;
-  }
-
-  .backup-controls {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .stats-summary {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .action-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .primary-action-btn {
-    width: 100%;
-  }
-
-  .result-content {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .result-stats {
-    margin-left: 0;
-  }
-
-  .stats-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .backup-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .file-upload-area {
-    padding: 1.5rem 1rem;
-  }
-
-  .upload-icon {
-    font-size: 2rem;
-  }
-}
-
-/* ===============================================
-   DARK THEME ADJUSTMENTS
-   =============================================== */
-
-[data-theme="dark"] .stat-card {
-  background: var(--card-bg);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .action-section {
-  background: var(--card-bg);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .primary-action-card {
-  background: var(--bg-tertiary);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .operation-result-banner {
-  background: var(--card-bg);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .file-upload-area {
-  background: var(--bg-tertiary);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .file-upload-area:hover {
-  background: var(--primary-alpha);
-}
-
-[data-theme="dark"] .data-preview {
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .preview-header {
-  background: var(--bg-tertiary);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .preview-table th {
-  background: var(--bg-secondary);
-}
-
-[data-theme="dark"] .preview-table th,
-[data-theme="dark"] .preview-table td {
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .backup-section {
-  background: var(--card-bg);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .backup-frequency-select {
-  background: var(--input-bg);
-  border-color: var(--border-medium);
-  color: var(--text-primary);
-}
-
-/* ===============================================
-   ANIMATIONS AND TRANSITIONS
-   =============================================== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.slide-in-right {
-  animation: slideInRight 0.3s ease-out;
-}
-
-.pulse {
-  animation: pulse 2s infinite;
-}
-
-/* ===============================================
-   LOADING STATES
-   =============================================== */
-
-.loading-overlay {
-  position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: inherit;
-  z-index: 10;
+  padding: 20px;
 }
 
-[data-theme="dark"] .loading-overlay {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-.loading-spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 3px solid var(--border-light);
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
-  margin-left: 1rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-/* ===============================================
-   ACCESSIBILITY IMPROVEMENTS
-   =============================================== */
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-
-  .stat-card,
-  .action-section,
-  .operation-result-banner {
-    border-width: 2px;
-  }
-
-  .csv-btn:hover,
-  .stat-card:hover,
-  .action-section:hover {
-    border-width: 3px;
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-
-  .stat-card:hover,
-  .action-section:hover,
-  .csv-btn:hover {
-    transform: none;
-  }
-}
-/* Add this to your components.css file to fix the month dropdown contrast */
-
-.month-select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--header-text);
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-}
-
-/* Fix dropdown options contrast - this is the key fix */
-.month-select option {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  padding: 0.5rem;
-}
-
-/* Ensure proper contrast in both themes */
-[data-theme="light"] .month-select option {
-  background: #ffffff;
-  color: #2c3e50;
-}
-
-[data-theme="dark"] .month-select option {
+.calculator-modal {
+  position: relative;
   background: #2c3e50;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  z-index: 10001;
+  width: 300px;
+  padding: 20px;
+  isolation: isolate;
+  contain: layout style paint;
+  pointer-events: auto;
+  user-select: none;
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  animation: calculatorSlideIn 0.3s ease-out;
+}
+
+@keyframes calculatorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.calculator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: move;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.calculator-header h4,
+.calculator-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: #ffffff;
 }
 
-/* Improve dropdown appearance on focus */
-.month-select:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+.calculator-close,
+.close-button {
+  background: rgba(231, 76, 60, 0.8);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #ffffff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 5px;
 }
 
-/* Add hover state for better UX */
-.month-select:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.4);
+.calculator-close:hover,
+.close-button:hover {
+  background: rgba(231, 76, 60, 1);
+  transform: scale(1.1);
 }
-/* Add these styles to your components.css file for the Notes page */
+
+.calculator-display {
+  background: #34495e;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 15px;
+  text-align: right;
+  font-size: 2rem;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  margin-bottom: 15px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  color: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  cursor: text;
+  overflow-x: auto;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.calculator-display:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+}
+
+.calculator-display.error {
+  color: #e74c3c;
+  border-color: #e74c3c;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.keypad,
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.keypad-button {
+  background: #34495e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  user-select: none;
+}
+
+.keypad-button:hover {
+  background: #4a6fa5;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.keypad-button:active {
+  transform: scale(0.95);
+}
+
+.keypad-button.operator,
+.keypad-button:nth-child(4),
+.keypad-button:nth-child(8),
+.keypad-button:nth-child(12),
+.keypad-button:nth-last-child(1) {
+  background: #27ae60;
+  color: white;
+  border-color: #219a52;
+}
+
+.keypad-button.operator:hover,
+.keypad-button:nth-child(4):hover,
+.keypad-button:nth-child(8):hover,
+.keypad-button:nth-child(12):hover,
+.keypad-button:nth-last-child(1):hover {
+  background: #219a52;
+}
+
+.keypad-button.equals,
+.keypad-button:nth-last-child(2) {
+  background: #3498db;
+  color: white;
+  border-color: #2980b9;
+}
+
+.keypad-button.equals:hover,
+.keypad-button:nth-last-child(2):hover {
+  background: #2980b9;
+}
+
+.keypad-button.clear {
+  background: #e74c3c;
+  color: white;
+  border-color: #c82333;
+  grid-column: span 2;
+  font-weight: 700;
+}
+
+.keypad-button.clear:hover {
+  background: #c82333;
+}
+
+.keypad-button.backspace {
+  background: #f39c12;
+  color: white;
+  grid-column: span 2;
+  font-size: 1.1rem;
+}
+
+.keypad-button.backspace:hover {
+  background: #e67e22;
+}
+
+.calculator-instructions {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  line-height: 1.3;
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.calculator-toggle-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calculator-toggle-btn:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Override Material-UI, Bootstrap, or other framework modals */
+.MuiModal-root .calculator-modal,
+.modal-backdrop .calculator-modal,
+.ant-modal-mask .calculator-modal {
+  z-index: 10000 !important;
+}
+
+.calculator-modal .calculator-container {
+  pointer-events: auto !important;
+  user-select: auto;
+}
+
+.calculator-modal {
+  z-index: 2147483647 !important;
+}
+
+.page-transition .calculator-modal {
+  z-index: 10000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
 
 /* ===============================================
    NOTES PAGE STYLES
@@ -3556,10 +2505,19 @@
 
 .notes-editor-content {
   padding: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .notes-editor {
   min-height: 400px;
+}
+
+.notes-editor .lexical-editor {
+  min-height: 250px;
+  height: 100%;
 }
 
 .notes-editor .simple-editor-container {
@@ -3640,8 +2598,503 @@
   transform: translateY(-2px);
 }
 
-/* Responsive Design for Notes */
+/* ===============================================
+   IMPORT/EXPORT PAGE REDESIGNED STYLES
+   =============================================== */
+
+.import-export-redesigned {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* DATA OVERVIEW DASHBOARD */
+.data-overview-dashboard {
+  margin-bottom: 2.5rem;
+}
+
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  transition: background 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.primary::before {
+  background: linear-gradient(90deg, var(--primary), var(--primary-light));
+}
+
+.stat-card.success::before {
+  background: linear-gradient(90deg, var(--success), #2ecc71);
+}
+
+.stat-card.info::before {
+  background: linear-gradient(90deg, var(--info), #5dade2);
+}
+
+.stat-card.warning::before {
+  background: linear-gradient(90deg, var(--warning), #f1c40f);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* MAIN ACTIONS GRID */
+.main-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.action-section {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  box-shadow: var(--card-shadow);
+}
+
+.action-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.export-section .section-icon {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success);
+}
+
+.import-section .section-icon {
+  background: rgba(52, 152, 219, 0.1);
+  color: var(--primary);
+}
+
+.section-info h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Confirmation Modal Styles */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 5%;
+}
+
+.confirmation-modal {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 0.75rem;
+  box-shadow: var(--card-shadow);
+  width: 90%;
+  max-width: 500px;
+  padding: 1.5rem;
+  border-top: 4px solid var(--danger);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.confirmation-modal h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.confirmation-modal p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===============================================
+   DARK THEME OVERRIDES
+   =============================================== */
+[data-theme="dark"] .simple-toolbar {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .toolbar-btn {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .toolbar-btn:hover {
+  background: var(--btn-secondary-hover);
+}
+
+[data-theme="dark"] .add-account-section {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+}
+
+[data-theme="dark"] .account-stat-card {
+  background: var(--card-bg);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .account-item {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .account-details-grid {
+  background: var(--bg-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .overview-stat {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .overview-stat.actual-performance {
+  background: linear-gradient(135deg, #164e63 0%, #155e75 100%);
+  border-color: #164e63;
+}
+
+[data-theme="dark"] .accounts-table-header {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .accounts-table-row.totals {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .health-item-compact {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .calculator-modal {
+  background: #1a252f;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .calculator-display {
+  background: #0d1117;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .keypad-button {
+  background: #21262d;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .keypad-button:hover {
+  background: #30363d;
+}
+
+/* ===============================================
+   RESPONSIVE DESIGN
+   =============================================== */
+@media (max-width: 1200px) {
+  .homepage-main-content {
+    grid-template-columns: 1.5fr 1fr;
+  }
+
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .financial-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .overview-stat.actual-performance .stat-value {
+    font-size: 1.125rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .overview-stat.actual-performance .variance-indicator {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+@media (max-width: 968px) {
+  .homepage-main-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .financial-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-stat.actual-performance {
+    min-width: 240px;
+  }
+
+  .overview-stat.actual-performance .stat-value {
+    font-size: 0.95rem;
+  }
+
+  .overview-stat.actual-performance .variance-indicator {
+    font-size: 0.75rem;
+  }
+
+  .accounts-table-header,
+  .accounts-table-row {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .account-name {
+    font-size: 0.875rem;
+  }
+
+  .account-details {
+    display: none;
+  }
+
+  .balance-cell {
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .nav-bar {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .nav-btn {
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card {
+    grid-column: span 1;
+  }
+
+  .overview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .version-indicator {
+    position: static;
+    margin: 1rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .homepage-redesigned {
+    padding: 0.5rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .overview-stat {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .stat-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+
+  .accounts-table-header,
+  .accounts-table-row {
+    grid-template-columns: 1fr 80px 80px 80px;
+    font-size: 0.75rem;
+  }
+
+  .balance-input-compact {
+    max-width: 70px;
+    font-size: 0.75rem;
+    padding: 0.25rem;
+  }
+
+  .overview-stat.actual-performance {
+    padding: 1rem;
+    min-height: auto;
+    min-width: 220px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .overview-stat.actual-performance .stat-content {
+    min-width: auto;
+    align-items: center;
+  }
+
+  .overview-stat.actual-performance .stat-value {
+    font-size: 0.9rem;
+  }
+
+  .overview-stat.actual-performance .variance-indicator {
+    font-size: 0.7rem;
+  }
+
+  .calculator-nav-btn {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .calculator-nav-btn .nav-icon {
+    font-size: 1.25rem;
+  }
+
+  .calculator-nav-btn .nav-label {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .calculator-backdrop {
+    padding-top: 5vh;
+  }
+
+  .calculator-modal {
+    width: 280px;
+    margin: 0 10px;
+  }
+
+  .calculator-display {
+    font-size: 1.5rem;
+    padding: 12px;
+    min-height: 45px;
+  }
+
+  .keypad-button {
+    height: 45px;
+    font-size: 1rem;
+  }
+
+  .calculator-instructions {
+    font-size: 10px;
+  }
+
+  /* Notes responsive */
   .notes-header {
     flex-direction: column;
     align-items: stretch;
@@ -3689,9 +3142,166 @@
   .templates-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Account Manager responsive */
+  .accounts-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .account-details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .account-balance {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .add-account-section {
+    padding: 1.5rem;
+  }
+
+  /* Import/Export responsive */
+  .import-export-redesigned {
+    padding: 0.5rem;
+  }
+
+  .main-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.25rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .action-section {
+    padding: 1.5rem;
+  }
+
+  .section-icon {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-btn {
+    flex-direction: row;
+    min-height: auto;
+    justify-content: flex-start;
+  }
+
+  .theme-toggle {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .app-title {
+    font-size: 1.25rem;
+  }
+
+  .accounts-table-header,
+  .accounts-table-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  .balance-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .balance-cell:before {
+    content: attr(data-label);
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .accounts-table-row .balance-cell:nth-child(2):before {
+    content: 'Current: ';
+  }
+
+  .accounts-table-row .balance-cell:nth-child(3):before {
+    content: 'Projected: ';
+  }
+
+  .accounts-table-row .balance-cell:nth-child(4):before {
+    content: 'Net: ';
+  }
+
+  .calculator-modal {
+    width: 250px;
+  }
+
+  .keypad-button {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .calculator-modal {
+    width: 90%;
+    max-width: 280px;
+  }
+
+  /* Account Manager mobile */
+  .account-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .account-name {
+    font-size: 1.125rem;
+  }
+
+  /* Notes mobile */
   .notes-actions {
     flex-direction: column;
     align-items: stretch;
@@ -3705,1162 +3315,114 @@
   .notes-editor .simple-editor-textarea {
     font-size: 0.875rem;
   }
-}
-/* Add these styles to fix the calculator modal z-index and ensure it appears on top */
 
-
-
-/* Updated Calculator Modal with proper z-index */
-.calculator-modal {
-  position: relative; /* Changed from fixed to relative since it's inside backdrop */
-  top: auto; /* Reset positioning */
-  left: auto;
-  transform: none; /* Reset transform */
-  z-index: 10001; /* Ensure it's above backdrop */
-  color: #ffffff;
-  background: #2c3e50;
-  border-radius: 12px;
-  padding: 20px;
-  width: 300px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  animation: calculatorSlideIn 0.3s ease-out;
-}
-
-/* Animation for calculator appearance */
-@keyframes calculatorSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Ensure calculator is always visible */
-.calculator-modal {
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-/* Calculator header with improved visibility */
-.calculator-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  cursor: move;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.calculator-header h4 {
-  margin: 0;
-  font-size: 1.2rem;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-/* Enhanced close button */
-.close-button {
-  background: rgba(231, 76, 60, 0.8);
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #ffffff;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-button:hover {
-  background: rgba(231, 76, 60, 1);
-  transform: scale(1.1);
-}
-
-/* Enhanced calculator display */
-.calculator-display {
-  background: #34495e;
-  color: #ffffff;
-  font-size: 2rem;
-  padding: 15px;
-  text-align: right;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  overflow-x: auto;
-  white-space: nowrap;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-  min-height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-/* Enhanced keypad buttons */
-.keypad-button {
-  background: #34495e;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 50px;
-  font-weight: 600;
-}
-
-.keypad-button:hover {
-  background: #4a6fa5;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.keypad-button:active {
-  transform: translateY(0);
-}
-
-/* Special button styles */
-.keypad-button.clear {
-  background-color: #e74c3c;
-  color: white;
-  grid-column: span 4;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.keypad-button.clear:hover {
-  background-color: #c0392b;
-}
-
-/* Enhanced keypad grid */
-.keypad-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-/* Floating calculator button (if you want to add one) */
-.calculator-toggle-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.calculator-toggle-btn:hover {
-  background: var(--primary-dark);
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .calculator-modal {
-  background: #1a252f;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-[data-theme="dark"] .calculator-display {
-  background: #0d1117;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-[data-theme="dark"] .keypad-button {
-  background: #21262d;
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .keypad-button:hover {
-  background: #30363d;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .calculator-backdrop {
-    padding-top: 5vh;
-  }
-  
-  .calculator-modal {
-    width: 280px;
-    margin: 0 10px;
-  }
-  
-  .calculator-display {
-    font-size: 1.5rem;
-    padding: 12px;
-  }
-  
-  .keypad-button {
-    height: 45px;
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .calculator-modal {
-    width: 250px;
-  }
-  
-  .keypad-button {
-    height: 40px;
-    font-size: 0.9rem;
-  }
-}
-
-/* Add this to your components.css file for the calculator navigation button */
-
-.calculator-nav-btn {
-  background: none;
-  color: var(--nav-text);
-  border: none;
-  padding: 1rem 1.5rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  margin-left: auto;
-  /* Push calculator button to the right */
-}
-
-.calculator-nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--nav-text);
-  border-bottom-color: #f39c12;
-  /* Orange color for calculator */
-}
-
-.calculator-nav-btn .nav-icon {
-  font-size: 1rem;
-}
-
-/* Make calculator button more prominent when calculator is open */
-.nav-bar .calculator-nav-btn.active {
-  background-color: rgba(243, 156, 18, 0.2);
-  border-bottom-color: #f39c12;
-  color: #f39c12;
-}
-
-/* Responsive design for calculator button */
-@media (max-width: 767px) {
-  .calculator-nav-btn {
-    padding: 0.75rem 1rem;
-    flex-direction: column;
-    gap: 0.25rem;
+  /* Import/Export mobile */
+  .overview-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
-  .calculator-nav-btn .nav-icon {
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    width: 3rem;
+    height: 3rem;
     font-size: 1.25rem;
   }
 
-  .calculator-nav-btn .nav-label {
-    font-size: 0.75rem;
-    white-space: nowrap;
-  }
-}
-/*
- * This is the crucial fix for the editor scrolling issue.
- * Add this to your application's main CSS file.
-*/
-
-.notes-editor-content {
-  /* Define a maximum height for the editor area */
-  max-height: 500px;
-  /* You can adjust this value as needed */
-
-  /* Make the container itself scrollable when content overflows */
-  overflow-y: auto;
-
-  /* Ensures proper layout */
-  display: flex;
-  flex-direction: column;
-}
-
-.notes-editor .lexical-editor {
-  /* This ensures the editor inside our container grows to fill the space
-     and allows its own internal scrolling to work correctly. */
-  min-height: 250px;
-  /* Give it a minimum height */
-  height: 100%;
-}
-/* --- Confirmation Modal Styles --- */
-
-.confirmation-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  /* FIX: Aligns the modal to the top */
-  align-items: flex-start;
-  padding-top: 5%;
-}
-
-.confirmation-modal {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  border-radius: 0.75rem;
-  box-shadow: var(--card-shadow);
-  width: 90%;
-  max-width: 500px;
-  padding: 1.5rem;
-  border-top: 4px solid var(--danger);
-  animation: fadeIn 0.2s ease-out;
-}
-
-.confirmation-modal h3 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.confirmation-modal p {
-  font-size: 1rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-}
-
-.confirmation-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
+  .stat-number {
+    font-size: 1.5rem;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .action-section {
+    padding: 1.5rem;
   }
-}
-/* Add this to your globals.css or components.css */
 
-/* Z-Index Hierarchy - Ensures calculator always stays on top */
+  .section-icon {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.5rem;
+  }
 
-/* Base layer - Page content */
-.page-container,
-.main-content {
-  z-index: 1;
-  position: relative;
-}
-
-/* Navigation layer */
-.navigation,
-.nav-container,
-.sidebar {
-  z-index: 100;
-  position: relative;
-}
-
-/* Header layer */
-.header,
-.header-container {
-  z-index: 200;
-  position: relative;
-}
-
-/* Dropdown menus and tooltips */
-.dropdown-menu,
-.tooltip,
-.popover {
-  z-index: 1000;
-  position: absolute;
-}
-
-/* Modal dialogs and overlays */
-.modal,
-.modal-overlay,
-.dialog {
-  z-index: 5000;
-  position: fixed;
-}
-
-/* Notification center */
-.notification-center,
-.toast-container {
-  z-index: 8000;
-  position: fixed;
-}
-
-
-
-/* Ensure calculator content is above the overlay */
-.calculator-modal .calculator-container {
-  z-index: 10001 !important;
-  position: relative !important;
-  pointer-events: auto !important;
-}
-
-/* Override any competing z-index values */
-.calculator-modal,
-.calculator-modal * {
-  z-index: inherit !important;
-}
-
-/* Special handling for fullscreen mode or other high z-index elements */
-.calculator-modal {
-  z-index: 2147483647 !important;
-  /* Maximum z-index value */
-}
-
-/* Ensure calculator works properly during page transitions */
-.page-transition .calculator-modal {
-  z-index: 10000 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-}
-
-/* Mobile specific adjustments */
-@media (max-width: 768px) {
-  .calculator-modal {
-    z-index: 10000 !important;
-    position: fixed !important;
-    transform: none !important;
+  .section-title {
+    font-size: 1.25rem;
   }
 }
 
-
-
-/* Additional safety nets for various UI libraries */
-.calculator-modal {
-  isolation: isolate;
-  contain: layout style paint;
-}
-
-/* Override Material-UI, Bootstrap, or other framework modals */
-.MuiModal-root .calculator-modal,
-.modal-backdrop .calculator-modal,
-.ant-modal-mask .calculator-modal {
-  z-index: 10000 !important;
-}
-
-/* Ensure the calculator overlay blocks interactions with underlying content */
-.calculator-modal {
-  pointer-events: auto !important;
-  user-select: none;
-}
-
-.calculator-modal .calculator-container {
-  pointer-events: auto !important;
-  user-select: auto;
-}
-
-/* Print media - hide calculator */
+/* ===============================================
+   PRINT STYLES
+   =============================================== */
 @media print {
   .calculator-modal {
     display: none !important;
   }
+
+  .calculator-toggle-btn {
+    display: none !important;
+  }
+
+  .nav-bar {
+    display: none !important;
+  }
+
+  .theme-toggle {
+    display: none !important;
+  }
+
+  .version-indicator {
+    display: none !important;
+  }
 }
-/* Add this to your components.css file for better header text contrast */
 
 /* ===============================================
-   HEADER TEXT CONTRAST IMPROVEMENTS
+   ACCESSIBILITY IMPROVEMENTS
    =============================================== */
-
-/* Base header stats styling with better contrast */
-.header-stats {
-  display: flex;
-  gap: 1.5rem;
-  align-items: center;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-width: 120px;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  opacity: 0.9;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
-}
-
-/* Base stat value styling */
-.stat-value {
-  font-size: 1rem;
-  font-weight: 700;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Positive values (green) */
-.stat-value.positive {
-  color: #10b981 !important; /* Bright green */
-  background: rgba(16, 185, 129, 0.15) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Negative values (bright red with better contrast) */
-.stat-value.negative {
-  color: #ff6b6b !important; /* Brighter red for better contrast */
-  background: rgba(255, 107, 107, 0.15) !important;
-  border-color: rgba(255, 107, 107, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Income values (bright white/yellow) */
-.stat-value.income-value {
-  color: #fbbf24 !important; /* Golden yellow */
-  background: rgba(251, 191, 36, 0.15) !important;
-  border-color: rgba(251, 191, 36, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Expense values (light coral) */
-.stat-value.expense-value {
-  color: #fb7185 !important; /* Light coral */
-  background: rgba(251, 113, 133, 0.15) !important;
-  border-color: rgba(251, 113, 133, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Health indicator styling */
-.stat-value.health-indicator {
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.375rem 0.75rem;
-}
-
-.stat-value.health-indicator.positive {
-  color: #ffffff !important;
-  background: rgba(16, 185, 129, 0.3) !important;
-  border-color: rgba(16, 185, 129, 0.5) !important;
-}
-
-.stat-value.health-indicator.negative {
-  color: #ffffff !important;
-  background: rgba(255, 107, 107, 0.3) !important;
-  border-color: rgba(255, 107, 107, 0.5) !important;
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .stat-label {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-[data-theme="dark"] .stat-value {
-  background: rgba(0, 0, 0, 0.2);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .stat-value.positive {
-  color: #34d399 !important;
-  background: rgba(52, 211, 153, 0.2) !important;
-}
-
-[data-theme="dark"] .stat-value.negative {
-  color: #fca5a5 !important;
-  background: rgba(252, 165, 165, 0.2) !important;
-}
-
-/* Light theme adjustments for header (override if needed) */
-[data-theme="light"] .app-header .stat-value.positive {
-  color: #059669 !important;
-  background: rgba(5, 150, 105, 0.1) !important;
-}
-
-[data-theme="light"] .app-header .stat-value.negative {
-  color: #dc2626 !important;
-  background: rgba(220, 38, 38, 0.1) !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .header-stats {
-    gap: 1rem;
-  }
-  
-  .stat-item {
-    min-width: 100px;
-  }
-  
-  .stat-value {
-    font-size: 0.875rem;
-    padding: 0.125rem 0.375rem;
-  }
-  
-  .stat-label {
-    font-size: 0.6875rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .header-stats {
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-  
-  .stat-item {
-    min-width: 80px;
-  }
-  
-  .stat-value {
-    font-size: 0.75rem;
-    padding: 0.125rem 0.25rem;
-  }
-  
-  .stat-label {
-    font-size: 0.625rem;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .stat-value.positive {
-    color: #ffffff !important;
-    background: #16a34a !important;
-  }
-  
-  .stat-value.negative {
-    color: #ffffff !important;
-    background: #dc2626 !important;
-  }
-  
-  .stat-value {
-    border-width: 2px;
-  }
-}
-
-/* Focus states for accessibility */
-.stat-value:focus-within {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+.focus-visible {
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-/* Hover effects for interactive elements */
-.stat-item:hover .stat-value {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-/* Animation for value changes */
-.stat-value {
-  transition: all 0.3s ease;
-}
-
-.stat-value[data-changed="true"] {
-  animation: valueChange 0.6s ease;
-}
-
-@keyframes valueChange {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-/* Add this to your components.css file to fix homepage text contrast issues */
-
-/* ===============================================
-   HOMEPAGE FINANCIAL OVERVIEW CONTRAST FIXES
-   =============================================== */
-
-/* Base overview stat card improvements */
-.financial-overview-grid .overview-stat {
-  position: relative;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Stat icon container improvements */
-.overview-stat .stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.75rem;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-  /* Improved contrast for all icon backgrounds */
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Enhanced stat value text contrast */
-.overview-stat .stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  /* Strong text shadow for better readability */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-/* Enhanced stat label contrast */
-.overview-stat .stat-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  /* Improved contrast for labels */
-  color: var(--text-primary);
-  opacity: 0.9;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Income stat improvements */
-.overview-stat .stat-icon.income {
-  background: rgba(16, 185, 129, 0.2);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.income {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-/* Expense stat improvements */
-.overview-stat .stat-icon.expense {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.expense {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Annual impact stat improvements */
-.overview-stat .stat-icon.annual {
-  background: rgba(251, 191, 36, 0.2);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.annual {
-  color: #f59e0b;
-  background: rgba(251, 191, 36, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-}
-
-/* Positive values (green) */
-.overview-stat .stat-icon.positive {
-  background: rgba(16, 185, 129, 0.3);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.positive {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.15);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  font-weight: 700;
-}
-
-/* Negative values (red) */
-.overview-stat .stat-icon.negative {
-  background: rgba(239, 68, 68, 0.3);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.negative {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.15);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  font-weight: 700;
-}
-
-/* Warning values (orange) */
-.overview-stat .stat-icon.warning {
-  background: rgba(251, 191, 36, 0.3);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-}
-
-.overview-stat .stat-value.warning {
-  color: #f59e0b;
-  background: rgba(251, 191, 36, 0.15);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  font-weight: 700;
-}
-
-/* Special styling for the actual performance card */
-.overview-stat.actual-performance {
-  background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
-  color: white;
-  border: 2px solid #0891b2;
-}
-
-.overview-stat.actual-performance .stat-icon {
-  color: white;
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.overview-stat.actual-performance .stat-value {
-  color: white;
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.overview-stat.actual-performance .stat-label {
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Variance indicator improvements */
-.variance-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  margin-left: 8px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.variance-indicator.variance-positive {
-  background: rgba(16, 185, 129, 0.2);
-  color: #ffffff;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-}
-
-.variance-indicator.variance-negative {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ffffff;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-/* Two-column stat improvements */
-.two-column-stat {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  text-align: center;
-}
-
-.two-column-stat > div {
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.375rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.two-column-stat .stat-value {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-/* Stat comparison improvements */
-.stat-comparison {
-  margin-top: 8px;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.375rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Highlight card improvements */
-.overview-stat.highlight {
-  border: 2px solid #4f46e5;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, var(--card-bg) 100%);
-}
-
-.overview-stat.highlight .stat-value {
-  font-weight: 800;
-  font-size: 1.125rem;
-}
-
-/* Dark theme specific improvements */
-[data-theme="dark"] .overview-stat {
-  background: var(--bg-tertiary);
-  border-color: var(--border-medium);
-}
-
-[data-theme="dark"] .overview-stat .stat-value.income {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.15);
-  border-color: rgba(52, 211, 153, 0.3);
-}
-
-[data-theme="dark"] .overview-stat .stat-value.expense {
-  color: #fca5a5;
-  background: rgba(252, 165, 165, 0.15);
-  border-color: rgba(252, 165, 165, 0.3);
-}
-
-[data-theme="dark"] .overview-stat .stat-value.positive {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.15);
-  border-color: rgba(52, 211, 153, 0.3);
-}
-
-[data-theme="dark"] .overview-stat .stat-value.negative {
-  color: #fca5a5;
-  background: rgba(252, 165, 165, 0.15);
-  border-color: rgba(252, 165, 165, 0.3);
-}
-
-/* Light theme specific improvements */
-[data-theme="light"] .overview-stat .stat-value {
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-}
-
-[data-theme="light"] .overview-stat .stat-label {
-  color: var(--text-secondary);
-  text-shadow: none;
-}
-
-[data-theme="light"] .variance-indicator {
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
-}
-
 /* High contrast mode support */
 @media (prefers-contrast: high) {
+  .stat-card,
+  .action-section,
+  .overview-stat {
+    border-width: 2px;
+  }
+
   .overview-stat .stat-value {
     border-width: 2px;
     font-weight: 800;
   }
-  
+
   .overview-stat .stat-icon {
     border-width: 2px;
   }
-  
+
   .variance-indicator {
     border-width: 2px;
     font-weight: 800;
   }
-}
 
-/* Focus states for accessibility */
-.overview-stat:focus-within {
-  outline: 3px solid rgba(79, 70, 229, 0.5);
-  outline-offset: 2px;
-}
-
-/* Hover effects */
-.overview-stat:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
-}
-
-.overview-stat:hover .stat-value {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-/* Add this to your components.css file to fix the Actual Income card contrast */
-
-/* ===============================================
-   ACTUAL INCOME CARD SPECIFIC CONTRAST FIXES
-   =============================================== */
-
-/* Target the actual performance card specifically */
-.overview-stat.actual-performance {
-  /* Darker background for better contrast */
-  background: linear-gradient(135deg, #0c7489 0%, #0e7490 100%) !important;
-  color: white !important;
-  border: 2px solid #0c7489 !important;
-  position: relative;
-}
-
-/* Add a darker overlay for better text readability */
-.overview-stat.actual-performance::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-/* Ensure all content is above the overlay */
-.overview-stat.actual-performance .stat-content {
-  position: relative;
-  z-index: 2;
-}
-
-.overview-stat.actual-performance .stat-icon {
-  position: relative;
-  z-index: 2;
-}
-
-/* Enhanced text styling for the actual income card */
-.overview-stat.actual-performance .stat-value {
-  color: #ffffff !important;
-  background: rgba(0, 0, 0, 0.3) !important;
-  border: 2px solid rgba(255, 255, 255, 0.4) !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8) !important;
-  font-weight: 800 !important;
-  font-size: 1.5rem !important;
-  padding: 0.5rem 0.75rem !important;
-  border-radius: 0.5rem !important;
-  backdrop-filter: blur(10px);
-}
-
-.overview-stat.actual-performance .stat-label {
-  color: #ffffff !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8) !important;
-  font-weight: 700 !important;
-  font-size: 0.9rem !important;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  display: inline-block;
-  margin-top: 0.5rem;
-}
-
-.overview-stat.actual-performance .stat-icon {
-  color: #ffffff !important;
-  background: rgba(0, 0, 0, 0.3) !important;
-  border: 2px solid rgba(255, 255, 255, 0.4) !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8) !important;
-  backdrop-filter: blur(10px);
-}
-
-/* Enhanced variance indicator for this card */
-.overview-stat.actual-performance .variance-indicator {
-  background: rgba(0, 0, 0, 0.4) !important;
-  color: #ffffff !important;
-  border: 2px solid rgba(255, 255, 255, 0.5) !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9) !important;
-  font-weight: 800 !important;
-  font-size: 0.85rem !important;
-  padding: 0.375rem 0.75rem !important;
-  border-radius: 0.5rem !important;
-  backdrop-filter: blur(10px);
-  margin-top: 0.5rem;
-  display: inline-block;
-}
-
-/* Alternative approach - use a different color scheme */
-.overview-stat.actual-performance.high-contrast {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
-  border-color: #1e3a8a !important;
-}
-
-.overview-stat.actual-performance.high-contrast .stat-value {
-  background: rgba(255, 255, 255, 0.95) !important;
-  color: #1e3a8a !important;
-  border-color: #ffffff !important;
-  text-shadow: none !important;
-}
-
-.overview-stat.actual-performance.high-contrast .stat-label {
-  background: rgba(255, 255, 255, 0.9) !important;
-  color: #1e3a8a !important;
-  text-shadow: none !important;
-}
-
-.overview-stat.actual-performance.high-contrast .variance-indicator {
-  background: rgba(255, 255, 255, 0.9) !important;
-  color: #1e3a8a !important;
-  border-color: #ffffff !important;
-  text-shadow: none !important;
-}
-
-/* Dark theme adjustments for the actual income card */
-[data-theme="dark"] .overview-stat.actual-performance {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-  border-color: #334155 !important;
-}
-
-[data-theme="dark"] .overview-stat.actual-performance .stat-value {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-}
-
-/* Hover effects for better interaction feedback */
-.overview-stat.actual-performance:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-}
-
-.overview-stat.actual-performance:hover .stat-value {
-  background: rgba(0, 0, 0, 0.4) !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
-}
-
-/* Focus state for accessibility */
-.overview-stat.actual-performance:focus-within {
-  outline: 3px solid #fbbf24;
-  outline-offset: 3px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
   .overview-stat.actual-performance {
     background: #000000 !important;
     border: 3px solid #ffffff !important;
   }
-  
+
   .overview-stat.actual-performance .stat-value,
   .overview-stat.actual-performance .stat-label,
   .overview-stat.actual-performance .variance-indicator {
@@ -4871,709 +3433,134 @@
   }
 }
 
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .overview-stat.actual-performance .stat-value {
-    font-size: 1.25rem !important;
-    padding: 0.375rem 0.5rem !important;
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  
-  .overview-stat.actual-performance .stat-label {
-    font-size: 0.8rem !important;
-  }
-  
-  .overview-stat.actual-performance .variance-indicator {
-    font-size: 0.75rem !important;
-    padding: 0.25rem 0.5rem !important;
+
+  .stat-card:hover,
+  .action-section:hover,
+  .overview-stat:hover {
+    transform: none;
   }
 }
-/* Add this to your components.css file for subtle Actual Income card contrast improvement */
 
 /* ===============================================
-   SUBTLE ACTUAL INCOME CARD CONTRAST FIX
+   FOCUS STATES FOR ACCESSIBILITY
    =============================================== */
-
-/* Keep the original teal but make it slightly darker for better contrast */
-.overview-stat.actual-performance {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
-  color: white !important;
-  border: 1px solid #0891b2 !important;
-  /* Ensure proper spacing and prevent text overflow */
-  padding: 1.5rem !important;
-  min-height: 140px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1rem;
+.overview-stat:focus-within {
+  outline: 3px solid rgba(79, 70, 229, 0.5);
+  outline-offset: 2px;
 }
 
-/* Subtle text improvements without aggressive styling */
-.overview-stat.actual-performance .stat-value {
-  color: #ffffff !important;
-  /* Very subtle background for definition */
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  font-weight: 700 !important;
-  padding: 0.5rem 0.75rem !important;
-  border-radius: 0.375rem !important;
-  /* Ensure text doesn't overflow */
-  font-size: 1.25rem !important;
-  line-height: 1.2;
-  word-break: break-word;
-  max-width: 100%;
+.stat-value:focus-within {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
 
-.overview-stat.actual-performance .stat-label {
-  color: rgba(255, 255, 255, 0.95) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  font-weight: 600 !important;
-  font-size: 0.875rem !important;
-  /* Ensure label is readable */
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  display: inline-block;
-  margin-top: 0.5rem;
-}
-
-.overview-stat.actual-performance .stat-icon {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  /* Keep icon properly sized */
-  width: 3rem !important;
-  height: 3rem !important;
-  flex-shrink: 0;
-}
-
-/* Improve variance indicator readability */
-.overview-stat.actual-performance .variance-indicator {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
-  font-weight: 700 !important;
-  padding: 0.375rem 0.75rem !important;
-  border-radius: 0.375rem !important;
-  /* Prevent overflow */
-  font-size: 0.8rem !important;
-  white-space: nowrap;
-  margin-top: 0.5rem;
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Remove the dark overlay and other aggressive styling */
-.overview-stat.actual-performance::before {
-  display: none;
-}
-
-/* Ensure content fits properly */
-.overview-stat.actual-performance .stat-content {
-  flex: 1;
-  min-width: 0; /* Allow text to shrink */
-  overflow: hidden;
-}
-
-/* Remove the high-contrast alternative styling */
-.overview-stat.actual-performance.high-contrast {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
-  border-color: #0891b2 !important;
-}
-
-.overview-stat.actual-performance.high-contrast .stat-value,
-.overview-stat.actual-performance.high-contrast .stat-label,
-.overview-stat.actual-performance.high-contrast .variance-indicator {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Responsive adjustments to prevent text overflow */
-@media (max-width: 1200px) {
-  .overview-stat.actual-performance .stat-value {
-    font-size: 1.125rem !important;
-    padding: 0.375rem 0.5rem !important;
-  }
-  
-  .overview-stat.actual-performance .variance-indicator {
-    font-size: 0.75rem !important;
-    padding: 0.25rem 0.5rem !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .overview-stat.actual-performance {
-    padding: 1rem !important;
-    min-height: auto;
-  }
-  
-  .overview-stat.actual-performance .stat-value {
-    font-size: 1rem !important;
-  }
-}
-
-/* Hover effect - keep it subtle */
-.overview-stat.actual-performance:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
-  background: linear-gradient(135deg, #0a7c97 0%, #0c6b7a 100%) !important;
-}
-
-/* Dark theme adjustment */
-[data-theme="dark"] .overview-stat.actual-performance {
-  background: linear-gradient(135deg, #164e63 0%, #155e75 100%) !important;
-  border-color: #164e63 !important;
-}
-/* Add this to your components.css file for proper number display in Actual Income card */
-
-/* ===============================================
-   ACTUAL INCOME CARD - PROPER NUMBER FORMATTING
-   =============================================== */
-
-/* Keep the original teal but ensure proper text layout */
-.overview-stat.actual-performance {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
-  color: white !important;
-  border: 1px solid #0891b2 !important;
-  padding: 1.5rem !important;
-  min-height: 140px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1rem;
-  /* Ensure enough width for numbers */
-  min-width: 280px;
-}
-
-/* Fix the main value to display on one line */
-.overview-stat.actual-performance .stat-value {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  font-weight: 700 !important;
-  padding: 0.5rem 0.75rem !important;
-  border-radius: 0.375rem !important;
-  /* Ensure numbers stay on one line */
-  font-size: 1.125rem !important;
-  line-height: 1.1;
-  white-space: nowrap !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  /* Ensure proper width */
-  min-width: fit-content;
-  display: inline-block;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
-}
-
-.overview-stat.actual-performance .stat-label {
-  color: rgba(255, 255, 255, 0.95) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  font-weight: 600 !important;
-  font-size: 0.875rem !important;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  display: inline-block;
-  margin-top: 0.5rem;
-  /* Prevent label from wrapping */
-  white-space: nowrap !important;
-}
-
-.overview-stat.actual-performance .stat-icon {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.15) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  width: 3rem !important;
-  height: 3rem !important;
-  flex-shrink: 0;
-}
-
-/* Fix variance indicator to display properly */
-.overview-stat.actual-performance .variance-indicator {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
-  font-weight: 700 !important;
-  padding: 0.375rem 0.75rem !important;
-  border-radius: 0.375rem !important;
-  margin-top: 0.5rem;
-  display: inline-block;
-  /* Critical: Keep variance numbers on one line */
-  font-size: 0.85rem !important;
-  white-space: nowrap !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
-  /* Ensure it has enough space */
-  min-width: fit-content;
-}
-
-/* Ensure content area has proper layout */
-.overview-stat.actual-performance .stat-content {
-  flex: 1;
-  min-width: 200px; /* Ensure minimum width for content */
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* Responsive adjustments - maintain single line display */
-@media (max-width: 1200px) {
-  .overview-stat.actual-performance {
-    min-width: 260px;
-  }
-  
-  .overview-stat.actual-performance .stat-value {
-    font-size: 1rem !important;
-    padding: 0.375rem 0.5rem !important;
-  }
-  
-  .overview-stat.actual-performance .variance-indicator {
-    font-size: 0.8rem !important;
-    padding: 0.25rem 0.5rem !important;
-  }
-}
-
-@media (max-width: 968px) {
-  .overview-stat.actual-performance {
-    min-width: 240px;
-  }
-  
-  .overview-stat.actual-performance .stat-value {
-    font-size: 0.95rem !important;
-  }
-  
-  .overview-stat.actual-performance .variance-indicator {
-    font-size: 0.75rem !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .overview-stat.actual-performance {
-    padding: 1rem !important;
-    min-height: auto;
-    min-width: 220px;
-    /* Stack vertically on very small screens if needed */
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .overview-stat.actual-performance .stat-content {
-    min-width: auto;
-    align-items: center;
-  }
-  
-  .overview-stat.actual-performance .stat-value {
-    font-size: 0.9rem !important;
-  }
-  
-  .overview-stat.actual-performance .variance-indicator {
-    font-size: 0.7rem !important;
-  }
-}
-
-/* Remove any existing problematic styling */
-.overview-stat.actual-performance::before {
-  display: none;
-}
-
-/* Hover effect - keep it subtle */
-.overview-stat.actual-performance:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.3);
-  background: linear-gradient(135deg, #0a7c97 0%, #0c6b7a 100%) !important;
-}
-
-/* Dark theme adjustment */
-[data-theme="dark"] .overview-stat.actual-performance {
-  background: linear-gradient(135deg, #164e63 0%, #155e75 100%) !important;
-  border-color: #164e63 !important;
-}
-
-/* Ensure all currency formatting is consistent */
-.overview-stat.actual-performance .stat-value,
-.overview-stat.actual-performance .variance-indicator {
-  /* Force monospace font for proper number alignment */
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace !important;
-  font-variant-numeric: tabular-nums !important;
-  letter-spacing: 0 !important;
-}
-/* Add this to your components.css file to fix the Financial Overview grid layout */
-
-/* ===============================================
-   FINANCIAL OVERVIEW GRID LAYOUT FIX
-   =============================================== */
-
-/* Redesign the financial overview grid to prevent overlap */
-.financial-overview-grid {
-  display: grid;
-  /* Change from 4 columns to 3 columns for better spacing */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-/* Ensure all overview stat cards have consistent sizing */
-.financial-overview-grid .overview-stat {
-  min-width: 0; /* Allow cards to shrink */
-  max-width: 100%; /* Prevent overflow */
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
+.stat-item:hover .stat-value {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
-/* Special handling for the actual performance card to fit properly */
-.financial-overview-grid .overview-stat.actual-performance {
-  /* Ensure it doesn't exceed its grid cell */
-  min-width: 0 !important;
-  max-width: 100% !important;
-  /* Allow content to flex properly */
-  flex-direction: row;
-  justify-content: flex-start;
+.overview-stat.actual-performance:focus-within {
+  outline: 3px solid #fbbf24;
+  outline-offset: 3px;
 }
-
-/* The highlight card (Net Monthly Cash) should span 2 columns for emphasis */
-.financial-overview-grid .overview-stat.highlight {
-  grid-column: span 2;
-  justify-content: center;
-  text-align: center;
-}
-
-/* Responsive grid layouts */
-@media (max-width: 1200px) {
-  .financial-overview-grid {
-    /* 2 columns on medium screens */
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
-  }
-  
-  .financial-overview-grid .overview-stat.highlight {
-    grid-column: span 2; /* Still span both columns */
-  }
-}
-
-@media (max-width: 768px) {
-  .financial-overview-grid {
-    /* Single column on mobile */
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .financial-overview-grid .overview-stat.highlight {
-    grid-column: span 1; /* Single column on mobile */
-  }
-  
-  /* Stack actual performance card vertically on mobile */
-  .financial-overview-grid .overview-stat.actual-performance {
-    flex-direction: column;
-    text-align: center;
-    gap: 1rem;
-  }
-}
-
-/* Alternative layout option - 2x3 grid */
-.financial-overview-grid.layout-2x3 {
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, auto);
-}
-
-/* If you want to manually control card placement */
-.financial-overview-grid .overview-stat:nth-child(1) {
-  /* Projected Income */
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.financial-overview-grid .overview-stat:nth-child(2) {
-  /* Actual Income - the teal card */
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.financial-overview-grid .overview-stat:nth-child(3) {
-  /* Monthly Expenses */
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.financial-overview-grid .overview-stat:nth-child(4) {
-  /* Annual Impact */
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.financial-overview-grid .overview-stat:nth-child(5) {
-  /* Net Monthly Cash (highlight) */
-  grid-column: 2 / span 2; /* Spans columns 2 and 3 */
-  grid-row: 2;
-}
-
-.financial-overview-grid .overview-stat:nth-child(6) {
-  /* Savings Rate */
-  grid-column: 1;
-  grid-row: 3;
-}
-
-/* Ensure cards don't get too wide */
-.financial-overview-grid .overview-stat {
-  max-width: 350px; /* Reasonable maximum width */
-  justify-self: center; /* Center cards in their grid cells */
-}
-
-/* Special sizing for the actual performance card */
-.financial-overview-grid .overview-stat.actual-performance {
-  max-width: 320px; /* Slightly smaller to prevent overlap */
-}
-
-/* If the layout still has issues, use this alternative approach */
-.financial-overview-alternative {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.financial-overview-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-/* First row: Income cards and Monthly Expenses */
-.financial-overview-row.first-row {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-/* Second row: Annual Impact, Net Cash, Savings Rate */
-.financial-overview-row.second-row {
-  grid-template-columns: 1fr 2fr 1fr; /* Give Net Cash more space */
-}
-
-/* Mobile adjustments for alternative layout */
-@media (max-width: 768px) {
-  .financial-overview-row.first-row,
-  .financial-overview-row.second-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Debug helper - temporarily add borders to see grid layout */
-.debug-grid .financial-overview-grid .overview-stat {
-  border: 2px dashed red;
-  position: relative;
-}
-
-.debug-grid .financial-overview-grid .overview-stat::before {
-  content: attr(class);
-  position: absolute;
-  top: -20px;
-  left: 0;
-  font-size: 10px;
-  color: red;
-  background: white;
-  padding: 2px 4px;
-}
-/* Add this to your components.css file for better Import/Export button colors */
 
 /* ===============================================
-   ENHANCED IMPORT/EXPORT BUTTON COLORS
+   ANIMATION SUPPORT
    =============================================== */
-
-/* Export Data Button - Modern Purple Gradient */
-.quick-actions .action-btn[data-action="export"],
-.quick-actions .export-data-btn,
-.quick-actions .js-export-btn,
-.quick-actions .action-btn:nth-child(4),
-button:contains("Export Data"),
-button[aria-label*="Export" i] {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
-  border: 2px solid #8b5cf6 !important;
-  color: white !important;
-  font-weight: 600 !important;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3) !important;
-  transition: all 0.3s ease !important;
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.quick-actions .action-btn[data-action="export"]:hover,
-.quick-actions .export-data-btn:hover,
-.quick-actions .js-export-btn:hover,
-.quick-actions .action-btn:nth-child(4):hover {
-  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%) !important;
-  border-color: #7c3aed !important;
-  transform: translateY(-3px) !important;
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.4) !important;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Import Data Button - Modern Emerald Green Gradient */
-.quick-actions .action-btn[data-action="import"],
-.quick-actions .import-data-btn,
-.quick-actions .js-import-btn,
-.quick-actions .action-btn:nth-child(5),
-button:contains("Import Data"),
-button[aria-label*="Import" i] {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%) !important;
-  border: 2px solid #10b981 !important;
-  color: white !important;
-  font-weight: 600 !important;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
-  transition: all 0.3s ease !important;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.quick-actions .action-btn[data-action="import"]:hover,
-.quick-actions .import-data-btn:hover,
-.quick-actions .js-import-btn:hover,
-.quick-actions .action-btn:nth-child(5):hover {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-  border-color: #059669 !important;
-  transform: translateY(-3px) !important;
-  box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4) !important;
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-/* Alternative Color Scheme Option 1 - Ocean Theme */
-.quick-actions.ocean-theme .action-btn[data-action="export"] {
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
-  border-color: #3b82f6 !important;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+.fade-in {
+  animation: fadeIn 0.5s ease-out;
 }
 
-.quick-actions.ocean-theme .action-btn[data-action="export"]:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
-  border-color: #2563eb !important;
+.slide-in-right {
+  animation: slideInRight 0.3s ease-out;
 }
 
-.quick-actions.ocean-theme .action-btn[data-action="import"] {
-  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
-  border-color: #06b6d4 !important;
-  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3) !important;
+.pulse {
+  animation: pulse 2s infinite;
 }
 
-.quick-actions.ocean-theme .action-btn[data-action="import"]:hover {
-  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
-  border-color: #0891b2 !important;
-}
-
-/* Alternative Color Scheme Option 2 - Warm Theme */
-.quick-actions.warm-theme .action-btn[data-action="export"] {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
-  border-color: #f59e0b !important;
-  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3) !important;
-}
-
-.quick-actions.warm-theme .action-btn[data-action="export"]:hover {
-  background: linear-gradient(135deg, #d97706 0%, #ea580c 100%) !important;
-  border-color: #d97706 !important;
-}
-
-.quick-actions.warm-theme .action-btn[data-action="import"] {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
-  border-color: #dc2626 !important;
-  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3) !important;
-}
-
-.quick-actions.warm-theme .action-btn[data-action="import"]:hover {
-  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
-  border-color: #b91c1c !important;
-}
-
-/* Enhanced button styling for better visual appeal */
-.quick-actions .action-btn[data-action="export"],
-.quick-actions .action-btn[data-action="import"] {
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-}
-
-/* Add a subtle shine effect */
-.quick-actions .action-btn[data-action="export"]::before,
-.quick-actions .action-btn[data-action="import"]::before {
-  content: '';
+/* ===============================================
+   LOADING STATES
+   =============================================== */
+.loading-overlay {
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transform: rotate(45deg);
-  transition: all 0.6s ease;
-  opacity: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  z-index: 10;
 }
 
-.quick-actions .action-btn[data-action="export"]:hover::before,
-.quick-actions .action-btn[data-action="import"]:hover::before {
-  opacity: 1;
-  animation: shine 0.6s ease-in-out;
+[data-theme="dark"] .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
 }
 
-@keyframes shine {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--border-light);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-/* Icon styling improvements */
-.quick-actions .action-btn[data-action="export"] .btn-icon,
-.quick-actions .action-btn[data-action="import"] .btn-icon {
-  font-size: 1.5rem !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease;
-}
-
-.quick-actions .action-btn[data-action="export"]:hover .btn-icon,
-.quick-actions .action-btn[data-action="import"]:hover .btn-icon {
-  transform: scale(1.1);
-}
-
-/* Text styling improvements */
-.quick-actions .action-btn[data-action="export"],
-.quick-actions .action-btn[data-action="import"] {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-  letter-spacing: 0.5px;
-}
-
-/* Dark theme adjustments */
-[data-theme="dark"] .quick-actions .action-btn[data-action="export"] {
-  background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%) !important;
-  border-color: #a855f7 !important;
-  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
-}
-
-[data-theme="dark"] .quick-actions .action-btn[data-action="import"] {
-  background: linear-gradient(135deg, #34d399 0%, #6ee7b7 100%) !important;
-  border-color: #34d399 !important;
-  box-shadow: 0 4px 15px rgba(52, 211, 153, 0.4) !important;
-}
-
-/* Focus states for accessibility */
-.quick-actions .action-btn[data-action="export"]:focus,
-.quick-actions .action-btn[data-action="import"]:focus {
-  outline: 3px solid rgba(255, 255, 255, 0.5) !important;
-  outline-offset: 2px !important;
-}
-
-/* Active states */
-.quick-actions .action-btn[data-action="export"]:active,
-.quick-actions .action-btn[data-action="import"]:active {
-  transform: translateY(1px) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .quick-actions .action-btn[data-action="export"],
-  .quick-actions .action-btn[data-action="import"] {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  .quick-actions .action-btn[data-action="export"]:hover,
-  .quick-actions .action-btn[data-action="import"]:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  }
+.loading-text {
+  margin-left: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }

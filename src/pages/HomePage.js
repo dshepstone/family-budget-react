@@ -1,4 +1,4 @@
-// src/pages/HomePage.js - Fixed with Simplified Income Calculations
+// src/pages/HomePage.js - Enhanced with Better Income Explanations
 import React, { useMemo } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import SummaryCards from '../components/SummaryCards';
@@ -103,11 +103,10 @@ const HomePage = () => {
 
   // Use existing BudgetContext calculations for expenses
   const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();
-  const monthlyAnnualImpact = calculations.getMonthlyAnnualImpact();
   
-  // Calculate net income using both projected and actual
-  const projectedNetMonthlyIncome = totalProjectedIncome - totalMonthlyExpenses - monthlyAnnualImpact;
-  const actualNetIncome = totalActualIncome - totalMonthlyExpenses - monthlyAnnualImpact;
+  // Calculate net income using both projected and actual (REMOVED Annual Impact)
+  const projectedNetMonthlyIncome = totalProjectedIncome - totalMonthlyExpenses;
+  const actualNetIncome = totalActualIncome - totalMonthlyExpenses;
   
   // Calculate savings rates
   const projectedSavingsRate = totalProjectedIncome > 0 ? (projectedNetMonthlyIncome / totalProjectedIncome) * 100 : 0;
@@ -224,9 +223,10 @@ const HomePage = () => {
         
         .income-stat {
           text-align: center;
-          padding: 8px;
+          padding: 12px 8px;
           background: rgba(255, 255, 255, 0.1);
           border-radius: 8px;
+          position: relative;
         }
         
         .income-stat-value {
@@ -240,6 +240,14 @@ const HomePage = () => {
           opacity: 0.8;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          margin-bottom: 4px;
+        }
+        
+        .income-stat-explanation {
+          font-size: 0.65rem;
+          opacity: 0.7;
+          line-height: 1.3;
+          font-style: italic;
         }
         
         .variance-indicator {
@@ -276,7 +284,111 @@ const HomePage = () => {
           font-size: 0.8rem;
         }
         
-        .financial-overview-grid .overview-stat.highlight {
+        .income-explanation-section {
+          margin-top: 16px;
+          padding: 12px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 8px;
+          border-left: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .income-explanation-title {
+          font-size: 0.8rem;
+          font-weight: 600;
+          margin-bottom: 8px;
+          opacity: 0.9;
+        }
+        
+        .income-explanation-text {
+          font-size: 0.75rem;
+          line-height: 1.4;
+          opacity: 0.8;
+        }
+        
+        .financial-overview-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 1rem;
+        }
+        
+        .financial-overview-alternative {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        
+        .financial-overview-row {
+          display: grid;
+          gap: 12px;
+        }
+        
+        .financial-overview-row.featured-row {
+          grid-template-columns: 1fr;
+        }
+        
+        .financial-overview-row.second-row {
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+        
+        .financial-overview-row.third-row {
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        
+        .overview-stat.full-width {
+          min-height: 80px;
+        }
+        
+        .overview-stat.full-width .stat-content {
+          width: 100%;
+        }
+        
+        .stat-icon.income {
+          background: rgba(39, 174, 96, 0.1);
+          color: #27ae60;
+        }
+
+        .stat-icon.expense {
+          background: rgba(231, 76, 60, 0.1);
+          color: #e74c3c;
+        }
+
+        .stat-icon.positive {
+          background: rgba(39, 174, 96, 0.1);
+          color: #27ae60;
+        }
+
+        .stat-icon.negative {
+          background: rgba(231, 76, 60, 0.1);
+          color: #e74c3c;
+        }
+
+        .stat-icon.warning {
+          background: rgba(243, 156, 18, 0.1);
+          color: #f39c12;
+        }
+
+        .stat-value.income {
+          color: #27ae60;
+        }
+
+        .stat-value.expense {
+          color: #e74c3c;
+        }
+
+        .stat-value.positive {
+          color: #27ae60;
+        }
+
+        .stat-value.negative {
+          color: #e74c3c;
+        }
+
+        .stat-value.warning {
+          color: #f39c12;
+        }
+
+        .overview-stat.highlight {
+          background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), #f8fafc);
           border: 2px solid #4f46e5;
           box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
         }
@@ -291,11 +403,80 @@ const HomePage = () => {
         }
         
         .overview-stat.actual-performance .variance-indicator {
-          background: rgba(255, 255, 255, 0.25) !important;
-          color: white !important;
-          border: 1px solid rgba(255, 255, 255, 0.4) !important;
-          font-weight: 700 !important;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+          background: rgba(0, 0, 0, 0.4) !important;
+          color: #ffffff !important;
+          border: 2px solid rgba(255, 255, 255, 0.5) !important;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9) !important;
+          font-weight: 800 !important;
+          font-size: 0.85rem !important;
+          padding: 6px 12px !important;
+          border-radius: 8px !important;
+          white-space: nowrap;
+          backdrop-filter: blur(10px);
+        }
+        
+        .overview-stat {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          background: var(--bg-secondary, #f8fafc);
+          border-radius: 0.75rem;
+          transition: all 0.2s ease;
+          min-height: 70px;
+        }
+        
+        .overview-stat:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 3rem;
+          height: 3rem;
+          border-radius: 50%;
+          font-size: 1.25rem;
+          flex-shrink: 0;
+        }
+        
+        .stat-content {
+          flex: 1;
+          min-width: 0;
+        }
+        
+        .stat-value {
+          font-size: 1.25rem;
+          font-weight: 700;
+          margin-bottom: 0.25rem;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+        
+        .stat-label {
+          font-size: 0.875rem;
+          color: #6b7280;
+          font-weight: 500;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .financial-overview-row.second-row,
+          .financial-overview-row.third-row {
+            grid-template-columns: 1fr;
+          }
+          
+          .overview-stat.full-width .stat-content > div {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          
+          .variance-indicator {
+            margin-left: 0 !important;
+            margin-top: 8px;
+          }
         }
         
         .two-column-stat {
@@ -368,6 +549,21 @@ const HomePage = () => {
           z-index: 9999;
           max-width: 300px;
         }
+          /* Make the full-width rows truly single-column */
+.financial-overview-row.featured-row {
+  grid-template-columns: 1fr;
+}
+
+/* Give Net Cash Flow a little more breathing room */
+.overview-stat.net-cash {
+  min-height: 96px;
+}
+
+/* Prevent the two numbers from squishing on narrower widths */
+.overview-stat.net-cash .two-column-stat {
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+}
+
       `}</style>
 
       <div className="page-header">
@@ -389,7 +585,7 @@ const HomePage = () => {
       {/* Quick Actions - Full Width */}
       <QuickActions />
 
-      {/* Income Progress Card */}
+      {/* Enhanced Income Progress Card with Better Explanations */}
       <Card title="💰 Income Progress This Month" className="income-progress-card">
         <div className="progress-container">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -429,16 +625,35 @@ const HomePage = () => {
           <div className="income-stat">
             <div className="income-stat-value">{formatCurrency(incomeAnalysis.variance)}</div>
             <div className="income-stat-label">Total Variance</div>
+            <div className="income-stat-explanation">
+              Difference between actual and projected income for the full month
+            </div>
           </div>
           <div className="income-stat">
             <div className="income-stat-value">{formatCurrency(incomeAnalysis.expectedAtThisPoint)}</div>
-            <div className="income-stat-label">Expected Now</div>
+            <div className="income-stat-label">Expected by Now</div>
+            <div className="income-stat-explanation">
+              How much income you should have received by day {new Date().getDate()} of this month
+            </div>
           </div>
           <div className="income-stat">
             <div className="income-stat-value">
-              {incomeAnalysis.totalProjectedIncome - incomeAnalysis.totalActualIncome > 0 ? formatCurrency(incomeAnalysis.totalProjectedIncome - incomeAnalysis.totalActualIncome) : '$0'}
+              {incomeAnalysis.totalProjectedIncome - incomeAnalysis.totalActualIncome > 0 ? 
+                formatCurrency(incomeAnalysis.totalProjectedIncome - incomeAnalysis.totalActualIncome) : '$0'}
             </div>
-            <div className="income-stat-label">Remaining</div>
+            <div className="income-stat-label">Still Expected</div>
+            <div className="income-stat-explanation">
+              Amount still projected to be received this month from all income sources
+            </div>
+          </div>
+        </div>
+
+        <div className="income-explanation-section">
+          <div className="income-explanation-title">📊 How These Numbers Work</div>
+          <div className="income-explanation-text">
+            <strong>Actual Income:</strong> Total money you've received this month from all sources (salary, freelance, etc.). 
+            <strong>Projected Income:</strong> Expected monthly total based on your income frequency settings. 
+            <strong>Progress Tracking:</strong> Compares your actual income to what you should have received by today's date, helping you stay on track with your budget goals.
           </div>
         </div>
       </Card>
@@ -452,72 +667,75 @@ const HomePage = () => {
         {/* Left Column - Primary Content */}
         <div className="homepage-left-column">
 
-          {/* Financial Overview with Better Grid Layout */}
+          {/* Financial Overview with Reorganized Layout - REMOVED Annual Impact */}
           <Card title="💰 Financial Overview" className="financial-overview-card">
             <div className="financial-overview-alternative">
-              {/* First Row: Income and Monthly Expenses */}
-              <div className="financial-overview-row first-row">
-                <div className="overview-stat">
-                  <div className="stat-icon income">🎯</div>
-                  <div className="stat-content">
-                    <div className="stat-value income">{formatCurrency(incomeAnalysis.totalProjectedIncome)}</div>
-                    <div className="stat-label">Projected Income</div>
-                  </div>
-                </div>
-
-                <div className="overview-stat actual-performance">
+              {/* First Row: Full-width Actual Monthly Income with variance indicator */}
+              <div className="financial-overview-row featured-row">
+                <div className="overview-stat actual-performance full-width">
                   <div className="stat-icon">💵</div>
                   <div className="stat-content">
-                    <div className="stat-value">{formatCurrency(incomeAnalysis.totalActualIncome)}</div>
-                    <div className="stat-label">Actual Income</div>
-                    <span className={`variance-indicator ${incomeAnalysis.variance >= 0 ? 'variance-positive' : 'variance-negative'}`}>
-                      {incomeAnalysis.variance >= 0 ? '↗' : '↘'} {formatCurrency(Math.abs(incomeAnalysis.variance))}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="overview-stat">
-                  <div className="stat-icon expense">💳</div>
-                  <div className="stat-content">
-                    <div className="stat-value expense">{formatCurrency(totalMonthlyExpenses)}</div>
-                    <div className="stat-label">Monthly Expenses</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="stat-value">{formatCurrency(incomeAnalysis.totalActualIncome)}</div>
+                        <div className="stat-label">Actual Monthly Income</div>
+                      </div>
+                      <span className={`variance-indicator ${incomeAnalysis.variance >= 0 ? 'variance-positive' : 'variance-negative'}`}>
+                        {incomeAnalysis.variance >= 0 ? '↗' : '↘'} {formatCurrency(Math.abs(incomeAnalysis.variance))} vs projected
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Second Row: Annual Impact, Net Cash (highlighted), Savings Rate */}
-              <div className="financial-overview-row second-row">
-                <div className="overview-stat">
-                  <div className="stat-icon annual">📅</div>
-                  <div className="stat-content">
-                    <div className="stat-value annual">{formatCurrency(monthlyAnnualImpact)}</div>
-                    <div className="stat-label">Annual Impact</div>
-                  </div>
-                </div>
+              {/* Net Cash Flow – full-width row under Actual Monthly Income */}
+<div className="financial-overview-row featured-row">
+  <div className="overview-stat highlight net-cash full-width">
+    <div className={`stat-icon ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
+      {projectedNetMonthlyIncome >= 0 ? '📈' : '📉'}
+    </div>
+    <div className="stat-content">
+      <div className="two-column-stat">
+        <div>
+          <div className={`stat-value ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
+            {formatCurrency(projectedNetMonthlyIncome)}
+          </div>
+          <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Projected</div>
+        </div>
+        <div>
+          <div className={`stat-value ${actualNetIncome >= 0 ? 'positive' : 'negative'}`}>
+            {formatCurrency(actualNetIncome)}
+          </div>
+          <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Actual</div>
+        </div>
+      </div>
+      <div className="stat-label">Net Cash Flow</div>
+    </div>
+  </div>
+</div>
 
-                <div className="overview-stat highlight">
-                  <div className={`stat-icon ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-                    {projectedNetMonthlyIncome >= 0 ? '📈' : '📉'}
-                  </div>
-                  <div className="stat-content">
-                    <div className="two-column-stat">
-                      <div>
-                        <div className={`stat-value ${projectedNetMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-                          {formatCurrency(projectedNetMonthlyIncome)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Projected Net</div>
-                      </div>
-                      <div>
-                        <div className={`stat-value ${actualNetIncome >= 0 ? 'positive' : 'negative'}`}>
-                          {formatCurrency(actualNetIncome)}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', opacity: '0.8' }}>Actual Net</div>
-                      </div>
-                    </div>
-                    <div className="stat-label">Net Monthly Cash</div>
-                  </div>
-                </div>
+{/* Next Row: Projected Income + Expenses */}
+<div className="financial-overview-row second-row">
+  <div className="overview-stat">
+    <div className="stat-icon income">🎯</div>
+    <div className="stat-content">
+      <div className="stat-value income">{formatCurrency(incomeAnalysis.totalProjectedIncome)}</div>
+      <div className="stat-label">Projected Monthly Income</div>
+    </div>
+  </div>
 
+  <div className="overview-stat">
+    <div className="stat-icon expense">💳</div>
+    <div className="stat-content">
+      <div className="stat-value expense">{formatCurrency(totalMonthlyExpenses)}</div>
+      <div className="stat-label">Monthly Expenses</div>
+    </div>
+  </div>
+</div>
+
+
+              {/* Third Row: Savings Rate and Month Progress */}
+              <div className="financial-overview-row third-row">
                 <div className="overview-stat">
                   <div className={`stat-icon ${projectedSavingsRate >= 20 ? 'positive' : projectedSavingsRate >= 10 ? 'warning' : 'negative'}`}>
                     💰
@@ -544,6 +762,17 @@ const HomePage = () => {
                         {Math.abs(actualSavingsRate - projectedSavingsRate).toFixed(1)}% vs projected
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="overview-stat">
+                  <div className="stat-icon income">📅</div>
+                  <div className="stat-content">
+                    <div className="stat-value">{incomeAnalysis.monthProgress.toFixed(0)}%</div>
+                    <div className="stat-label">Month Complete</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>
+                      Day {new Date().getDate()} of {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -819,8 +1048,7 @@ const HomePage = () => {
         Projected Income: {formatCurrency(incomeAnalysis.totalProjectedIncome)} (should match Income Sources page)<br/>
         Actual Income: {formatCurrency(incomeAnalysis.totalActualIncome)}<br/>
         Monthly Expenses: {formatCurrency(totalMonthlyExpenses)}<br/>
-        Annual Impact: {formatCurrency(monthlyAnnualImpact)}<br/>
-        Projected Net: {formatCurrency(projectedNetMonthlyIncome)}<br/>
+        Projected Net: {formatCurrency(projectedNetMonthlyIncome)} (Annual Impact REMOVED)<br/>
         Actual Net: {formatCurrency(actualNetIncome)}<br/>
         <small>Should now match Income Sources total of $9,347.15</small>
       </div>
