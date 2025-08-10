@@ -1,4 +1,4 @@
-// src/components/QuickActions.js - Updated with proper button styling
+// src/components/QuickActions.js - Updated with proper button styling and Reset functionality
 import React, { useRef, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import Button from './ui/Button';
@@ -22,6 +22,8 @@ const QuickActions = () => {
           const hasImportIcon = buttonText.includes('📂');
           const hasExportText = buttonText.toLowerCase().includes('export');
           const hasImportText = buttonText.toLowerCase().includes('import');
+          const hasResetIcon = buttonText.includes('🔄');
+          const hasResetText = buttonText.toLowerCase().includes('reset');
           
           // Style Export buttons
           if (hasExportIcon || hasExportText) {
@@ -35,6 +37,13 @@ const QuickActions = () => {
             button.classList.add('js-import-btn');
             button.setAttribute('data-action', 'import');
             console.log('Applied import styling to:', buttonText);
+          }
+
+          // Style Reset buttons
+          if (hasResetIcon || hasResetText) {
+            button.classList.add('js-reset-btn');
+            button.setAttribute('data-action', 'reset');
+            console.log('Applied reset styling to:', buttonText);
           }
         });
       }
@@ -71,6 +80,45 @@ const QuickActions = () => {
       } catch (error) {
         console.error('Import failed:', error);
         alert('Import failed. Please check the file format and try again.');
+      }
+    }
+  };
+
+  const handleReset = () => {
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will permanently delete ALL your budget data!\n\n' +
+      'This includes:\n' +
+      '• All income entries\n' +
+      '• All monthly and annual expenses\n' +
+      '• All accounts and balances\n' +
+      '• Weekly planner data\n' +
+      '• All saved links and categories\n\n' +
+      'This action CANNOT be undone.\n\n' +
+      'Are you absolutely sure you want to reset everything to default?'
+    );
+
+    if (confirmed) {
+      const doubleConfirmed = window.confirm(
+        '🚨 FINAL CONFIRMATION\n\n' +
+        'You are about to lose ALL your data permanently!\n\n' +
+        'Click OK to proceed with the reset, or Cancel to keep your data.'
+      );
+
+      if (doubleConfirmed) {
+        try {
+          // Call the existing resetData action from the context
+          actions.resetData();
+          
+          // Show success message
+          alert('✅ Application has been reset to default state.\n\nAll data has been cleared and you can start fresh.');
+          
+          // Navigate back to home page after reset
+          actions.setCurrentPage('home');
+          
+        } catch (error) {
+          console.error('Reset failed:', error);
+          alert('❌ Reset failed. Please try again or refresh the page.');
+        }
       }
     }
   };
@@ -125,6 +173,37 @@ const QuickActions = () => {
           background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
           transform: translateY(-3px) !important;
           box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4) !important;
+        }
+
+        .quick-actions .js-reset-btn,
+        .quick-actions [data-action="reset"] {
+          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%) !important;
+          color: white !important;
+          font-weight: 600 !important;
+          border: 2px solid #dc2626 !important;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+        }
+        
+        .quick-actions .js-reset-btn:hover,
+        .quick-actions [data-action="reset"]:hover {
+          background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%) !important;
+          transform: translateY(-3px) !important;
+          box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4) !important;
+        }
+
+        /* Add warning pulse animation for reset button */
+        .quick-actions .js-reset-btn,
+        .quick-actions [data-action="reset"] {
+          animation: subtle-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes subtle-pulse {
+          0%, 100% { 
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+          }
+          50% { 
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
+          }
         }
       `}</style>
 
@@ -192,6 +271,17 @@ const QuickActions = () => {
         >
           <span className="btn-icon">🧮</span>
           Calculator
+        </Button>
+
+        <Button
+          variant="danger"
+          onClick={handleReset}
+          className="action-btn reset-data-btn js-reset-btn"
+          data-action="reset"
+          title="Reset all application data to default state"
+        >
+          <span className="btn-icon">🔄</span>
+          Reset App
         </Button>
       </div>
 
