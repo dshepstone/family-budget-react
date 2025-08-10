@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { sanitizeInput } from '../utils/validators';
 import { parseAmount } from '../utils/formatters';
+import AccountModal from '../components/AccountModal';
 
 // Enhanced frequency options with weekly and bi-weekly
 const ENHANCED_FREQUENCY_OPTIONS = [
@@ -14,6 +15,12 @@ const ENHANCED_FREQUENCY_OPTIONS = [
   { value: 'annual', label: 'Annual' },
   { value: 'one-time', label: 'One-time' }
 ];
+
+// Special account option values
+const ACCOUNT_SPECIAL_VALUES = {
+  CREATE_NEW: '__CREATE_NEW__',
+  NO_ACCOUNT: '__NO_ACCOUNT__'
+};
 
 // How many pay-date inputs to show by frequency
 const getMaxPayDates = (freq) => {
@@ -142,14 +149,15 @@ const IncomePage = () => {
   const [editingIndex, setEditingIndex] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // overview, sources, analytics
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
-  // Form state (supports per-pay-date actuals)
+  // Form state (supports per-pay-date actuals) - REMOVED actualAmount field
   const [formData, setFormData] = useState({
     name: '',
     projectedAmount: '',
-    actualAmount: '',
     frequency: 'monthly',
     account: '',
+    newAccountName: '', // For creating new accounts
     notes: '',
     weeks: Array(5).fill(0),
     actualWeeks: Array(5).fill(0),
@@ -179,31 +187,35 @@ const IncomePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.frequency]);
 
-  // Build account options only from saved data (no defaults)
-  const accountsFromMonthly = Object.values(state?.data?.monthly || {})
-    .flat()
-    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
-    .filter(Boolean);
+  // Build account options from central accounts store
+  const accounts = Array.isArray(state.data.accounts) ? state.data.accounts : [];
+  const existingAccountNames = accounts.map(acc => acc.name).filter(Boolean);
 
-  const accountsFromAnnual = Object.values(state?.data?.annual || {})
-    .flat()
-    .map(e => (typeof e?.account === 'string' ? e.account.trim() : ''))
-    .filter(Boolean);
+  // Build account options with special values
+  const buildAccountOptions = () => {
+    const options = [];
+    
+    // Add "No Account" option first
+    options.push({ value: ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT, label: 'No Account' });
+    
+    // Add existing accounts
+    accounts.forEach(account => {
+      options.push({ value: account.name, label: account.name });
+    });
+    
+    // Add "Create New Account" option
+    options.push({ value: ACCOUNT_SPECIAL_VALUES.CREATE_NEW, label: '+ Create New Account' });
+    
+    return options;
+  };
 
-  const accountsFromState = Array.isArray(state?.data?.accounts)
-    ? state.data.accounts
-        .map(a => (typeof a === 'string' ? a.trim() : ''))
-        .filter(Boolean)
-    : [];
+  const ACCOUNT_OPTIONS = buildAccountOptions();
 
-  const ACCOUNT_OPTIONS = Array.from(
-    new Set([...accountsFromState, ...accountsFromMonthly, ...accountsFromAnnual])
-  );
-
-  // If nothing is selected, default to first option once options are known
+  // Set default account selection when options are available
   useEffect(() => {
-    if (!formData.account && ACCOUNT_OPTIONS.length) {
-      setFormData(prev => ({ ...prev, account: ACCOUNT_OPTIONS[0] }));
+    if (!formData.account && ACCOUNT_OPTIONS.length > 0) {
+      // Default to "No Account" instead of first existing account
+      setFormData(prev => ({ ...prev, account: ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ACCOUNT_OPTIONS.length]);
@@ -320,7 +332,7 @@ const IncomePage = () => {
       return {
         id: inc.id,
         name: inc.name || 'Untitled',
-        account: inc.account || 'Unassigned',
+        account: inc.account || 'No Account',
         frequency: inc.frequency || 'monthly',
         projected,
         actual,
@@ -332,7 +344,8 @@ const IncomePage = () => {
     const topPositive = [...rows].sort((a, b) => b.variance - a.variance).slice(0, 5);
 
     const byAccountMap = rows.reduce((acc, r) => {
-      acc[r.account] = (acc[r.account] || 0) + r.actual;
+      const accountKey = r.account || 'No Account';
+      acc[accountKey] = (acc[accountKey] || 0) + r.actual;
       return acc;
     }, {});
     const byAccount = Object.entries(byAccountMap)
@@ -354,11 +367,34 @@ const IncomePage = () => {
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'name' ? sanitizeInput(value) : value
+      [field]: field === 'name' || field === 'newAccountName' ? sanitizeInput(value) : value
     }));
   };
 
-  // Save/add income
+  // Handle account selection change
+  const handleAccountChange = (value) => {
+    if (value === ACCOUNT_SPECIAL_VALUES.CREATE_NEW) {
+      setShowAccountModal(true);
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      account: value,
+      newAccountName: ''
+    }));
+  };
+
+  // Handle account creation from modal
+  const handleAccountCreated = (newAccount) => {
+    setFormData(prev => ({
+      ...prev,
+      account: newAccount.name,
+      newAccountName: ''
+    }));
+  };
+
+  // Save/add income - UPDATED to remove actualAmount logic
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -370,27 +406,31 @@ const IncomePage = () => {
       return;
     }
 
-    // Sum per-date actuals if provided
+    // Handle account field
+    let finalAccount = '';
+    if (formData.account === ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT) {
+      finalAccount = '';
+    } else {
+      finalAccount = formData.account;
+    }
+
+    // Calculate actual amount from per-date actuals only
     const actualFromEntries = Array.isArray(formData.payActuals)
       ? formData.payActuals.reduce((sum, v) => sum + (parseAmount(v) || 0), 0)
       : 0;
 
-    // If user typed an Overall Actual, use it; otherwise per-date sum; otherwise 0
-    const actual = formData.actualAmount
-      ? parseAmount(formData.actualAmount)
-      : actualFromEntries;
-
     // Define weekly splits
     const weeks = Array(5).fill(projected > 0 ? projected / 5 : 0);
-    const actualWeeks = Array(5).fill(actual > 0 ? actual / 5 : 0);
+    const actualWeeks = Array(5).fill(actualFromEntries > 0 ? actualFromEntries / 5 : 0);
 
     const incomeItem = {
       ...formData,
       projectedAmount: projected,
-      actualAmount: actual,
+      actualAmount: actualFromEntries, // Only from per-date actuals
       amount: projected, // Maintain backward compatibility
       weeks,
       actualWeeks,
+      account: finalAccount,
       payDates: Array.isArray(formData.payDates) ? formData.payDates : [],
       payActuals: Array.isArray(formData.payActuals) ? formData.payActuals : [],
       actualMode: formData.actualMode || 'per-check',
@@ -413,12 +453,20 @@ const IncomePage = () => {
   // Edit
   const handleEdit = (index) => {
     const income = incomeData[index];
+    const account = income.account || '';
+    
+    // Determine account selection
+    let accountSelection = ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT;
+    if (account && existingAccountNames.includes(account)) {
+      accountSelection = account;
+    }
+
     setFormData({
       name: income.name || '',
       projectedAmount: income.projectedAmount?.toString() || '',
-      actualAmount: income.actualAmount?.toString() || '',
       frequency: income.frequency || 'monthly',
-      account: income.account || (ACCOUNT_OPTIONS[0] ?? ''),
+      account: accountSelection,
+      newAccountName: '',
       notes: income.notes || '',
       weeks: Array.isArray(income.weeks) ? income.weeks : Array(5).fill(0),
       actualWeeks: Array.isArray(income.actualWeeks) ? income.actualWeeks : Array(5).fill(0),
@@ -452,8 +500,8 @@ const IncomePage = () => {
       name: '',
       frequency: 'monthly',
       projectedAmount: '',
-      actualAmount: '',
-      account: '',
+      account: ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT,
+      newAccountName: '',
       notes: '',
       weeks: Array(5).fill(0),
       actualWeeks: Array(5).fill(0),
@@ -466,9 +514,9 @@ const IncomePage = () => {
   };
 
   const handlePrint = () => {
-  const html = IncomePagePrint.generatePrintContent(state.data, formatCurrencyUtil);
-  IncomePagePrint.openPrintWindow(html, 'Income Report');
-};
+    const html = IncomePagePrint.generatePrintContent(state.data, formatCurrencyUtil);
+    IncomePagePrint.openPrintWindow(html, 'Income Report');
+  };
 
   const exportIncomeCSV = () => {
     const headers = ['Source', 'Projected Amount', 'Actual Amount', 'Variance', 'Frequency', 'Account', 'Notes'];
@@ -484,7 +532,7 @@ const IncomePage = () => {
         actualMonthly || 0,
         variance,
         income.frequency || 'monthly',
-        income.account || '',
+        income.account || 'No Account',
         income.notes || ''
       ].map(field => `"${String(field).replace(/"/g, '""')}"`);
 
@@ -850,6 +898,18 @@ const IncomePage = () => {
           gap: 16px;
         }
 
+        .account-hint {
+          font-size: 0.75rem;
+          color: #6b7280;
+          margin-top: 4px;
+          font-style: italic;
+        }
+
+        .account-hint.create-new {
+          color: #10b981;
+          font-weight: 500;
+        }
+
         .form-actions {
           display: flex;
           gap: 16px;
@@ -1132,12 +1192,12 @@ const IncomePage = () => {
         }
       `}</style>
 
-      <div className="page-header income-page-header">
-  <h1 className="page-title">💵 Income Management</h1>
-  <p className="page-description">
-    Track projected vs actual income with comprehensive analysis
-  </p>
-</div>
+      <div className="page-header">
+        <h1 className="page-title">💵 Income Management</h1>
+        <p className="page-description">
+          Track projected vs actual income with comprehensive analysis
+        </p>
+      </div>
 
       <div className="tabs-container">
         <div className="tabs-header" role="tablist" aria-label="Income Tabs">
@@ -1277,9 +1337,37 @@ const IncomePage = () => {
                         </select>
                       </div>
 
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="income-account">Account</label>
+                        <select
+                          id="income-account"
+                          className="form-select"
+                          value={formData.account}
+                          onChange={(e) => handleAccountChange(e.target.value)}
+                        >
+                          {ACCOUNT_OPTIONS.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {formData.account === ACCOUNT_SPECIAL_VALUES.NO_ACCOUNT && (
+                          <div className="account-hint">
+                            This income source will not be associated with any specific account.
+                          </div>
+                        )}
+                        
+                        {formData.account === ACCOUNT_SPECIAL_VALUES.CREATE_NEW && (
+                          <div className="account-hint create-new">
+                            Click "Create New Account" to open the account creation modal.
+                          </div>
+                        )}
+                      </div>
+
                       {/* Actual amount mode */}
                       <div className="form-group full-width">
-                        <label className="form-label" htmlFor="actual-mode">How should Overall Actual be treated?</label>
+                        <label className="form-label" htmlFor="actual-mode">How should pay dates be calculated?</label>
                         <div id="actual-mode" role="radiogroup" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <input
@@ -1300,11 +1388,11 @@ const IncomePage = () => {
                               checked={formData.actualMode === 'monthly-total'}
                               onChange={(e) => handleInputChange('actualMode', e.target.value)}
                             />
-                            <span>Monthly total (don’t multiply)</span>
+                            <span>Monthly total (don't multiply)</span>
                           </label>
                         </div>
                         <small style={{ color: '#6b7280' }}>
-                          Tip: If you record each pay in “Pay dates + actuals”, this setting is ignored and the per-date amounts are summed.
+                          This setting only applies when you use the "Pay dates + actuals" section below. If you enter individual pay amounts, those are summed directly.
                         </small>
                       </div>
 
@@ -1329,6 +1417,7 @@ const IncomePage = () => {
                                     next[i] = e.target.value;
                                     setFormData(prev => ({ ...prev, payDates: next }));
                                   }}
+                                  placeholder="Pay date"
                                 />
                                 {/* Actual $ for that date */}
                                 <input
@@ -1337,7 +1426,7 @@ const IncomePage = () => {
                                   min="0"
                                   inputMode="decimal"
                                   className="form-input"
-                                  placeholder="Actual $ for this date"
+                                  placeholder="Actual $ received"
                                   value={formData.payActuals?.[i] ?? ''}
                                   onChange={(e) => {
                                     const next = [...(formData.payActuals || [])];
@@ -1350,7 +1439,7 @@ const IncomePage = () => {
                           </div>
 
                           <small style={{ color: '#6b7280' }}>
-                            Optional: record each pay date and the actual amount received on that date.
+                            Track your actual income by entering the date and amount for each paycheck. This provides the most accurate monthly income calculation.
                           </small>
                         </div>
                       )}
@@ -1367,22 +1456,20 @@ const IncomePage = () => {
                           placeholder="0.00"
                           required
                         />
+                        <small style={{ color: '#6b7280' }}>
+                          Enter the amount you expect to receive per paycheck (before taxes/deductions)
+                        </small>
                       </div>
 
-                      <div className="form-group">
-                        <label className="form-label" htmlFor="income-account">Account *</label>
-                        <select
-                          id="income-account"
-                          className="form-select"
-                          value={formData.account}
-                          onChange={(e) => handleInputChange('account', e.target.value)}
-                          required
-                        >
-                          {ACCOUNT_OPTIONS.length === 0 && <option value="">No accounts found</option>}
-                          {ACCOUNT_OPTIONS.map(acc => (
-                            <option key={acc} value={acc}>{acc}</option>
-                          ))}
-                        </select>
+                      <div className="form-group full-width">
+                        <label className="form-label" htmlFor="income-notes">Notes</label>
+                        <textarea
+                          id="income-notes"
+                          className="form-textarea"
+                          value={formData.notes}
+                          onChange={(e) => handleInputChange('notes', e.target.value)}
+                          placeholder="Additional notes about this income source..."
+                        />
                       </div>
 
                       {/* FORM ACTIONS */}
@@ -1462,7 +1549,7 @@ const IncomePage = () => {
                                 {income.frequency}
                               </span>
                             </td>
-                            <td>{income.account}</td>
+                            <td>{income.account || 'No Account'}</td>
                             <td>
                               <div className="action-buttons">
                                 <button
@@ -1621,6 +1708,13 @@ const IncomePage = () => {
         </div>
       </div>
 
+      {/* Account Modal */}
+      <AccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onAccountCreated={handleAccountCreated}
+      />
+
       <div className="income-help-section" style={{
         marginTop: '40px',
         padding: '20px',
@@ -1632,38 +1726,31 @@ const IncomePage = () => {
           📘 Income Overview – Help & Definitions
         </h3>
         <ul style={{ lineHeight: '1.6', fontSize: '0.95rem', color: '#374151' }}>
-  <li>
-    <strong>Projected Monthly Income:</strong> The total amount you expect to earn each month from all income sources. Annual value = monthly × 12.
-  </li>
-  <li>
-    <strong>Actual Monthly Income:</strong> The total income you have actually received this month. Annual value = monthly × 12.
-  </li>
-  <li>
-    <strong>Income Variance:</strong> The difference between actual and projected income. Negative means under target, positive means over target.
-  </li>
-  <li>
-    <strong>Income Sources:</strong> The number of active income sources you’ve added to your budget.
-  </li>
-  <li>
-    <strong>Per-paycheck (multiply by # of checks):</strong> Enter the amount of a single paycheck in “Actual Amount” and the system multiplies it by how many paychecks you get in that month (based on frequency). Example: $2,737.49 × 3 paychecks = $8,212.47 for the month.
-  </li>
-  <li>
-    <strong>Monthly total (don’t multiply):</strong> Enter the total for the month directly — the system does not multiply it. Example: Entering $2,737.49 means that’s the full month’s total, even if you had multiple paychecks.
-  </li>
-  <li>
-    <em>Tip:</em> If you fill in “Pay dates + actuals” for each paycheck, the above setting is ignored and the monthly total is simply the sum of those amounts.
-  </li>
-</ul>
-
-
+          <li>
+            <strong>Projected Monthly Income:</strong> The total amount you expect to earn each month from all income sources. Annual value = monthly × 12.
+          </li>
+          <li>
+            <strong>Actual Monthly Income:</strong> The total income you have actually received this month, calculated from individual pay dates or frequency multipliers.
+          </li>
+          <li>
+            <strong>Income Variance:</strong> The difference between actual and projected income. Negative means under target, positive means over target.
+          </li>
+          <li>
+            <strong>Account Selection:</strong> Choose "No Account" to skip account assignment, select an existing account, or create a new account using the quick creation modal.
+          </li>
+          <li>
+            <strong>Pay Dates & Actuals:</strong> Enter specific pay dates and amounts for the most accurate income tracking. This overrides frequency-based calculations.
+          </li>
+          <li>
+            <strong>Per-paycheck vs Monthly Total:</strong> Choose how to calculate monthly income when using frequency multipliers instead of individual pay date amounts.
+          </li>
+        </ul>
       </div>
     </div>
-
-    
   );
 };
-// src/utils/printUtils.js
 
+// src/utils/printUtils.js
 export const IncomePagePrint = {
   generatePrintContent(data, formatCurrency) {
     // ------- helpers -------
@@ -1708,7 +1795,7 @@ export const IncomePagePrint = {
 
     const income = (data?.income || []).map((inc) => {
       const name = inc.name || inc.source || 'Untitled';
-      const account = inc.account || inc.accountId || '';
+      const account = inc.account || 'No Account';
       const freq = inc.frequency || 'monthly';
       const payDates = Array.isArray(inc.payDates) ? inc.payDates : [];
       const payActuals = Array.isArray(inc.payActuals) ? inc.payActuals : [];
@@ -1839,7 +1926,7 @@ export const IncomePagePrint = {
             <tr>
               <td class="sourceCell">
                 <div class="sourceTitle">${safe(r.name)}</div>
-                ${r.account ? `<div class="acct">${safe(r.account)}</div>` : ''}
+                ${r.account && r.account !== 'No Account' ? `<div class="acct">${safe(r.account)}</div>` : ''}
                 ${payLines ? `<div class="dates"><ul>${payLines}</ul></div>` : ''}
               </td>
               <td>${safe(r.frequency)}</td>
@@ -1869,7 +1956,6 @@ export const IncomePagePrint = {
 </html>`;
   },
 
-  // keep your existing window+print helper; adding it here for completeness
   openPrintWindow(html, title = 'Income Report') {
     const w = window.open('', '_blank');
     if (!w) return;
@@ -1880,6 +1966,5 @@ export const IncomePagePrint = {
     w.document.title = title;
   }
 };
-
 
 export default IncomePage;

@@ -1,6 +1,8 @@
 // src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './styles/themes.css';       // defines CSS variables like --card-bg, --text-primary
+import './styles/components.css';  // your global component styles
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

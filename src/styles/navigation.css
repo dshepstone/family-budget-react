@@ -1,0 +1,332 @@
+/* ===============================================
+   IMPROVED NAVIGATION COMPONENT
+   =============================================== */
+
+/* Navigation variables */
+:root {
+  --nav-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --nav-text: #ffffff;
+  --nav-active-bg: rgba(255, 255, 255, 0.15);
+  --nav-active-border: #fbbf24;
+  --nav-hover-bg: rgba(255, 255, 255, 0.1);
+  --nav-height: 56px;
+}
+
+[data-theme="dark"] {
+  --nav-bg: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --nav-text: #e2e8f0;
+}
+
+/* Main navigation container */
+.main-navigation {
+  background: var(--nav-bg);
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  min-height: var(--nav-height);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Navigation container */
+.nav-container {
+  max-width: min(98vw, var(--page-max));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  min-height: var(--nav-height);
+  position: relative;
+}
+
+/* Hide brand as mentioned in original CSS */
+.nav-brand { 
+  display: none; 
+}
+
+/* Navigation links container */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+/* Navigation items */
+.nav-item { 
+  position: relative; 
+}
+
+/* Navigation buttons/links */
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--nav-text);
+  opacity: 0.9;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin: 4px 2px;
+}
+
+/* Hover state */
+.nav-link:hover { 
+  opacity: 1; 
+  background: var(--nav-hover-bg);
+  transform: translateY(-1px);
+}
+
+/* Active state with modern styling */
+.nav-link.active {
+  opacity: 1;
+  background: var(--nav-active-bg);
+  border-bottom-color: var(--nav-active-border);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Active state accent line */
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--nav-active-border);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+/* Navigation icon */
+.nav-icon { 
+  font-size: 1rem; 
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Calculator button special styling */
+.calculator-nav-btn {
+  background: none;
+  color: var(--nav-text);
+  border: none;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  border-radius: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: 1rem;
+  padding-left: 1rem;
+  opacity: 0.9;
+}
+
+.calculator-nav-btn:hover {
+  background: rgba(243, 156, 18, 0.2);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.calculator-nav-btn.active {
+  background: rgba(243, 156, 18, 0.3);
+  color: #fbbf24;
+  border-bottom: 2px solid #f39c12;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+/* Right side navigation items */
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Focus states for accessibility */
+.nav-link:focus-visible,
+.calculator-nav-btn:focus-visible {
+  outline: 2px solid rgba(251, 191, 36, 0.7);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Content offset to account for fixed navigation */
+.main-content {
+  padding-top: calc(var(--header-height) + var(--nav-height) + 1rem);
+  max-width: min(98vw, var(--page-max));
+  margin: 0 auto;
+  padding-left: var(--page-gutter);
+  padding-right: var(--page-gutter);
+  box-sizing: border-box;
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 968px) {
+  .nav-container { 
+    flex-direction: column; 
+    padding: 0.5rem 1rem; 
+    min-height: 64px;
+  }
+  
+  .nav-links { 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 0.25rem; 
+    width: 100%;
+  }
+  
+  .nav-link {
+    padding: 0.625rem 0.875rem;
+    border-radius: 8px;
+    border-bottom: none;
+    margin: 2px;
+  }
+  
+  .nav-link.active::after { 
+    display: none; 
+  }
+  
+  /* Mobile active state uses background only */
+  .nav-link.active {
+    background: var(--nav-active-bg);
+    border-bottom: none;
+  }
+  
+  .calculator-nav-btn {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 0.875rem;
+    order: 10; /* Move to end */
+  }
+  
+  :root {
+    --nav-height: 64px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-links { 
+    gap: 0.125rem; 
+  }
+  
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .nav-icon {
+    font-size: 1.125rem;
+  }
+  
+  .nav-label {
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+  
+  .calculator-nav-btn {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .calculator-nav-btn .nav-icon {
+    font-size: 1.125rem;
+  }
+  
+  .calculator-nav-btn .nav-label {
+    font-size: 0.7rem;
+  }
+  
+  :root {
+    --nav-height: 72px;
+  }
+}
+
+/* Smooth scrolling behavior */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-height) + var(--nav-height) + 1rem);
+}
+
+/* Enhanced visual effects */
+.main-navigation::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.main-navigation::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
+}
+
+/* Animation for nav items */
+@keyframes navItemSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-link {
+  animation: navItemSlide 0.3s ease-out;
+}
+
+/* Staggered animation delay for nav items */
+.nav-item:nth-child(1) .nav-link { animation-delay: 0ms; }
+.nav-item:nth-child(2) .nav-link { animation-delay: 50ms; }
+.nav-item:nth-child(3) .nav-link { animation-delay: 100ms; }
+.nav-item:nth-child(4) .nav-link { animation-delay: 150ms; }
+.nav-item:nth-child(5) .nav-link { animation-delay: 200ms; }
+.nav-item:nth-child(6) .nav-link { animation-delay: 250ms; }
+.nav-item:nth-child(7) .nav-link { animation-delay: 300ms; }
+.nav-item:nth-child(8) .nav-link { animation-delay: 350ms; }
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .nav-link {
+    animation: none;
+    transition: none;
+  }
+  
+  .nav-link:hover,
+  .calculator-nav-btn:hover {
+    transform: none;
+  }
+}

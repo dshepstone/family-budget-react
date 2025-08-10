@@ -1,8 +1,7 @@
-// src/pages/AnnualExpensesPage.js - Enhanced with Weekly Sync
+// src/pages/AnnualExpensesPage.js - Enhanced with Weekly Sync and Fixed Styling
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { AnnualExpensesPrint } from '../utils/printUtils';
-
 
 const ANNUAL_CATEGORY_NAMES = {
   'yearly-subs': 'Yearly Subscriptions',
@@ -207,16 +206,16 @@ const AnnualExpensesPage = () => {
   const savingsPlan = getMonthlySavingsPlan();
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#fff', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+    <div className="main-content">
       <style>{`
         .annual-expenses-page {
-          padding: 20px;
-          background-color: #fff;
+          padding: 20px 0;
+          background-color: var(--bg-primary);
           min-height: 100vh;
         }
 
         .page-title {
-          color: #2c3e50;
+          color: var(--text-primary);
           margin-bottom: 20px;
           font-size: 1.8rem;
           font-weight: 600;
@@ -228,11 +227,12 @@ const AnnualExpensesPage = () => {
           align-items: center;
           margin-bottom: 20px;
           padding: 15px;
-          background-color: #f8f9fa;
+          background-color: var(--card-bg);
           border-radius: 8px;
-          border: 1px solid #dee2e6;
+          border: 1px solid var(--card-border);
           flex-wrap: wrap;
           gap: 15px;
+          box-shadow: var(--card-shadow);
         }
 
         .action-controls {
@@ -246,89 +246,115 @@ const AnnualExpensesPage = () => {
           align-items: center;
           gap: 10px;
           margin-bottom: 20px;
-          padding: 10px;
-          background-color: #e8f5e8;
-          border-radius: 6px;
-          border: 1px solid #28a745;
+          padding: 15px;
+          background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+          border-radius: 8px;
+          border: 1px solid rgba(40, 167, 69, 0.3);
+          box-shadow: 0 2px 4px rgba(40, 167, 69, 0.1);
         }
 
         .week-select {
-          padding: 5px 10px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
+          padding: 8px 12px;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
           font-size: 0.9rem;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .week-select:focus {
+          outline: none;
+          border-color: var(--success);
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .yearly-note {
-          background-color: #fff3cd;
-          border: 1px solid #ffeaa7;
-          border-radius: 6px;
-          padding: 15px;
+          background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.05));
+          border: 1px solid rgba(251, 191, 36, 0.3);
+          border-radius: 8px;
+          padding: 16px;
           margin-bottom: 20px;
           font-size: 0.95rem;
-          color: #856404;
+          color: var(--text-primary);
+          box-shadow: 0 2px 4px rgba(251, 191, 36, 0.1);
         }
 
         .category {
-          margin-bottom: 30px;
-          border: 1px solid #dee2e6;
-          border-radius: 8px;
+          margin-bottom: 24px;
+          border: 1px solid var(--card-border);
+          border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: var(--card-shadow);
+          background: var(--card-bg);
+          transition: all 0.2s ease;
+        }
+
+        .category:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          transform: translateY(-1px);
         }
 
         .category-header {
-          background-color: #28a745;
+          background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%);
           color: white;
-          padding: 15px;
+          padding: 18px 20px;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
 
         .category-name {
-          font-size: 1.1rem;
+          font-size: 1.2rem;
           font-weight: 600;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .category-controls {
           display: flex;
           align-items: center;
-          gap: 15px;
+          gap: 20px;
         }
 
         .category-total {
-          font-size: 1.1rem;
+          font-size: 1.2rem;
           font-weight: bold;
+          background: rgba(255, 255, 255, 0.2);
+          padding: 8px 16px;
+          border-radius: 20px;
+          backdrop-filter: blur(10px);
         }
 
-        .add-item-btn {
+        .add-item-btn, .remove-category-btn {
           background-color: rgba(255,255,255,0.2);
           border: 1px solid rgba(255,255,255,0.3);
           color: white;
-          padding: 5px 10px;
-          border-radius: 4px;
+          padding: 8px 12px;
+          border-radius: 6px;
           cursor: pointer;
           font-size: 1rem;
           font-weight: bold;
+          transition: all 0.2s ease;
         }
 
-        .add-item-btn:hover {
+        .add-item-btn:hover, .remove-category-btn:hover {
           background-color: rgba(255,255,255,0.3);
+          transform: translateY(-1px);
         }
 
         .subcategory-header {
           display: flex;
-          background-color: #f8f9fa;
-          padding: 10px;
+          background: var(--bg-secondary);
+          padding: 12px;
           font-weight: 600;
           font-size: 0.9rem;
-          color: #495057;
-          border-bottom: 1px solid #dee2e6;
+          color: var(--text-secondary);
+          border-bottom: 1px solid var(--border-light);
         }
 
         .header-date {
-          width: 120px;
+          width: 140px;
         }
 
         .header-name {
@@ -336,81 +362,115 @@ const AnnualExpensesPage = () => {
         }
 
         .header-status {
-          width: 120px;
+          width: 140px;
           text-align: center;
         }
 
         .header-amounts {
-          width: 200px;
+          width: 220px;
           display: flex;
           justify-content: space-between;
         }
 
         .header-monthly {
-          width: 80px;
+          width: 100px;
           text-align: center;
         }
 
         .subcategory-list {
-          background-color: #fff;
+          background-color: var(--card-bg);
         }
 
         .subcategory {
           display: flex;
           align-items: center;
-          padding: 10px;
-          border-bottom: 1px solid #f0f0f0;
-          gap: 10px;
+          padding: 15px 12px;
+          border-bottom: 1px solid var(--border-light);
+          gap: 12px;
+          transition: all 0.2s ease;
+          min-height: 60px;
         }
 
         .subcategory:hover {
-          background-color: #f8f9fa;
+          background-color: var(--hover-bg);
+        }
+
+        .subcategory:last-child {
+          border-bottom: none;
         }
 
         .due-date-input {
-          width: 120px;
-          padding: 6px 8px;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
+          width: 140px;
+          padding: 8px 10px;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
           font-size: 0.85rem;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+        }
+
+        .due-date-input:focus {
+          outline: none;
+          border-color: var(--success);
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .expense-name-input {
           flex: 2;
-          padding: 6px 8px;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
+          padding: 8px 10px;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
           font-size: 0.85rem;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+        }
+
+        .expense-name-input:focus {
+          outline: none;
+          border-color: var(--success);
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .account-select {
-          width: 120px;
-          padding: 6px 8px;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
+          width: 140px;
+          padding: 8px 10px;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
           font-size: 0.85rem;
-          background-color: #fff;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .account-select:focus {
+          outline: none;
+          border-color: var(--success);
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .status-control-group {
-          width: 120px;
+          width: 140px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 5px;
+          gap: 8px;
         }
 
         .annual-status-checkboxes {
           display: flex;
-          gap: 5px;
+          gap: 8px;
         }
 
         .status-checkbox-label {
           display: flex;
           align-items: center;
-          gap: 2px;
+          gap: 4px;
           font-size: 0.8rem;
           cursor: pointer;
+          color: var(--text-primary);
         }
 
         .checkbox-label {
@@ -422,16 +482,18 @@ const AnnualExpensesPage = () => {
         }
 
         .paid-checkbox:checked {
-          accent-color: #28a745;
+          accent-color: var(--success);
         }
 
         .frequency-dropdown {
-          width: 80px;
-          padding: 2px 4px;
-          border: 1px solid #dee2e6;
-          border-radius: 3px;
+          width: 90px;
+          padding: 4px 6px;
+          border: 1px solid var(--input-border);
+          border-radius: 4px;
           font-size: 0.8rem;
-          background-color: #fff;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          cursor: pointer;
         }
 
         .frequency-dropdown.paid {
@@ -445,169 +507,213 @@ const AnnualExpensesPage = () => {
         }
 
         .amount-input-group {
-          width: 200px;
+          width: 220px;
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 8px;
         }
 
         .amount-input {
-          width: 80px;
-          padding: 6px 8px;
-          border: 1px solid #dee2e6;
-          border-radius: 4px;
+          width: 90px;
+          padding: 8px 10px;
+          border: 1px solid var(--input-border);
+          border-radius: 6px;
           font-size: 0.85rem;
           text-align: right;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+        }
+
+        .amount-input:focus {
+          outline: none;
+          border-color: var(--success);
+          box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
 
         .amount-input.has-value {
-          background-color: #e8f5e8;
-          border-color: #28a745;
-          font-weight: 600;
-          color: #155724;
+          background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%) !important;
+          border-color: var(--success) !important;
+          font-weight: 600 !important;
+          color: #155724 !important;
         }
 
         .copy-to-actual-btn {
-          background-color: #28a745;
+          background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%);
           border: none;
           color: white;
-          padding: 4px 8px;
-          border-radius: 3px;
+          padding: 6px 10px;
+          border-radius: 4px;
           cursor: pointer;
           font-size: 0.8rem;
+          transition: all 0.2s ease;
         }
 
         .copy-to-actual-btn:hover {
-          background-color: #1e7e34;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
         }
 
         .monthly-equivalent {
-          width: 80px;
+          width: 100px;
           text-align: center;
           font-size: 0.85rem;
-          color: #666;
+          color: var(--text-secondary);
           font-weight: 500;
+          background: rgba(40, 167, 69, 0.05);
+          padding: 4px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(40, 167, 69, 0.2);
         }
 
         .item-delete-btn {
-          background-color: #dc3545;
+          background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
           border: none;
           color: white;
-          padding: 4px 8px;
-          border-radius: 3px;
+          padding: 6px 10px;
+          border-radius: 4px;
           cursor: pointer;
           font-size: 0.8rem;
-          width: 30px;
+          width: 35px;
+          transition: all 0.2s ease;
         }
 
         .item-delete-btn:hover {
-          background-color: #c82333;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
         }
 
         .yearly-total {
-          font-size: 1.2rem;
+          font-size: 1.3rem;
           font-weight: bold;
           text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          margin: 20px 0;
+          padding: 25px;
+          background: linear-gradient(135deg, var(--card-bg) 0%, var(--bg-secondary) 100%);
+          border-radius: 12px;
+          margin: 30px 0;
+          border: 1px solid var(--card-border);
+          box-shadow: var(--card-shadow);
+          color: var(--text-primary);
         }
 
         .page-actions {
           text-align: center;
-          margin: 20px 0;
+          margin: 30px 0;
         }
 
         .btn {
-          padding: 8px 16px;
+          padding: 10px 20px;
           border: none;
-          border-radius: 4px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 0.9rem;
-          margin: 0 5px;
-          transition: background-color 0.2s;
+          font-weight: 500;
+          margin: 0 8px;
+          transition: all 0.2s ease;
+          text-transform: none;
+        }
+
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .btn-primary {
-          background-color: #007bff;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
           color: white;
-        }
-
-        .btn-primary:hover {
-          background-color: #0056b3;
         }
 
         .btn-secondary {
-          background-color: #6c757d;
+          background: linear-gradient(135deg, var(--btn-secondary-bg) 0%, #545b62 100%);
           color: white;
-        }
-
-        .btn-secondary:hover {
-          background-color: #545b62;
         }
 
         .btn-success {
-          background-color: #28a745;
+          background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%);
           color: white;
-        }
-
-        .btn-success:hover {
-          background-color: #1e7e34;
         }
 
         .btn-danger {
-          background-color: #dc3545;
+          background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
           color: white;
-        }
-
-        .btn-danger:hover {
-          background-color: #c82333;
         }
 
         .savings-plan-section {
           margin-top: 30px;
           padding: 20px;
-          background-color: #f0f8ff;
-          border-radius: 8px;
-          border: 1px solid #b3d9ff;
+          background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(33, 150, 243, 0.05));
+          border-radius: 12px;
+          border: 1px solid rgba(33, 150, 243, 0.3);
+          box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
         }
 
         .savings-plan-table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 15px;
+          background: var(--card-bg);
+          border-radius: 8px;
+          overflow: hidden;
         }
 
         .savings-plan-table th,
         .savings-plan-table td {
-          padding: 10px;
-          border: 1px solid #dee2e6;
+          padding: 12px 15px;
+          border: 1px solid var(--border-light);
           text-align: left;
         }
 
         .savings-plan-table th {
-          background-color: #007bff;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
           color: white;
           font-weight: 600;
         }
 
+        .savings-plan-table td {
+          color: var(--text-primary);
+        }
+
         .weekly-sync-indicator {
-          margin-top: 20px;
-          padding: 15px;
-          background-color: #e8f5e8;
-          border-radius: 8px;
-          border: 1px solid #28a745;
+          margin-top: 30px;
+          padding: 20px;
+          background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+          border-radius: 12px;
+          border: 1px solid rgba(40, 167, 69, 0.3);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
         }
 
         .weekly-sync-indicator h4 {
-          margin: 0 0 10px 0;
-          color: #155724;
+          margin: 0 0 15px 0;
+          color: var(--success);
+          font-size: 1.1rem;
         }
 
         .sync-info {
           font-size: 0.9rem;
-          color: #155724;
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+
+        .add-category-wrapper {
+          text-align: center;
+          margin: 30px 0;
+        }
+
+        .add-category-btn {
+          background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .add-category-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
         }
 
         @media (max-width: 768px) {
@@ -619,7 +725,8 @@ const AnnualExpensesPage = () => {
           .subcategory {
             flex-direction: column;
             align-items: stretch;
-            gap: 10px;
+            gap: 12px;
+            padding: 15px;
           }
 
           .subcategory-header {
@@ -629,6 +736,21 @@ const AnnualExpensesPage = () => {
           .amount-input-group {
             width: 100%;
             justify-content: space-between;
+          }
+
+          .status-control-group {
+            width: 100%;
+            flex-direction: row;
+            justify-content: space-between;
+          }
+
+          .due-date-input, .expense-name-input, .account-select {
+            width: 100%;
+          }
+
+          .monthly-equivalent {
+            width: 100%;
+            text-align: center;
           }
         }
       `}</style>
@@ -649,7 +771,7 @@ const AnnualExpensesPage = () => {
           <option value={4}>Week 4</option>
           <option value={5}>Week 5</option>
         </select>
-        <span style={{ fontSize: '0.9rem', color: '#666' }}>
+        <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           Status changes will sync with this week in the weekly planner
         </span>
       </div>
@@ -696,14 +818,14 @@ const AnnualExpensesPage = () => {
               <div className="subcategory-header">
                 <span className="header-date">Due Date</span>
                 <span className="header-name">Expense Name</span>
-                <span style={{ width: '120px', textAlign: 'center' }}>Account</span>
+                <span style={{ width: '140px', textAlign: 'center' }}>Account</span>
                 <span className="header-status">Status</span>
                 <div className="header-amounts">
                   <span>Projected</span>
                   <span>Actual</span>
                 </div>
                 <span className="header-monthly">Monthly</span>
-                <span style={{ width: '30px' }}></span>
+                <span style={{ width: '35px' }}></span>
               </div>
 
               <div className="subcategory-list">
@@ -841,7 +963,7 @@ const AnnualExpensesPage = () => {
       {/* Monthly Savings Plan */}
       {Object.keys(savingsPlan).length > 0 && (
         <div className="savings-plan-section">
-          <h3 style={{ margin: '0 0 10px 0', color: '#0056b3' }}>📊 Monthly Savings Plan</h3>
+          <h3 style={{ margin: '0 0 10px 0', color: 'var(--primary)' }}>📊 Monthly Savings Plan</h3>
           <table className="savings-plan-table">
             <thead>
               <tr>

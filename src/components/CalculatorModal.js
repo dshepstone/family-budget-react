@@ -1,8 +1,8 @@
-// src/components/CalculatorModal.js - Enhanced with Receipt View and Overflow Handling
+// src/components/CalculatorModal.js - Fixed with true floating behavior
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Draggable from 'react-draggable';
-import './CalculatorModal.css';
-
+import '../styles/CalculatorModal.css';
 
 // Safe arithmetic expression evaluator (no eval / new Function)
 function evaluateExpression(expr) {
@@ -54,6 +54,7 @@ function evaluateExpression(expr) {
   if (stack.length || !isFinite(result)) throw new Error('Invalid calculation');
   return result;
 }
+
 const CalculatorModal = ({ onClose }) => {
     const [input, setInput] = useState('');
     const [previousExpression, setPreviousExpression] = useState('');
@@ -71,6 +72,25 @@ const CalculatorModal = ({ onClose }) => {
     const nodeRef = useRef(null);
     const inputRef = useRef(null);
     const historyRef = useRef(null);
+    const backdropRef = useRef(null);
+
+    // REMOVED: Body class management that prevents scrolling
+    // The main window should remain scrollable when calculator is open
+
+    // Handle clicks on backdrop to close calculator
+    useEffect(() => {
+        const handleBackdropClick = (event) => {
+            if (backdropRef.current && event.target === backdropRef.current) {
+                onClose();
+            }
+        };
+
+        const backdrop = backdropRef.current;
+        if (backdrop) {
+            backdrop.addEventListener('click', handleBackdropClick);
+            return () => backdrop.removeEventListener('click', handleBackdropClick);
+        }
+    }, [onClose]);
 
     // Handle clicks outside hamburger menu to close it
     useEffect(() => {
@@ -139,21 +159,22 @@ const CalculatorModal = ({ onClose }) => {
         sessionStorage.setItem('calculator-history', JSON.stringify(history));
     }, [history]);
 
-    // Enhanced keyboard input handling - works when mouse is over calculator window
+    // Enhanced keyboard input handling - IMPROVED: Only when calculator is focused
     useEffect(() => {
         const handleKeyDown = (event) => {
-            // Only handle keyboard when mouse is over calculator or input is focused
+            // Only handle keyboard when calculator modal is actually focused or hovered
             const calculatorElement = nodeRef.current;
-            const isMouseOverCalculator = calculatorElement && calculatorElement.matches(':hover');
+            const isCalculatorFocused = calculatorElement && calculatorElement.contains(document.activeElement);
             const isInputFocused = document.activeElement === inputRef.current;
             
-            if (!isMouseOverCalculator && !isInputFocused) {
+            // Only intercept calculator keys when the calculator is actually in focus
+            if (!isCalculatorFocused && !isInputFocused) {
                 return;
             }
 
             const key = event.key;
             
-            // Prevent default for calculator-related keys
+            // Prevent default for calculator-related keys only when calculator is focused
             if (/[0-9+\-*/.=]/.test(key) || key === 'Enter' || key === 'Escape' || key === 'Backspace' || key === 'Delete') {
                 event.preventDefault();
                 event.stopPropagation();
@@ -552,202 +573,212 @@ const CalculatorModal = ({ onClose }) => {
         return value;
     };
 
-    const buttons = ['7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', '=', '+'];
-
-    return (
-        <Draggable handle=".calculator-header" cancel=".hamburger-menu, .hamburger-dropdown, .close-button" nodeRef={nodeRef}>
-            <div ref={nodeRef} className="calculator-modal enhanced">
-                <div className="calculator-header">
-                    <div className="header-left">
-                        <button
-                            className="hamburger-menu"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={toggleHamburgerMenu}
-                            title="Menu"
-                        >
-                            ☰
-                        </button>
-                        <h4 id="calculator-title">
-                            🧮 Calculator
-                            {showMemoryIndicator && (
-                                <span className="memory-indicator" title={`Memory: ${memory}`}>
-                                    M
-                                </span>
-                            )}
-                        </h4>
-
-                        {/* Hamburger Menu - Positioned under button */}
-                        {showHamburgerMenu && (
-                            <div 
-                                className="hamburger-dropdown" 
+    // Render the calculator modal - FIXED: Use React Portal for true floating behavior
+    const calculatorContent = (
+        <div ref={backdropRef} className="calculator-backdrop">
+            <Draggable 
+                handle=".calculator-header" 
+                cancel=".hamburger-menu, .hamburger-dropdown, .close-button"
+                nodeRef={nodeRef}
+                defaultPosition={{ x: -170, y: 0 }} // Start slightly off-center
+            >
+                <div ref={nodeRef} className="calculator-modal enhanced">
+                    <div className="calculator-header">
+                        <div className="header-left">
+                            <button
+                                className="hamburger-menu"
                                 onMouseDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={toggleHamburgerMenu}
+                                title="Menu"
                             >
+                                ☰
+                            </button>
+                            <h4 id="calculator-title">
+                                🧮 Calculator
+                                {showMemoryIndicator && (
+                                    <span className="memory-indicator" title={`Memory: ${memory}`}>
+                                        M
+                                    </span>
+                                )}
+                            </h4>
+
+                            {/* Hamburger Menu - Positioned under button */}
+                            {showHamburgerMenu && (
                                 <div 
-                                    className="menu-item"
-                                    onClick={(e) => handleMenuItemClick('history', e)}
+                                    className="hamburger-dropdown" 
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    📊 {showHistory ? 'Hide' : 'Show'} History
+                                    <div 
+                                        className="menu-item"
+                                        onClick={(e) => handleMenuItemClick('history', e)}
+                                    >
+                                        📊 {showHistory ? 'Hide' : 'Show'} History
+                                    </div>
+                                    <div 
+                                        className="menu-item"
+                                        onClick={(e) => handleMenuItemClick('clearHistory', e)}
+                                    >
+                                        🗑️ Clear History
+                                    </div>
                                 </div>
-                                <div 
-                                    className="menu-item"
-                                    onClick={(e) => handleMenuItemClick('clearHistory', e)}
-                                >
-                                    🗑️ Clear History
+                            )}
+                        </div>
+                        <div className="header-controls">
+                            <button 
+                                className="close-button" 
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={onClose}
+                            >×</button>
+                        </div>
+                    </div>
+                    
+                    <div className="calculator-content">
+                        {/* History Panel / Receipt */}
+                        {showHistory && (
+                            <div className="history-panel">
+                                <div className="history-header">
+                                    <span>Receipt History</span>
+                                    <button
+                                        className="close-history"
+                                        onClick={() => setShowHistory(false)}
+                                        title="Close History"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                <div className="history-list" ref={historyRef}>
+                                    {history.length === 0 ? (
+                                        <div className="history-empty">No calculations yet</div>
+                                    ) : (
+                                        history.map(item => (
+                                            <div
+                                                key={item.id}
+                                                className={`history-item ${item.isError ? 'error' : ''} ${item.isMemory ? 'memory' : ''}`}
+                                                onClick={() => handleUseHistoryItem(item)}
+                                                title="Click to use this value"
+                                            >
+                                                <div className="history-expression">{item.expression}</div>
+                                                <div className="history-result">= {item.result}</div>
+                                                <div className="history-time">{item.fullTimestamp}</div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         )}
-                    </div>
-                    <div className="header-controls">
-                        <button 
-                            className="close-button" 
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={onClose}
-                        >×</button>
-                    </div>
-                </div>
-                
-                <div className="calculator-content">
-                    {/* History Panel / Receipt */}
-                    {showHistory && (
-                        <div className="history-panel">
-                            <div className="history-header">
-                                <span>Receipt History</span>
-                                <button
-                                    className="close-history"
-                                    onClick={() => setShowHistory(false)}
-                                    title="Close History"
+
+                        {/* Calculator Panel */}
+                        <div className="calculator-panel">
+                            {/* Enhanced display with Windows-like previous expression */}
+                            <div className="display-container">
+                                {/* Previous Expression Display (Windows-like) */}
+                                {previousExpression && (
+                                    <div className="previous-expression">
+                                        {previousExpression}
+                                    </div>
+                                )}
+
+                                {/* Main Calculator Display */}
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    className={`calculator-display ${isError ? 'error' : ''} ${previousExpression ? 'has-previous' : ''}`}
+                                    value={formatDisplayValue(input) || '0'}
+                                    onChange={handleInputChange}
+                                    onPaste={handlePaste}
+                                    placeholder="0"
+                                    autoComplete="off"
+                                    spellCheck="false"
+                                />
+                            </div>
+                            
+                            {/* Memory Controls */}
+                            <div className="memory-controls">
+                                <button 
+                                    className="memory-btn"
+                                    onClick={handleMemoryClear}
+                                    title="Memory Clear (Ctrl+L)"
+                                    disabled={memory === 0}
                                 >
-                                    ×
+                                    MC
+                                </button>
+                                <button 
+                                    className="memory-btn"
+                                    onClick={handleMemoryRecall}
+                                    title="Memory Recall (Ctrl+R)"
+                                    disabled={memory === 0}
+                                >
+                                    MR
+                                </button>
+                                <button 
+                                    className="memory-btn"
+                                    onClick={handleMemoryStore}
+                                    title="Memory Store (Ctrl+M)"
+                                >
+                                    MS
+                                </button>
+                                <button 
+                                    className="memory-btn"
+                                    onClick={handleMemoryAdd}
+                                    title="Memory Add"
+                                >
+                                    M+
+                                </button>
+                                <button 
+                                    className="memory-btn"
+                                    onClick={handleMemorySubtract}
+                                    title="Memory Subtract"
+                                >
+                                    M-
                                 </button>
                             </div>
-                            <div className="history-list" ref={historyRef}>
-                                {history.length === 0 ? (
-                                    <div className="history-empty">No calculations yet</div>
-                                ) : (
-                                    history.map(item => (
-                                        <div
-                                            key={item.id}
-                                            className={`history-item ${item.isError ? 'error' : ''} ${item.isMemory ? 'memory' : ''}`}
-                                            onClick={() => handleUseHistoryItem(item)}
-                                            title="Click to use this value"
-                                        >
-                                            <div className="history-expression">{item.expression}</div>
-                                            <div className="history-result">= {item.result}</div>
-                                            <div className="history-time">{item.fullTimestamp}</div>
-                                        </div>
-                                    ))
-                                )}
+                            
+                            {/* Standard Keypad */}
+                            <div className="keypad-grid">
+                                <button className="keypad-button clear" onClick={handleClear}>C</button>
+                                <button className="keypad-button clear-entry" onClick={handleClearEntry}>CE</button>
+                                <button className="keypad-button backspace" onClick={handleBackspace}>⌫</button>
+                                <button className="keypad-button operator" onClick={() => handleButtonClick('/')}>÷</button>
+                                
+                                <button className="keypad-button number" onClick={() => handleButtonClick('7')}>7</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('8')}>8</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('9')}>9</button>
+                                <button className="keypad-button operator" onClick={() => handleButtonClick('*')}>×</button>
+                                
+                                <button className="keypad-button number" onClick={() => handleButtonClick('4')}>4</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('5')}>5</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('6')}>6</button>
+                                <button className="keypad-button operator" onClick={() => handleButtonClick('-')}>-</button>
+                                
+                                <button className="keypad-button number" onClick={() => handleButtonClick('1')}>1</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('2')}>2</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('3')}>3</button>
+                                <button className="keypad-button operator" onClick={() => handleButtonClick('+')}>+</button>
+                                
+                                <button className="keypad-button number zero" onClick={() => handleButtonClick('0')}>0</button>
+                                <button className="keypad-button number" onClick={() => handleButtonClick('.')}>.</button>
+                                <button className="keypad-button equals" onClick={handleCalculate}>=</button>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Calculator Panel */}
-                    <div className="calculator-panel">
-                        {/* Enhanced display with Windows-like previous expression */}
-                        <div className="display-container">
-                            {/* Previous Expression Display (Windows-like) */}
-                            {previousExpression && (
-                                <div className="previous-expression">
-                                    {previousExpression}
-                                </div>
-                            )}
-
-                            {/* Main Calculator Display */}
-                            <input
-                                ref={inputRef}
-                                type="text"
-                                className={`calculator-display ${isError ? 'error' : ''} ${previousExpression ? 'has-previous' : ''}`}
-                                value={formatDisplayValue(input) || '0'}
-                                onChange={handleInputChange}
-                                onPaste={handlePaste}
-                                placeholder="0"
-                                autoComplete="off"
-                                spellCheck="false"
-                            />
-                        </div>
-                        
-                        {/* Memory Controls */}
-                        <div className="memory-controls">
-                            <button 
-                                className="memory-btn"
-                                onClick={handleMemoryClear}
-                                title="Memory Clear (Ctrl+L)"
-                                disabled={memory === 0}
-                            >
-                                MC
-                            </button>
-                            <button 
-                                className="memory-btn"
-                                onClick={handleMemoryRecall}
-                                title="Memory Recall (Ctrl+R)"
-                                disabled={memory === 0}
-                            >
-                                MR
-                            </button>
-                            <button 
-                                className="memory-btn"
-                                onClick={handleMemoryStore}
-                                title="Memory Store (Ctrl+M)"
-                            >
-                                MS
-                            </button>
-                            <button 
-                                className="memory-btn"
-                                onClick={handleMemoryAdd}
-                                title="Memory Add"
-                            >
-                                M+
-                            </button>
-                            <button 
-                                className="memory-btn"
-                                onClick={handleMemorySubtract}
-                                title="Memory Subtract"
-                            >
-                                M-
-                            </button>
-                        </div>
-                        
-                        {/* Standard Keypad */}
-                        <div className="keypad-grid">
-                            <button className="keypad-button clear" onClick={handleClear}>C</button>
-                            <button className="keypad-button clear-entry" onClick={handleClearEntry}>CE</button>
-                            <button className="keypad-button backspace" onClick={handleBackspace}>⌫</button>
-                            <button className="keypad-button operator" onClick={() => handleButtonClick('/')}>÷</button>
                             
-                            <button className="keypad-button number" onClick={() => handleButtonClick('7')}>7</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('8')}>8</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('9')}>9</button>
-                            <button className="keypad-button operator" onClick={() => handleButtonClick('*')}>×</button>
-                            
-                            <button className="keypad-button number" onClick={() => handleButtonClick('4')}>4</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('5')}>5</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('6')}>6</button>
-                            <button className="keypad-button operator" onClick={() => handleButtonClick('-')}>-</button>
-                            
-                            <button className="keypad-button number" onClick={() => handleButtonClick('1')}>1</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('2')}>2</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('3')}>3</button>
-                            <button className="keypad-button operator" onClick={() => handleButtonClick('+')}>+</button>
-                            
-                            <button className="keypad-button number zero" onClick={() => handleButtonClick('0')}>0</button>
-                            <button className="keypad-button number" onClick={() => handleButtonClick('.')}>.</button>
-                            <button className="keypad-button equals" onClick={handleCalculate}>=</button>
-                        </div>
-                        
-                        {/* Enhanced Instructions */}
-                        <div className="calculator-instructions">
-                            <small>
-                                💡 <strong>Memory:</strong> Ctrl+M (Store) • Ctrl+R (Recall) • Ctrl+L (Clear)<br/>
-                                <strong>Menu:</strong> Click ☰ for receipt history and more options<br/>
-                                <strong>Input:</strong> Type, Ctrl+C/V, Enter for equals, Esc to clear
-                            </small>
+                            {/* Enhanced Instructions */}
+                            <div className="calculator-instructions">
+                                <small>
+                                    💡 <strong>Memory:</strong> Ctrl+M (Store) • Ctrl+R (Recall) • Ctrl+L (Clear)<br/>
+                                    <strong>Menu:</strong> Click ☰ for receipt history and more options<br/>
+                                    <strong>Input:</strong> Type, Ctrl+C/V, Enter for equals, Esc to clear
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </Draggable>
+            </Draggable>
+        </div>
     );
+
+    // Use React Portal to render the calculator directly in the document body
+    // This ensures it's completely independent of the main app's positioning and scroll
+    return createPortal(calculatorContent, document.body);
 };
 
 export default CalculatorModal;

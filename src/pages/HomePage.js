@@ -1,4 +1,4 @@
-// src/pages/HomePage.js - Complete with BudgetContext Calculations
+// src/pages/HomePage.js - Complete with BudgetContext Calculations & Central Account Integration
 import React, { useMemo, useState } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import SummaryCards from '../components/SummaryCards';
@@ -8,10 +8,12 @@ import CashFlowChart from '../components/charts/CashFlowChart';
 import ExpenseBreakdown from '../components/charts/ExpenseBreakdown';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import AccountModal from '../components/AccountModal';
 import { HomePagePrint } from '../utils/printUtils';
 
 const HomePage = () => {
   const { state, calculations, formatCurrency, actions } = useBudget();
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   // Add help accordion state
   const [helpAccordions, setHelpAccordions] = useState({
@@ -181,6 +183,8 @@ const HomePage = () => {
   };
 
   const expenseData = getExpenseBreakdownData();
+  
+  // Get accounts from central store
   const accounts = Array.isArray(state.data.accounts) ? state.data.accounts : [];
 
   const allExpenses = [
@@ -209,6 +213,20 @@ const HomePage = () => {
 
   const getTotalProjected = () => {
     return accounts.reduce((sum, acc) => sum + getProjectedTotal(acc.id), 0);
+  };
+
+  // Handle account creation from modal
+  const handleAccountCreated = (newAccount) => {
+    // Account is automatically saved to central store by the modal
+    // We don't need to do anything else here
+  };
+
+  // Handle account updates
+  const handleAccountUpdate = (updatedAccount) => {
+    const updatedAccounts = accounts.map(acc =>
+      acc.id === updatedAccount.id ? updatedAccount : acc
+    );
+    actions.updateAccounts(updatedAccounts);
   };
 
   // Helper function to get progress bar color
@@ -508,6 +526,130 @@ const HomePage = () => {
           color: #1f2937;
         }
         
+        /* Account-related styles */
+        .accounts-table-card {
+          margin-top: 2rem;
+        }
+
+        .empty-accounts-state {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+        }
+
+        .empty-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+        }
+
+        .empty-accounts-state h4 {
+          margin: 0 0 0.5rem 0;
+          color: #374151;
+          font-size: 1.125rem;
+        }
+
+        .empty-accounts-state p {
+          margin: 0 0 1.5rem 0;
+          font-size: 0.875rem;
+        }
+
+        .accounts-table {
+          display: grid;
+          gap: 1px;
+          background: #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .accounts-table-header {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 1px;
+          background: #f8fafc;
+          padding: 0.75rem 1rem;
+          font-weight: 600;
+          font-size: 0.875rem;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+        }
+
+        .accounts-table-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 1px;
+          background: white;
+          padding: 0.75rem 1rem;
+          align-items: center;
+        }
+
+        .accounts-table-row.totals {
+          background: #f8fafc;
+          border-top: 2px solid #e5e7eb;
+        }
+
+        .account-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .account-name {
+          font-weight: 600;
+          color: #111827;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .account-icon {
+          font-size: 0.875rem;
+        }
+
+        .account-details {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
+        .balance-cell {
+          text-align: right;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+          font-weight: 600;
+        }
+
+        .balance-cell.projected {
+          color: #10b981;
+        }
+
+        .balance-cell.net.positive {
+          color: #10b981;
+        }
+
+        .balance-cell.net.negative {
+          color: #ef4444;
+        }
+
+        .balance-input-compact {
+          width: 100%;
+          padding: 0.25rem 0.5rem;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          font-size: 0.875rem;
+          text-align: right;
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .balance-input-compact:focus {
+          outline: none;
+          border-color: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        }
+
+        .accounts-table-footer {
+          margin-top: 1rem;
+          text-align: center;
+        }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
           .financial-overview-row.second-row {
@@ -535,6 +677,20 @@ const HomePage = () => {
           
           .financial-overview-row.featured-row {
             grid-template-columns: 1fr;
+          }
+
+          .accounts-table-header,
+          .accounts-table-row {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+          }
+
+          .account-info {
+            text-align: left;
+          }
+
+          .balance-cell {
+            text-align: left;
           }
         }
 
@@ -886,7 +1042,7 @@ const HomePage = () => {
                 <p>Add your bank accounts to track balances and projected totals.</p>
                 <Button
                   variant="primary"
-                  onClick={() => actions.setCurrentPage('monthly')}
+                  onClick={() => setShowAccountModal(true)}
                 >
                   Add Account
                 </Button>
@@ -914,7 +1070,7 @@ const HomePage = () => {
                             {account.name}
                           </div>
                           <div className="account-details">
-                            {account.bank} • {account.transitNumber}-{account.branchNumber}
+                            {account.bank} {account.transitNumber && account.branchNumber && `• ${account.transitNumber}-${account.branchNumber}`}
                           </div>
                         </div>
 
@@ -923,7 +1079,7 @@ const HomePage = () => {
                             type="number"
                             value={account.currentBalance || ''}
                             onChange={(e) =>
-                              actions.updateAccount({
+                              handleAccountUpdate({
                                 ...account,
                                 currentBalance: parseFloat(e.target.value) || 0,
                               })
@@ -967,7 +1123,7 @@ const HomePage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => actions.setCurrentPage('monthly')}
+                    onClick={() => actions.setCurrentPage('accounts')}
                   >
                     Manage Accounts
                   </Button>
@@ -1119,6 +1275,13 @@ const HomePage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Account Modal for quick account creation */}
+      <AccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        onAccountCreated={handleAccountCreated}
+      />
 
       {/* Collapsible Legal Disclaimer Footer */}
       <footer className="legal-disclaimer-footer" style={{

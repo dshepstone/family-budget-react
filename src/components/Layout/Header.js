@@ -1,17 +1,29 @@
-// src/components/Layout/Header.js - Fixed Net Monthly Calculation with Privacy Badge
-import React, { useState } from 'react';
+// src/components/Layout/Header.js - Fixed hooks order, height sync, privacy badge
+import React, { useEffect, useRef, useState } from 'react';
 import { useBudget } from '../../context/BudgetContext';
 import { APP_NAME, APP_VERSION } from '../../utils/constants';
+import { useTheme } from '../../context/ThemeContext';
 
 const Header = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
+  const { theme, toggleTheme } = useTheme(); // ✅ hook called unconditionally
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  
-  // Privacy notice state
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+  const ref = useRef(null);
 
-  // Check if user has acknowledged privacy notice
-  React.useEffect(() => {
+  // Measure header height and expose as CSS var so nav/content can offset
+  useEffect(() => {
+    const updateVar = () => {
+      const h = ref.current?.offsetHeight || 0;
+      document.documentElement.style.setProperty('--header-height', `${h}px`);
+    };
+    updateVar();
+    window.addEventListener('resize', updateVar);
+    return () => window.removeEventListener('resize', updateVar);
+  }, []);
+
+  // Show privacy notice once unless acknowledged
+  useEffect(() => {
     const privacyAcknowledged = localStorage.getItem('privacy-notice-acknowledged');
     if (!privacyAcknowledged) {
       setShowPrivacyNotice(true);
@@ -24,31 +36,29 @@ const Header = () => {
   };
 
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
   ];
 
   const handleThemeToggle = () => {
-    actions.toggleTheme();
+    // Toggle both ThemeContext and any legacy BudgetContext theme
+    try { toggleTheme(); } catch {}
+    try { actions?.toggleTheme?.(); } catch {}
   };
 
-  const handleMonthChange = (event) => {
-    setCurrentMonth(parseInt(event.target.value));
-    // You can add month-specific logic here if needed
+  const handleMonthChange = (e) => {
+    setCurrentMonth(parseInt(e.target.value, 10));
   };
 
-  // Calculate projected monthly income using the same logic as Income Sources page
+  // Month-aware projected income (mirrors IncomePage logic)
   const getProjectedNetMonthlyIncome = () => {
     try {
-      // Get total PROJECTED income using the same calculation as Income Sources page
       const income = state.data.income || [];
       const totalProjectedIncome = income.reduce((total, item) => {
-        // Use the same month-aware calculation as Income Sources page
         const hasDates = Array.isArray(item.payDates) && item.payDates.length > 0;
-        const perCheckProjected = parseFloat(item.projectedAmount || item.amount || 0);
-
+        const perCheckProjected = Number.parseFloat(item.projectedAmount ?? item.amount ?? 0) || 0;
         let monthlyProjected = 0;
-        
+
         switch (item.frequency) {
           case 'weekly':
             monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * (52 / 12);
@@ -56,8 +66,11 @@ const Header = () => {
           case 'bi-weekly':
             monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * (26 / 12);
             break;
+          case 'semi-monthly':
+            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * 2;
+            break;
           case 'monthly':
-            monthlyProjected = perCheckProjected;
+            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected;
             break;
           case 'quarterly':
             monthlyProjected = perCheckProjected / 3;
@@ -74,35 +87,18 @@ const Header = () => {
           default:
             monthlyProjected = perCheckProjected;
         }
-
-        console.log(`Header Income Calculation: ${item.name}
-          - Per Check: ${formatCurrency(perCheckProjected)}
-          - Frequency: ${item.frequency}
-          - Pay Dates: ${item.payDates?.length || 0}
-          - Monthly Total: ${formatCurrency(monthlyProjected)}`);
-        
         return total + monthlyProjected;
       }, 0);
 
-      // Get expenses using BudgetContext calculations
       const monthlyExpenses = calculations.getTotalMonthlyExpenses();
-      const annualImpact = calculations.getMonthlyAnnualImpact();
-      
-      console.log(`Header Final Calculations:
-        - Total Projected Income: ${formatCurrency(totalProjectedIncome)}
-        - Monthly Expenses: ${formatCurrency(monthlyExpenses)}
-        - Annual Impact (Monthly): ${formatCurrency(annualImpact)}
-        - Net Income: ${formatCurrency(totalProjectedIncome - monthlyExpenses - annualImpact)}`);
-      
-      // Calculate projected net income for the month
+      const annualImpact = calculations.getMonthlyAnnualImpact
+        ? calculations.getMonthlyAnnualImpact()
+        : (calculations.getTotalAnnualExpenses ? calculations.getTotalAnnualExpenses() / 12 : 0);
+
       const projectedNetIncome = totalProjectedIncome - monthlyExpenses - annualImpact;
-      
-      return {
-        netIncome: projectedNetIncome,
-        totalIncome: totalProjectedIncome
-      };
-    } catch (error) {
-      console.error('Error calculating projected net monthly income:', error);
+      return { netIncome: projectedNetIncome, totalIncome: totalProjectedIncome };
+    } catch (err) {
+      console.error('Error calculating projected net monthly income:', err);
       return { netIncome: 0, totalIncome: 0 };
     }
   };
@@ -111,44 +107,48 @@ const Header = () => {
   const netMonthlyIncome = projectedBudget.netIncome;
   const totalProjectedIncome = projectedBudget.totalIncome;
 
-  // Get some additional useful stats for the header
-  const getTotalMonthlyExpenses = () => {
+  const totalExpenses = (() => {
     try {
-      return calculations.getTotalMonthlyExpenses() + calculations.getMonthlyAnnualImpact();
-    } catch (error) {
+      const monthly = calculations.getTotalMonthlyExpenses();
+      const annualImpact = calculations.getMonthlyAnnualImpact
+        ? calculations.getMonthlyAnnualImpact()
+        : (calculations.getTotalAnnualExpenses ? calculations.getTotalAnnualExpenses() / 12 : 0);
+      return monthly + annualImpact;
+    } catch {
       return 0;
     }
-  };
-
-  const totalExpenses = getTotalMonthlyExpenses();
+  })();
 
   return (
     <>
       {/* Privacy Notice Modal */}
       {showPrivacyNotice && (
-        <div className="privacy-notice-overlay" style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '1rem'
-        }}>
-          <div className="privacy-notice-modal" style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '2rem',
-            maxWidth: '600px',
-            width: '100%',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
-          }}>
+        <div
+          className="privacy-notice-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem'
+          }}
+        >
+          <div
+            className="privacy-notice-modal"
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '2rem',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
+            }}
+          >
             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
               <h2 style={{ color: '#2563eb', marginBottom: '0.5rem' }}>Your Privacy is Protected</h2>
@@ -157,7 +157,7 @@ const Header = () => {
 
             <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
               <h3 style={{ color: '#1f2937', marginBottom: '1rem', fontSize: '1.2rem' }}>🛡️ Complete Privacy Guarantee</h3>
-              
+
               <div style={{ backgroundColor: '#f0f9ff', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #0ea5e9' }}>
                 <strong style={{ color: '#0369a1' }}>✅ Your data NEVER leaves your device</strong>
                 <ul style={{ margin: '0.5rem 0 0 1rem', color: '#374151' }}>
@@ -200,8 +200,8 @@ const Header = () => {
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
                 }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#2563eb')}
               >
                 I Understand - Continue to Budget App
               </button>
@@ -210,52 +210,46 @@ const Header = () => {
         </div>
       )}
 
-      <header className="app-header">
+      <header ref={ref} className="app-header">
         {/* Privacy Badge in Upper Right Corner */}
-        <div className="privacy-badge" style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#059669',
-          color: 'white',
-          padding: '0.375rem 0.75rem',
-          borderRadius: '20px',
-          fontSize: '0.75rem',
-          fontWeight: '600',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}
-        onClick={() => setShowPrivacyNotice(true)}
-        onMouseOver={(e) => {
-          e.target.style.backgroundColor = '#047857';
-          e.target.style.transform = 'translateY(-1px)';
-          e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-        }}
-        onMouseOut={(e) => {
-          e.target.style.backgroundColor = '#059669';
-          e.target.style.transform = 'translateY(0px)';
-          e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-        }}
+        <div
+          className="privacy-badge"
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            backgroundColor: '#059669',
+            color: 'white',
+            padding: '0.375rem 0.75rem',
+            borderRadius: '20px',
+            fontSize: '0.75rem',
+            fontWeight: '600',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            zIndex: 1000,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}
+          onClick={() => setShowPrivacyNotice(true)}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#047857';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#059669';
+            e.currentTarget.style.transform = 'translateY(0px)';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+          }}
         >
           🔒 Private
         </div>
 
         <div className="header-content">
           {/* Theme Toggle */}
-          <button 
-            className="theme-toggle"
-            onClick={handleThemeToggle}
-            aria-label="Toggle theme"
-          >
-            <span className="theme-icon">
-              {state.theme === 'light' ? '🌙' : '☀️'}
-            </span>
-            <span className="theme-toggle-text">
-              {state.theme === 'light' ? 'Dark' : 'Light'}
-            </span>
+          <button className="theme-toggle" onClick={handleThemeToggle} aria-label="Toggle theme">
+            <span className="theme-icon">{theme === 'light' ? '🌙' : '☀️'}</span>
+            <span className="theme-toggle-text">{theme === 'light' ? 'Dark' : 'Light'}</span>
           </button>
 
           {/* App Title and Logo */}
@@ -269,24 +263,15 @@ const Header = () => {
 
           {/* Month Selector */}
           <div className="month-selector">
-            <label htmlFor="budget-month" className="month-label">
-              Budget Month:
-            </label>
-            <select
-              id="budget-month"
-              value={currentMonth}
-              onChange={handleMonthChange}
-              className="month-select"
-            >
+            <label htmlFor="budget-month" className="month-label">Budget Month:</label>
+            <select id="budget-month" value={currentMonth} onChange={handleMonthChange} className="month-select">
               {months.map((month, index) => (
-                <option key={index} value={index}>
-                  {month}
-                </option>
+                <option key={index} value={index}>{month}</option>
               ))}
             </select>
           </div>
 
-          {/* Enhanced Quick Stats with Better Contrast */}
+          {/* Enhanced Quick Stats */}
           <div className="header-stats">
             <div className="stat-item">
               <span className="stat-label">Net Monthly:</span>
@@ -294,21 +279,18 @@ const Header = () => {
                 {formatCurrency(netMonthlyIncome)}
               </span>
             </div>
-            
             <div className="stat-item">
               <span className="stat-label">Projected Income:</span>
               <span className="stat-value income-value">
                 {formatCurrency(totalProjectedIncome)}
               </span>
             </div>
-            
             <div className="stat-item">
               <span className="stat-label">Total Expenses:</span>
               <span className="stat-value expense-value">
                 {formatCurrency(totalExpenses)}
               </span>
             </div>
-            
             <div className="stat-item">
               <span className="stat-label">Budget Health:</span>
               <span className={`stat-value health-indicator ${netMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
