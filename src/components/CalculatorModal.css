@@ -1,5 +1,8 @@
-/* src/components/CalculatorModal.css */
+/* src/components/CalculatorModal.css - Complete Calculator Styles (Consolidated) */
 
+/* ===============================================
+   CALCULATOR BACKDROP AND MODAL
+   =============================================== */
 .calculator-backdrop {
     position: fixed;
     top: 0;
@@ -7,29 +10,38 @@
     right: 0;
     bottom: 0;
     background: transparent;
-    /* This makes the backdrop invisible */
-    z-index: 9999;
+    z-index: 2147483646;
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding-top: 15vh;
-    /* FIX: Allows clicks to pass through the backdrop */
+    padding-top: 10vh;
     pointer-events: none;
 }
 
 .calculator-modal {
     position: relative;
-    z-index: 10001;
+    z-index: 2147483647;
     color: #ffffff;
     background: #2c3e50;
     border-radius: 12px;
     padding: 20px;
-    width: 300px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
     animation: calculatorSlideIn 0.3s ease-out;
-    /* FIX: Re-enables clicks for the modal window itself */
     pointer-events: auto;
+    max-height: 90vh;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    isolation: isolate;
+    contain: layout style paint;
+    user-select: none;
+}
+
+.calculator-modal.enhanced {
+    width: auto;
+    min-width: 320px;
+    max-width: 700px;
 }
 
 @keyframes calculatorSlideIn {
@@ -37,13 +49,15 @@
         opacity: 0;
         transform: translateY(-20px) scale(0.95);
     }
-
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
 }
 
+/* ===============================================
+   CALCULATOR HEADER
+   =============================================== */
 .calculator-header {
     display: flex;
     justify-content: space-between;
@@ -53,6 +67,92 @@
     padding: 0.5rem;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 1;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.hamburger-menu {
+    background: rgba(52, 152, 219, 0.8);
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    line-height: 1;
+    font-weight: bold;
+    user-select: none;
+    position: relative;
+    z-index: 2;
+}
+
+.hamburger-menu:hover {
+    background: rgba(52, 152, 219, 1);
+    transform: scale(1.05);
+}
+
+.hamburger-menu:active {
+    transform: scale(0.98);
+}
+
+.hamburger-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    background: #34495e;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 2147483647;
+    min-width: 200px;
+    animation: dropdownSlideIn 0.2s ease-out;
+    transform: none;
+    will-change: auto;
+}
+
+@keyframes dropdownSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menu-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    color: #ffffff;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    user-select: none;
+}
+
+.menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item:active {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .calculator-header h4 {
@@ -60,6 +160,30 @@
     font-size: 1.1rem;
     color: #ffffff;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.memory-indicator {
+    background: #e74c3c;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    animation: memoryPulse 2s infinite;
+}
+
+@keyframes memoryPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .close-button {
@@ -83,91 +207,344 @@
     transform: scale(1.1);
 }
 
-/* Enhanced display as input field for copy/paste and typing */
+/* ===============================================
+   CALCULATOR CONTENT
+   =============================================== */
+.calculator-content {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    overflow: visible;
+}
+
+/* ===============================================
+   HISTORY PANEL
+   =============================================== */
+.history-panel {
+    width: 300px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 500px;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.history-header span {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.close-history {
+    background: rgba(231, 76, 60, 0.8);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.close-history:hover {
+    background: rgba(231, 76, 60, 1);
+}
+
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.history-empty {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 2rem 0;
+}
+
+.history-item {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.history-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(2px);
+}
+
+.history-item.error {
+    border-left-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.history-item.memory {
+    border-left-color: #f39c12;
+    background: rgba(243, 156, 18, 0.1);
+}
+
+.history-item:not(.error):not(.memory) {
+    border-left-color: #27ae60;
+}
+
+.history-expression {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.25rem;
+    word-break: break-all;
+}
+
+.history-result {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    margin-bottom: 0.25rem;
+}
+
+.history-time {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===============================================
+   CALCULATOR PANEL
+   =============================================== */
+.calculator-panel {
+    flex: 1;
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===============================================
+   DISPLAY CONTAINER (Windows-like)
+   =============================================== */
+.display-container {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+/* ===============================================
+   PREVIOUS EXPRESSION DISPLAY (Windows-like)
+   =============================================== */
+.previous-expression {
+    width: 100%;
+    padding: 6px 15px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    text-align: right;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    word-break: break-all;
+    line-height: 1.2;
+}
+
+/* ===============================================
+   CALCULATOR DISPLAY
+   =============================================== */
 .calculator-display {
     width: 100%;
-    background: #34495e;
-    color: #ffffff;
-    font-size: 1.5rem;
-    padding: 12px 15px;
-    text-align: right;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    margin-bottom: 15px;
-    overflow-x: auto;
-    white-space: nowrap;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    min-height: 50px;
-    box-sizing: border-box;
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    text-align: right;
     outline: none;
-    cursor: text;
     transition: all 0.2s ease;
+    resize: none;
+    min-height: 60px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* When there's a previous expression, connect the displays */
+.calculator-display.has-previous {
+    border-radius: 0 0 8px 8px;
+    border-top: none;
 }
 
 .calculator-display:focus {
-    border-color: #4CAF50;
-    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+    border-color: rgba(52, 152, 219, 0.8);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.calculator-display:focus.has-previous {
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* Focus state for previous expression when main display is focused */
+.display-container:focus-within .previous-expression {
+    border-color: rgba(52, 152, 219, 0.8);
+    background: rgba(52, 152, 219, 0.05);
 }
 
 .calculator-display.error {
+    border-color: rgba(231, 76, 60, 0.8);
     color: #e74c3c;
-    border-color: #e74c3c;
-    animation: shake 0.5s ease-in-out;
+    animation: errorShake 0.5s ease-in-out;
 }
 
-@keyframes shake {
+.calculator-display.error.has-previous {
+    border-color: rgba(231, 76, 60, 0.8);
+}
+
+.calculator-display.error.has-previous + .previous-expression,
+.display-container:has(.calculator-display.error) .previous-expression {
+    border-color: rgba(231, 76, 60, 0.8);
+    background: rgba(231, 76, 60, 0.05);
+}
+
+@keyframes errorShake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
 }
 
+/* ===============================================
+   MEMORY CONTROLS
+   =============================================== */
+.memory-controls {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.memory-btn {
+    background: rgba(243, 156, 18, 0.8);
+    border: 1px solid rgba(243, 156, 18, 0.6);
+    color: #ffffff;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 36px;
+}
+
+.memory-btn:hover:not(:disabled) {
+    background: rgba(243, 156, 18, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.memory-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===============================================
+   KEYPAD GRID (Fixed Layout)
+   =============================================== */
 .keypad-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 15px;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .keypad-button {
-    background: #34495e;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #ffffff;
-    font-size: 1rem;
-    border-radius: 6px;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    height: 45px;
-    font-weight: 600;
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
-    user-select: none;
 }
 
 .keypad-button:hover {
-    background: #4a6fa5;
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .keypad-button:active {
     transform: translateY(0);
 }
 
+/* Clear button (C) */
 .keypad-button.clear {
     background-color: #e74c3c;
     color: white;
-    grid-column: span 2;
 }
 
 .keypad-button.clear:hover {
     background-color: #c0392b;
 }
 
+/* Clear Entry button (CE) */
+.keypad-button.clear-entry {
+    background-color: #e67e22;
+    color: white;
+}
+
+.keypad-button.clear-entry:hover {
+    background-color: #d35400;
+}
+
 /* Backspace button */
 .keypad-button.backspace {
     background-color: #f39c12;
     color: white;
-    grid-column: span 2;
     font-size: 1.1rem;
 }
 
@@ -175,61 +552,275 @@
     background-color: #e67e22;
 }
 
-/* Operator buttons (/, *, -, +) */
-.keypad-button:nth-child(4),   /* / */
-.keypad-button:nth-child(8),   /* * */
-.keypad-button:nth-child(12),  /* - */
-.keypad-button:nth-last-child(1) { /* + */
-    background-color: #27ae60;
+/* Number buttons */
+.keypad-button.number {
+    background: rgba(255, 255, 255, 0.15);
+    font-size: 1.2rem;
 }
 
-.keypad-button:nth-child(4):hover,
-.keypad-button:nth-child(8):hover,
-.keypad-button:nth-child(12):hover,
-.keypad-button:nth-last-child(1):hover {
+.keypad-button.number:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Zero button spans 2 columns */
+.keypad-button.number.zero {
+    grid-column: span 2;
+}
+
+/* Operator buttons */
+.keypad-button.operator {
+    background-color: #27ae60;
+    font-size: 1.3rem;
+}
+
+.keypad-button.operator:hover {
     background-color: #219a52;
 }
 
-/* Equals button */
-.keypad-button:nth-last-child(2) {
+/* Equals button - NO grid-row span to fix layout */
+.keypad-button.equals {
     background-color: #3498db;
     color: white;
+    font-size: 1.3rem;
 }
 
-.keypad-button:nth-last-child(2):hover {
+.keypad-button.equals:hover {
     background-color: #2980b9;
 }
 
-/* Instructions */
+/* ===============================================
+   INSTRUCTIONS
+   =============================================== */
 .calculator-instructions {
     text-align: center;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
-    line-height: 1.3;
-    margin-top: 10px;
-    padding: 8px;
+    font-size: 10px;
+    line-height: 1.4;
+    padding: 0.75rem;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Responsive design */
-@media (max-width: 400px) {
-    .calculator-modal {
-        width: 90%;
-        max-width: 280px;
+.calculator-instructions strong {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ===============================================
+   CALCULATOR TOGGLE BUTTON (Floating)
+   =============================================== */
+.calculator-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: var(--primary, #3498db);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calculator-toggle-btn:hover {
+    background: var(--primary-dark, #2980b9);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ===============================================
+   DARK THEME OVERRIDES
+   =============================================== */
+[data-theme="dark"] .calculator-modal {
+    background: #1a252f;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .calculator-display {
+    background: #0d1117;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .previous-expression {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .keypad-button {
+    background: #21262d;
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .keypad-button:hover {
+    background: #30363d;
+}
+
+/* ===============================================
+   RESPONSIVE DESIGN
+   =============================================== */
+@media (max-width: 768px) {
+    .calculator-modal.enhanced {
+        width: 95vw;
+        max-width: none;
+        max-height: 95vh;
+    }
+    
+    .calculator-content {
+        flex-direction: column;
+    }
+    
+    .history-panel {
+        width: 100%;
+        max-height: 200px;
+        order: 2;
+    }
+    
+    .calculator-panel {
+        order: 1;
+        min-width: auto;
     }
     
     .keypad-button {
-        height: 40px;
+        padding: 0.75rem;
+        font-size: 1rem;
+        min-height: 45px;
+    }
+    
+    .calculator-display {
+        font-size: 1.5rem;
+        min-height: 50px;
+        padding: 12px;
+    }
+    
+    .display-container {
+        margin-bottom: 12px;
+    }
+    
+    .previous-expression {
+        font-size: 0.7rem;
+        min-height: 18px;
+        padding: 4px 12px;
+    }
+    
+    .memory-controls {
+        gap: 0.25rem;
+    }
+    
+    .memory-btn {
+        padding: 0.4rem;
+        font-size: 0.7rem;
+        min-height: 32px;
+    }
+    
+    .calculator-instructions {
+        font-size: 9px;
+        padding: 0.5rem;
+    }
+    
+    .hamburger-menu {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+    
+    .hamburger-dropdown {
+        min-width: 180px;
+        z-index: 2147483647;
+    }
+}
+
+@media (max-width: 480px) {
+    .calculator-backdrop {
+        padding: 5px;
+        align-items: flex-start;
+    }
+    
+    .calculator-modal {
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .keypad-grid {
+        gap: 0.5rem;
+    }
+    
+    .keypad-button {
+        padding: 0.6rem;
         font-size: 0.9rem;
+        min-height: 40px;
     }
     
     .calculator-display {
         font-size: 1.3rem;
+        padding: 10px;
         min-height: 45px;
     }
     
-    .calculator-instructions {
-        font-size: 10px;
+    .display-container {
+        margin-bottom: 10px;
+    }
+    
+    .previous-expression {
+        font-size: 0.65rem;
+        min-height: 16px;
+        padding: 3px 10px;
+    }
+    
+    .history-panel {
+        max-height: 150px;
+    }
+    
+    .memory-btn {
+        font-size: 0.65rem;
+        min-height: 28px;
+    }
+    
+    .hamburger-dropdown {
+        min-width: 160px;
+        left: 0;
+        z-index: 2147483647;
+    }
+    
+    .menu-item {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* ===============================================
+   FRAMEWORK OVERRIDE PROTECTION
+   =============================================== */
+.MuiModal-root .calculator-modal,
+.modal-backdrop .calculator-modal,
+.ant-modal-mask .calculator-modal {
+    z-index: 2147483647 !important;
+}
+
+.calculator-modal .calculator-container {
+    pointer-events: auto !important;
+    user-select: auto;
+}
+
+.page-transition .calculator-modal {
+    z-index: 2147483647 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+/* ===============================================
+   PRINT STYLES
+   =============================================== */
+@media print {
+    .calculator-modal,
+    .calculator-toggle-btn {
+        display: none !important;
     }
 }

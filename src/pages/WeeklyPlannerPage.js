@@ -1,8 +1,7 @@
-// src/pages/WeeklyPlannerPage.js - Complete Integration with Fixed Income Calculations
+// src/pages/WeeklyPlannerPage.js - Enhanced with Actual vs Projected Income Logic
 import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { WeeklyPlannerPrint } from '../utils/printUtils';
-
 
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
@@ -33,7 +32,7 @@ const WeeklyPlannerPage = () => {
 
   const { month: currentMonth, year: currentYear } = getBudgetMonthYear();
 
-  // FIXED: Get weekly income amounts using actual pay dates from IncomePage.js
+  // ENHANCED: Get weekly income amounts using ACTUAL vs PROJECTED logic
   const getWeeklyIncomeAmounts = useCallback(() => {
     const weeklyIncome = [0, 0, 0, 0, 0];
 
@@ -45,115 +44,258 @@ const WeeklyPlannerPage = () => {
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Process each income source
+    // Process each income source with ACTUAL vs PROJECTED priority
     (state.data.income || []).forEach(income => {
-      // First priority: Use actual pay dates if available (this is the most accurate)
       const payDates = Array.isArray(income.payDates) ? income.payDates : [];
-      const perPayAmount = parseAmount(income.projectedAmount || income.amount);
+      const perPayProjected = parseAmount(income.projectedAmount || income.amount);
+      const perPayActual = parseAmount(income.actualAmount);
 
-      if (payDates.length > 0) {
-        // Distribute based on actual pay dates within the current month
-        payDates.forEach(dateStr => {
-          // Parse date string manually to avoid timezone issues
-          // Format: "YYYY-MM-DD"
-          const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
-          const payMonth = month - 1; // Convert to 0-indexed month
-          const payYear = year;
-          const dayOfMonth = day;
-          
-          // Only process dates that are in the current month being viewed
-          if (payMonth === currentMonth && payYear === currentYear) {
+      // PRIORITY 1: Use actual pay dates with actual amounts if available (most accurate)
+      if (payDates.length > 0 && Array.isArray(income.payActuals) && income.payActuals.length > 0) {
+        payDates.forEach((dateStr, index) => {
+          if (income.payActuals[index] !== undefined && income.payActuals[index] !== null) {
+            // Parse date string manually to avoid timezone issues
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1; // Convert to 0-indexed month
+            const payYear = year;
+            const dayOfMonth = day;
             
-            // Calculate which week this date falls into based on the actual week ranges
-            // Week 1: 1-7, Week 2: 8-14, Week 3: 15-21, Week 4: 22-28, Week 5: 29+
-            let weekIndex;
-            if (dayOfMonth >= 1 && dayOfMonth <= 7) {
-              weekIndex = 0; // Week 1: days 1-7
-            } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
-              weekIndex = 1; // Week 2: days 8-14
-            } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
-              weekIndex = 2; // Week 3: days 15-21
-            } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
-              weekIndex = 3; // Week 4: days 22-28
-            } else if (dayOfMonth >= 29) {
-              weekIndex = 4; // Week 5: days 29+
+            // Only process dates that are in the current month being viewed
+            if (payMonth === currentMonth && payYear === currentYear) {
+              // Calculate which week this date falls into
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+                weekIndex = 0; // Week 1: days 1-7
+              } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+                weekIndex = 1; // Week 2: days 8-14
+              } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+                weekIndex = 2; // Week 3: days 15-21
+              } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+                weekIndex = 3; // Week 4: days 22-28
+              } else if (dayOfMonth >= 29) {
+                weekIndex = 4; // Week 5: days 29+
+              }
+              
+              if (weekIndex >= 0 && weekIndex < 5) {
+                const actualAmount = parseAmount(income.payActuals[index]);
+                weeklyIncome[weekIndex] += actualAmount;
+              }
             }
+          } else {
+            // Fall back to projected for this specific pay date
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1;
+            const payYear = year;
+            const dayOfMonth = day;
             
-            if (weekIndex >= 0 && weekIndex < 5) {
-              weeklyIncome[weekIndex] += perPayAmount;
+            if (payMonth === currentMonth && payYear === currentYear) {
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+                weekIndex = 0;
+              } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+                weekIndex = 1;
+              } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+                weekIndex = 2;
+              } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+                weekIndex = 3;
+              } else if (dayOfMonth >= 29) {
+                weekIndex = 4;
+              }
+              
+              if (weekIndex >= 0 && weekIndex < 5) {
+                weeklyIncome[weekIndex] += perPayProjected;
+              }
             }
           }
         });
-      } else if (income.weeks && Array.isArray(income.weeks)) {
-        // Second priority: Use manually set weekly amounts only if no pay dates
-        income.weeks.forEach((amount, index) => {
-          if (index < 5) {
-            weeklyIncome[index] += parseAmount(amount);
+      }
+      // PRIORITY 2: Use actual mode with overall actual amount
+      else if (income.actualMode === 'monthly-total' && perPayActual > 0) {
+        // Distribute the monthly actual total across pay periods based on frequency
+        if (payDates.length > 0) {
+          // Distribute actual amount across specific pay dates
+          const actualPerCheck = perPayActual / payDates.length;
+          payDates.forEach(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1;
+            const payYear = year;
+            const dayOfMonth = day;
+            
+            if (payMonth === currentMonth && payYear === currentYear) {
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+                weekIndex = 0;
+              } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+                weekIndex = 1;
+              } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+                weekIndex = 2;
+              } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+                weekIndex = 3;
+              } else if (dayOfMonth >= 29) {
+                weekIndex = 4;
+              }
+              
+              if (weekIndex >= 0 && weekIndex < 5) {
+                weeklyIncome[weekIndex] += actualPerCheck;
+              }
+            }
+          });
+        } else {
+          // Distribute evenly across 4 weeks if no specific dates
+          const weeklyAmount = perPayActual / 4;
+          for (let i = 0; i < 4; i++) {
+            weeklyIncome[i] += weeklyAmount;
           }
-        });
-      } else {
-        // Fallback: Distribute based on frequency pattern when no specific dates
-        let monthlyAmount = 0;
-        
-        // Calculate monthly amount using same logic as IncomePage.js
-        switch (income.frequency) {
-          case 'weekly':
-            monthlyAmount = perPayAmount * (52 / 12);
-            break;
-          case 'bi-weekly':
-            monthlyAmount = perPayAmount * (26 / 12);
-            break;
-          case 'monthly':
-            monthlyAmount = perPayAmount;
-            break;
-          case 'quarterly':
-            monthlyAmount = perPayAmount / 3;
-            break;
-          case 'semi-annual':
-            monthlyAmount = perPayAmount / 6;
-            break;
-          case 'annual':
-            monthlyAmount = perPayAmount / 12;
-            break;
-          case 'one-time':
-            monthlyAmount = 0;
-            break;
-          default:
-            monthlyAmount = perPayAmount;
         }
+      }
+      // PRIORITY 3: Use per-paycheck actual amount
+      else if (perPayActual > 0) {
+        if (payDates.length > 0) {
+          payDates.forEach(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1;
+            const payYear = year;
+            const dayOfMonth = day;
+            
+            if (payMonth === currentMonth && payYear === currentYear) {
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+                weekIndex = 0;
+              } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+                weekIndex = 1;
+              } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+                weekIndex = 2;
+              } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+                weekIndex = 3;
+              } else if (dayOfMonth >= 29) {
+                weekIndex = 4;
+              }
+              
+              if (weekIndex >= 0 && weekIndex < 5) {
+                weeklyIncome[weekIndex] += perPayActual;
+              }
+            }
+          });
+        } else {
+          // Distribute based on frequency pattern
+          switch (income.frequency) {
+            case 'weekly':
+              for (let i = 0; i < 4; i++) {
+                weeklyIncome[i] += perPayActual;
+              }
+              break;
+            case 'bi-weekly':
+              weeklyIncome[0] += perPayActual;
+              weeklyIncome[2] += perPayActual;
+              break;
+            case 'semi-monthly':
+              weeklyIncome[0] += perPayActual;
+              weeklyIncome[2] += perPayActual;
+              break;
+            case 'monthly':
+              weeklyIncome[0] += perPayActual;
+              break;
+            default:
+              const weeklyAmount = perPayActual / 4;
+              for (let i = 0; i < 4; i++) {
+                weeklyIncome[i] += weeklyAmount;
+              }
+          }
+        }
+      }
+      // PRIORITY 4: Use projected amounts as fallback when no actual amounts available
+      else {
+        if (payDates.length > 0) {
+          payDates.forEach(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1;
+            const payYear = year;
+            const dayOfMonth = day;
+            
+            if (payMonth === currentMonth && payYear === currentYear) {
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) {
+                weekIndex = 0;
+              } else if (dayOfMonth >= 8 && dayOfMonth <= 14) {
+                weekIndex = 1;
+              } else if (dayOfMonth >= 15 && dayOfMonth <= 21) {
+                weekIndex = 2;
+              } else if (dayOfMonth >= 22 && dayOfMonth <= 28) {
+                weekIndex = 3;
+              } else if (dayOfMonth >= 29) {
+                weekIndex = 4;
+              }
+              
+              if (weekIndex >= 0 && weekIndex < 5) {
+                weeklyIncome[weekIndex] += perPayProjected;
+              }
+            }
+          });
+        } else if (income.weeks && Array.isArray(income.weeks)) {
+          // Use manually set weekly amounts if no pay dates
+          income.weeks.forEach((amount, index) => {
+            if (index < 5) {
+              weeklyIncome[index] += parseAmount(amount);
+            }
+          });
+        } else {
+          // Fallback: Distribute based on frequency pattern when no specific dates
+          let monthlyAmount = 0;
+          
+          // Calculate monthly amount using same logic as IncomePage.js
+          switch (income.frequency) {
+            case 'weekly':
+              monthlyAmount = perPayProjected * (52 / 12);
+              break;
+            case 'bi-weekly':
+              monthlyAmount = perPayProjected * (26 / 12);
+              break;
+            case 'monthly':
+              monthlyAmount = perPayProjected;
+              break;
+            case 'quarterly':
+              monthlyAmount = perPayProjected / 3;
+              break;
+            case 'semi-annual':
+              monthlyAmount = perPayProjected / 6;
+              break;
+            case 'annual':
+              monthlyAmount = perPayProjected / 12;
+              break;
+            case 'one-time':
+              monthlyAmount = 0;
+              break;
+            default:
+              monthlyAmount = perPayProjected;
+          }
 
-        // Distribute based on frequency pattern
-        switch (income.frequency) {
-          case 'weekly':
-            // Distribute weekly income across 4-5 weeks
-            const weeklyAmount = monthlyAmount / 4.33;
-            for (let i = 0; i < 4; i++) {
-              weeklyIncome[i] += weeklyAmount;
-            }
-            break;
-            
-          case 'bi-weekly':
-            // Typical bi-weekly: weeks 1 and 3, with potential third paycheck in week 5
-            weeklyIncome[0] += perPayAmount;
-            weeklyIncome[2] += perPayAmount;
-            
-            // Handle third paycheck months (2-3 times per year)
-            if (monthlyAmount > perPayAmount * 2) {
-              weeklyIncome[4] += (monthlyAmount - perPayAmount * 2);
-            }
-            break;
-            
-          case 'monthly':
-            // Most monthly income comes in first week by default
-            weeklyIncome[0] += monthlyAmount;
-            break;
-            
-          default:
-            // Distribute evenly across first 4 weeks
-            const evenAmount = monthlyAmount / 4;
-            for (let i = 0; i < 4; i++) {
-              weeklyIncome[i] += evenAmount;
-            }
+          // Distribute based on frequency pattern
+          switch (income.frequency) {
+            case 'weekly':
+              const weeklyAmount = monthlyAmount / 4.33;
+              for (let i = 0; i < 4; i++) {
+                weeklyIncome[i] += weeklyAmount;
+              }
+              break;
+              
+            case 'bi-weekly':
+              weeklyIncome[0] += perPayProjected;
+              weeklyIncome[2] += perPayProjected;
+              if (monthlyAmount > perPayProjected * 2) {
+                weeklyIncome[4] += (monthlyAmount - perPayProjected * 2);
+              }
+              break;
+              
+            case 'monthly':
+              weeklyIncome[0] += monthlyAmount;
+              break;
+              
+            default:
+              const evenAmount = monthlyAmount / 4;
+              for (let i = 0; i < 4; i++) {
+                weeklyIncome[i] += evenAmount;
+              }
+          }
         }
       }
     });
@@ -494,12 +636,13 @@ const WeeklyPlannerPage = () => {
   };
 
   const weekTotals = calculateWeekTotals();
-  // FIXED: Use the improved weekly income calculation
+  // ENHANCED: Use the improved weekly income calculation with actual vs projected logic
   const weeklyIncome = getWeeklyIncomeAmounts();
   const groupedExpenses = groupExpensesByCategory();
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+      {/* All the existing styles from your original file */}
       <style>{`
         .weekly-planner-page {
           padding: 20px;
@@ -565,76 +708,75 @@ const WeeklyPlannerPage = () => {
           min-width: 1200px;
         }
 
-   .planner-table th,
-.planner-table td {
-  padding: 8px;
-  border: 1px solid #dee2e6;
-  text-align: center;
-  vertical-align: middle;
-}
+        .planner-table th,
+        .planner-table td {
+          padding: 8px;
+          border: 1px solid #dee2e6;
+          text-align: center;
+          vertical-align: middle;
+        }
 
-.planner-table th {
-  background-color: #007bff;
-  color: white;
-  font-weight: 600;
-  font-size: 0.85rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
+        .planner-table th {
+          background-color: #007bff;
+          color: white;
+          font-weight: 600;
+          font-size: 0.85rem;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
 
-.planner-table th:first-child {
-  text-align: left;
-  width: 25%;
-}
+        .planner-table th:first-child {
+          text-align: left;
+          width: 25%;
+        }
 
-.planner-table th.status-header {
-  min-width: 60px;
-  font-size: 0.8rem;
-}
+        .planner-table th.status-header {
+          min-width: 60px;
+          font-size: 0.8rem;
+        }
 
-.week-date-range-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 4px 0;
-}
+        .week-date-range-inputs {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin: 4px 0;
+        }
 
-/* Fixed date input styles with proper specificity */
-.planner-table th .week-date-start,
-.planner-table th .week-date-end {
-  font-size: 0.7rem !important;
-  padding: 1px 2px !important;
-  border: 1px solid rgba(255,255,255,0.5) !important;
-  border-radius: 2px !important;
-  background-color: rgba(255,255,255,0.9) !important;
-  color: #495057 !important;
-  transition: all 0.2s ease;
-  cursor: default;
-  outline: none;
-  /* Override browser date input styling */
-  -webkit-appearance: none;
-  -moz-appearance: textfield;
-  appearance: none;
-}
+        /* Fixed date input styles with proper specificity */
+        .planner-table th .week-date-start,
+        .planner-table th .week-date-end {
+          font-size: 0.7rem !important;
+          padding: 1px 2px !important;
+          border: 1px solid rgba(255,255,255,0.5) !important;
+          border-radius: 2px !important;
+          background-color: rgba(255,255,255,0.9) !important;
+          color: #495057 !important;
+          transition: all 0.2s ease;
+          cursor: default;
+          outline: none;
+          -webkit-appearance: none;
+          -moz-appearance: textfield;
+          appearance: none;
+        }
 
-/* Ensure readability on hover */
-.planner-table th .week-date-start:hover,
-.planner-table th .week-date-end:hover {
-  background-color: white !important;
-  border-color: #007bff !important;
-  color: #495057 !important;
-}
+        /* Ensure readability on hover */
+        .planner-table th .week-date-start:hover,
+        .planner-table th .week-date-end:hover {
+          background-color: white !important;
+          border-color: #007bff !important;
+          color: #495057 !important;
+        }
 
-/* Even when disabled/readonly, keep readable */
-.planner-table th .week-date-start:disabled,
-.planner-table th .week-date-start[readonly],
-.planner-table th .week-date-end:disabled,
-.planner-table th .week-date-end[readonly] {
-  background-color: rgba(255,255,255,0.9) !important;
-  color: #495057 !important;
-  opacity: 1 !important;
-}
+        /* Even when disabled/readonly, keep readable */
+        .planner-table th .week-date-start:disabled,
+        .planner-table th .week-date-start[readonly],
+        .planner-table th .week-date-end:disabled,
+        .planner-table th .week-date-end[readonly] {
+          background-color: rgba(255,255,255,0.9) !important;
+          color: #495057 !important;
+          opacity: 1 !important;
+        }
 
         .category-row {
           background-color: #f8f9fa !important;
@@ -901,6 +1043,22 @@ const WeeklyPlannerPage = () => {
           font-size: 0.8rem;
         }
 
+        /* Enhanced income section with actual/projected indicator */
+        .income-indicator {
+          font-size: 0.75rem;
+          color: #155724;
+          margin-top: 2px;
+          font-style: italic;
+        }
+
+        .actual-income {
+          border-left: 3px solid #28a745;
+        }
+
+        .projected-income {
+          border-left: 3px solid #ffc107;
+        }
+
         @media (max-width: 768px) {
           .page-controls {
             flex-direction: column;
@@ -919,21 +1077,61 @@ const WeeklyPlannerPage = () => {
 
       <h2 className="page-title">📋 Weekly Budget Planner</h2>
 
-      {/* Income Section */}
+      {/* Enhanced Income Section with Actual vs Projected Indicator */}
       <div className="income-section">
-        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>💵 Weekly Income</h3>
+        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>💵 Weekly Income (Actual vs Projected)</h3>
+        <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#155724' }}>
+          ✨ <strong>Smart Income Tracking:</strong> Shows actual amounts when available, falls back to projected amounts as placeholders
+        </p>
         <div className="income-summary">
-          {weeklyIncome.map((income, index) => (
-            <div key={index} className={`income-week ${!weekVisibility[index] ? 'hidden' : ''}`}>
-              <div className="week-label">Week {index + 1}</div>
-              <div style={{ fontWeight: 'bold', color: '#155724' }}>
-                {formatCurrency(income)}
+          {weeklyIncome.map((income, index) => {
+            // Determine if this week has actual or projected data
+            const hasActualData = (state.data.income || []).some(incomeSource => {
+              const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
+              const payActuals = Array.isArray(incomeSource.payActuals) ? incomeSource.payActuals : [];
+              
+              return payDates.some((dateStr, payIndex) => {
+                const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+                const payMonth = month - 1;
+                const payYear = year;
+                const dayOfMonth = day;
+                
+                if (payMonth === currentMonth && payYear === currentYear) {
+                  let weekIndex;
+                  if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                  else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                  else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                  else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                  else if (dayOfMonth >= 29) weekIndex = 4;
+                  
+                  return weekIndex === index && (
+                    (payActuals[payIndex] !== undefined && payActuals[payIndex] !== null) ||
+                    incomeSource.actualAmount > 0
+                  );
+                }
+                return false;
+              });
+            });
+
+            return (
+              <div 
+                key={index} 
+                className={`income-week ${!weekVisibility[index] ? 'hidden' : ''} ${hasActualData ? 'actual-income' : 'projected-income'}`}
+              >
+                <div className="week-label">Week {index + 1}</div>
+                <div style={{ fontWeight: 'bold', color: '#155724' }}>
+                  {formatCurrency(income)}
+                </div>
+                <div className="income-indicator">
+                  {hasActualData ? '✅ Actual' : '📊 Projected'}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
+      {/* Rest of your existing component with all the controls and table */}
       <div className="page-controls">
         <div className="week-visibility-controls">
           <span style={{ fontWeight: '600' }}>Show Weeks:</span>
@@ -972,6 +1170,7 @@ const WeeklyPlannerPage = () => {
         </div>
       </div>
 
+      {/* All your existing table and analysis components remain exactly the same */}
       <div className="planner-table-container">
         {hideZeroRows && (
           <div style={{ 
@@ -1182,9 +1381,9 @@ const WeeklyPlannerPage = () => {
         </table>
       </div>
 
-      {/* Cash Flow Analysis */}
+      {/* Enhanced Cash Flow Analysis */}
       <div className="cash-flow-analysis">
-        <h3>📊 Weekly Cash Flow Summary</h3>
+        <h3>📊 Weekly Cash Flow Summary (Actual vs Projected Income)</h3>
         <div className="cash-flow-grid">
           {Array.from({ length: 5 }, (_, weekIndex) => {
             const income = weeklyIncome[weekIndex] || 0;

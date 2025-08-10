@@ -1,10 +1,11 @@
-// src/hooks/useBudgetCalculations.js - Updated with Month-Aware Income Calculations
+// src/hooks/useBudgetCalculations.js - Enhanced with Weekly Income Logic and Full Compatibility
 import { useMemo } from 'react';
 import { currencyCalculator } from '../plugins/calculators/CurrencyCalculator';
 import { DUE_DATE_THRESHOLDS } from '../utils/constants';
 
 /**
  * Custom hook that provides budget calculation utilities with proper actual vs projected income tracking
+ * Enhanced to work seamlessly with WeeklyPlannerPage actual income logic
  * @param {Object} budgetData - The budget data object
  */
 export function useBudgetCalculations(budgetData) {
@@ -32,7 +33,9 @@ export function useBudgetCalculations(budgetData) {
         getMonthlyProjections: () => ([]),
         getCashFlowProjection: () => ([]),
         getVarianceAnalysis: () => ({}),
-        getTopExpenseCategories: () => ([])
+        getTopExpenseCategories: () => ([]),
+        getWeeklyIncome: () => [0, 0, 0, 0, 0],
+        getWeeklyPlannerTotals: () => []
       };
     }
 
@@ -46,7 +49,7 @@ export function useBudgetCalculations(budgetData) {
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    // Month-aware income calculation (mirrors IncomePage.js logic)
+    // ENHANCED: Month-aware income calculation that mirrors IncomePage.js and WeeklyPlannerPage.js logic
     const getMonthAwareMonthlyAmount = (income, which = 'projected') => {
       const hasDates = Array.isArray(income.payDates) && income.payDates.length > 0;
       const perCheckProjected = parseAmount(income.projectedAmount || income.amount);
@@ -67,6 +70,8 @@ export function useBudgetCalculations(budgetData) {
             return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (52 / 12);
           case 'bi-weekly':
             return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * (26 / 12);
+          case 'semi-monthly':
+            return hasDates ? (perCheckActual || 0) * income.payDates.length : (perCheckActual || 0) * 2;
           case 'monthly':
             return perCheckActual || 0;
           case 'quarterly':
@@ -88,6 +93,8 @@ export function useBudgetCalculations(budgetData) {
           return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (52 / 12);
         case 'bi-weekly':
           return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * (26 / 12);
+        case 'semi-monthly':
+          return hasDates ? (perCheckProjected || 0) * income.payDates.length : (perCheckProjected || 0) * 2;
         case 'monthly':
           return perCheckProjected || 0;
         case 'quarterly':
@@ -103,14 +110,260 @@ export function useBudgetCalculations(budgetData) {
       }
     };
 
-    // NEW: Get total projected income for the month
+    // Get current month/year for weekly calculations
+    const getCurrentMonthYear = () => {
+      // Find the first income source with pay dates to determine the budget month/year
+      for (const incomeSource of income) {
+        if (incomeSource.payDates && incomeSource.payDates.length > 0) {
+          const dateString = incomeSource.payDates[0];
+          const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+          return {
+            month: month - 1, // Convert to 0-indexed month
+            year: year
+          };
+        }
+      }
+      // Fallback to current date if no pay dates found
+      return {
+        month: new Date().getMonth(),
+        year: new Date().getFullYear()
+      };
+    };
+
+    // ENHANCED: Weekly income calculation with actual vs projected priority (mirrors WeeklyPlannerPage logic)
+    const getWeeklyIncome = () => {
+      const weeklyIncome = [0, 0, 0, 0, 0];
+      const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
+
+      income.forEach(incomeSource => {
+        const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
+        const perPayProjected = parseAmount(incomeSource.projectedAmount || incomeSource.amount);
+        const perPayActual = parseAmount(incomeSource.actualAmount);
+
+        // PRIORITY 1: Use actual pay dates with actual amounts if available (most accurate)
+        if (payDates.length > 0 && Array.isArray(incomeSource.payActuals) && incomeSource.payActuals.length > 0) {
+          payDates.forEach((dateStr, index) => {
+            if (incomeSource.payActuals[index] !== undefined && incomeSource.payActuals[index] !== null) {
+              const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+              const payMonth = month - 1;
+              const payYear = year;
+              const dayOfMonth = day;
+              
+              if (payMonth === currentMonth && payYear === currentYear) {
+                let weekIndex;
+                if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                else if (dayOfMonth >= 29) weekIndex = 4;
+                
+                if (weekIndex >= 0 && weekIndex < 5) {
+                  const actualAmount = parseAmount(incomeSource.payActuals[index]);
+                  weeklyIncome[weekIndex] += actualAmount;
+                }
+              }
+            } else {
+              // Fall back to projected for this specific pay date
+              const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+              const payMonth = month - 1;
+              const payYear = year;
+              const dayOfMonth = day;
+              
+              if (payMonth === currentMonth && payYear === currentYear) {
+                let weekIndex;
+                if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                else if (dayOfMonth >= 29) weekIndex = 4;
+                
+                if (weekIndex >= 0 && weekIndex < 5) {
+                  weeklyIncome[weekIndex] += perPayProjected;
+                }
+              }
+            }
+          });
+        }
+        // PRIORITY 2: Use actual mode with overall actual amount
+        else if (incomeSource.actualMode === 'monthly-total' && perPayActual > 0) {
+          if (payDates.length > 0) {
+            const actualPerCheck = perPayActual / payDates.length;
+            payDates.forEach(dateStr => {
+              const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+              const payMonth = month - 1;
+              const payYear = year;
+              const dayOfMonth = day;
+              
+              if (payMonth === currentMonth && payYear === currentYear) {
+                let weekIndex;
+                if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                else if (dayOfMonth >= 29) weekIndex = 4;
+                
+                if (weekIndex >= 0 && weekIndex < 5) {
+                  weeklyIncome[weekIndex] += actualPerCheck;
+                }
+              }
+            });
+          } else {
+            const weeklyAmount = perPayActual / 4;
+            for (let i = 0; i < 4; i++) {
+              weeklyIncome[i] += weeklyAmount;
+            }
+          }
+        }
+        // PRIORITY 3: Use per-paycheck actual amount
+        else if (perPayActual > 0) {
+          if (payDates.length > 0) {
+            payDates.forEach(dateStr => {
+              const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+              const payMonth = month - 1;
+              const payYear = year;
+              const dayOfMonth = day;
+              
+              if (payMonth === currentMonth && payYear === currentYear) {
+                let weekIndex;
+                if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                else if (dayOfMonth >= 29) weekIndex = 4;
+                
+                if (weekIndex >= 0 && weekIndex < 5) {
+                  weeklyIncome[weekIndex] += perPayActual;
+                }
+              }
+            });
+          } else {
+            // Distribute based on frequency pattern
+            switch (incomeSource.frequency) {
+              case 'weekly':
+                for (let i = 0; i < 4; i++) {
+                  weeklyIncome[i] += perPayActual;
+                }
+                break;
+              case 'bi-weekly':
+                weeklyIncome[0] += perPayActual;
+                weeklyIncome[2] += perPayActual;
+                break;
+              case 'semi-monthly':
+                weeklyIncome[0] += perPayActual;
+                weeklyIncome[2] += perPayActual;
+                break;
+              case 'monthly':
+                weeklyIncome[0] += perPayActual;
+                break;
+              default:
+                const weeklyAmount = perPayActual / 4;
+                for (let i = 0; i < 4; i++) {
+                  weeklyIncome[i] += weeklyAmount;
+                }
+            }
+          }
+        }
+        // PRIORITY 4: Fall back to projected amounts when no actual amounts available
+        else {
+          if (payDates.length > 0) {
+            payDates.forEach(dateStr => {
+              const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+              const payMonth = month - 1;
+              const payYear = year;
+              const dayOfMonth = day;
+              
+              if (payMonth === currentMonth && payYear === currentYear) {
+                let weekIndex;
+                if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+                else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+                else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+                else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+                else if (dayOfMonth >= 29) weekIndex = 4;
+                
+                if (weekIndex >= 0 && weekIndex < 5) {
+                  weeklyIncome[weekIndex] += perPayProjected;
+                }
+              }
+            });
+          } else if (incomeSource.weeks && Array.isArray(incomeSource.weeks)) {
+            // Use manually set weekly amounts if no pay dates
+            incomeSource.weeks.forEach((amount, index) => {
+              if (index < 5) {
+                weeklyIncome[index] += parseAmount(amount);
+              }
+            });
+          } else {
+            // Fallback: Distribute based on frequency pattern when no specific dates
+            let monthlyAmount = 0;
+            
+            switch (incomeSource.frequency) {
+              case 'weekly':
+                monthlyAmount = perPayProjected * (52 / 12);
+                break;
+              case 'bi-weekly':
+                monthlyAmount = perPayProjected * (26 / 12);
+                break;
+              case 'monthly':
+                monthlyAmount = perPayProjected;
+                break;
+              case 'quarterly':
+                monthlyAmount = perPayProjected / 3;
+                break;
+              case 'semi-annual':
+                monthlyAmount = perPayProjected / 6;
+                break;
+              case 'annual':
+                monthlyAmount = perPayProjected / 12;
+                break;
+              case 'one-time':
+                monthlyAmount = 0;
+                break;
+              default:
+                monthlyAmount = perPayProjected;
+            }
+
+            // Distribute based on frequency pattern
+            switch (incomeSource.frequency) {
+              case 'weekly':
+                const weeklyAmount = monthlyAmount / 4.33;
+                for (let i = 0; i < 4; i++) {
+                  weeklyIncome[i] += weeklyAmount;
+                }
+                break;
+                
+              case 'bi-weekly':
+                weeklyIncome[0] += perPayProjected;
+                weeklyIncome[2] += perPayProjected;
+                if (monthlyAmount > perPayProjected * 2) {
+                  weeklyIncome[4] += (monthlyAmount - perPayProjected * 2);
+                }
+                break;
+                
+              case 'monthly':
+                weeklyIncome[0] += monthlyAmount;
+                break;
+                
+              default:
+                const evenAmount = monthlyAmount / 4;
+                for (let i = 0; i < 4; i++) {
+                  weeklyIncome[i] += evenAmount;
+                }
+            }
+          }
+        }
+      });
+
+      return weeklyIncome;
+    };
+
+    // Get total projected income for the month
     const getTotalProjectedIncome = () => {
       return income.reduce((total, item) => {
         return total + getMonthAwareMonthlyAmount(item, 'projected');
       }, 0);
     };
 
-    // NEW: Get total actual income received so far this month
+    // Get total actual income received so far this month
     const getTotalActualIncome = () => {
       return income.reduce((total, item) => {
         return total + getMonthAwareMonthlyAmount(item, 'actual');
@@ -122,7 +375,7 @@ export function useBudgetCalculations(budgetData) {
       return getTotalProjectedIncome();
     };
 
-    // NEW: Income progress tracking
+    // ENHANCED: Income progress tracking with better calculations
     const getIncomeProgress = () => {
       const projected = getTotalProjectedIncome();
       const actual = getTotalActualIncome();
@@ -140,8 +393,8 @@ export function useBudgetCalculations(budgetData) {
       const progressVariance = actual - expectedAtThisPoint;
 
       return {
-        projected,
-        actual,
+        totalProjectedIncome: projected,
+        totalActualIncome: actual,
         variance,
         percentReceived,
         monthProgress,
@@ -154,9 +407,11 @@ export function useBudgetCalculations(budgetData) {
     const getTotalMonthlyExpenses = () => {
       let total = 0;
       Object.values(monthly).forEach(category => {
-        category.forEach(expense => {
-          total = currencyCalculator.add(total, expense.actual || expense.amount || 0);
-        });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            total += parseAmount(expense.actual || expense.amount);
+          });
+        }
       });
       return total;
     };
@@ -164,45 +419,80 @@ export function useBudgetCalculations(budgetData) {
     const getTotalAnnualExpenses = () => {
       let total = 0;
       Object.values(annual).forEach(category => {
-        category.forEach(expense => {
-          total = currencyCalculator.add(total, expense.actual || expense.amount || 0);
-        });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            total += parseAmount(expense.actual || expense.amount);
+          });
+        }
       });
       return total;
     };
 
     const getMonthlyAnnualImpact = () => {
-      return currencyCalculator.divide(getTotalAnnualExpenses(), 12);
+      return getTotalAnnualExpenses() / 12;
     };
 
-    // UPDATED: Net income using projected income (for budget planning)
+    // Net income using projected income (for budget planning)
     const getNetMonthlyIncome = () => {
       const projectedIncome = getTotalProjectedIncome();
       const monthlyExpenses = getTotalMonthlyExpenses();
       const annualImpact = getMonthlyAnnualImpact();
-      return currencyCalculator.subtract(projectedIncome, currencyCalculator.add(monthlyExpenses, annualImpact));
+      return projectedIncome - monthlyExpenses - annualImpact;
     };
 
-    // NEW: Actual net income using actual income received so far
+    // Actual net income using actual income received so far
     const getActualNetIncome = () => {
       const actualIncome = getTotalActualIncome();
       const monthlyExpenses = getTotalMonthlyExpenses();
       const annualImpact = getMonthlyAnnualImpact();
-      return currencyCalculator.subtract(actualIncome, currencyCalculator.add(monthlyExpenses, annualImpact));
+      return actualIncome - monthlyExpenses - annualImpact;
     };
 
-    // UPDATED: Savings rate using projected income (for planning)
+    // Savings rate using projected income (for planning)
     const getSavingsRate = () => {
       const projectedIncome = getTotalProjectedIncome();
       const netIncome = getNetMonthlyIncome();
-      return projectedIncome > 0 ? currencyCalculator.percentageOf(netIncome, projectedIncome) : 0;
+      return projectedIncome > 0 ? (netIncome / projectedIncome) * 100 : 0;
     };
 
-    // NEW: Actual savings rate based on income received so far
+    // Actual savings rate based on income received so far
     const getActualSavingsRate = () => {
       const actualIncome = getTotalActualIncome();
       const actualNetIncome = getActualNetIncome();
-      return actualIncome > 0 ? currencyCalculator.percentageOf(actualNetIncome, actualIncome) : 0;
+      return actualIncome > 0 ? (actualNetIncome / actualIncome) * 100 : 0;
+    };
+
+    // ENHANCED: Weekly Planner Totals with proper integration
+    const getWeeklyPlannerTotals = () => {
+      const weekTotals = [0, 0, 0, 0, 0]; // 5 weeks
+      const weeklyIncome = getWeeklyIncome();
+
+      // Calculate expense totals for each week from planner state
+      Object.entries(plannerState).forEach(([expenseName, expenseData]) => {
+        // Skip non-expense entries like 'weeklyIncome', 'weeklyExpenses', etc.
+        if (expenseName === 'weeklyIncome' || expenseName === 'weeklyExpenses' || expenseName === 'monthlyTargets') {
+          return;
+        }
+
+        if (expenseData && expenseData.weeks && Array.isArray(expenseData.weeks)) {
+          expenseData.weeks.forEach((amount, weekIndex) => {
+            if (weekIndex < 5) {
+              weekTotals[weekIndex] += parseAmount(amount);
+            }
+          });
+        }
+      });
+
+      // Return detailed weekly information
+      return weekTotals.map((weekExpenses, index) => ({
+        week: index + 1,
+        income: weeklyIncome[index] || 0,
+        expenses: weekExpenses,
+        balance: (weeklyIncome[index] || 0) - weekExpenses,
+        expenseCount: Object.values(plannerState).filter(expense =>
+          expense.weeks && expense.weeks[index] && parseAmount(expense.weeks[index]) > 0
+        ).length
+      }));
     };
 
     // Upcoming expenses analysis
@@ -212,38 +502,44 @@ export function useBudgetCalculations(budgetData) {
       
       // Check monthly expenses
       Object.values(monthly).forEach(category => {
-        category.forEach(expense => {
-          if (expense.date && !expense.paid) {
-            const dueDate = new Date(expense.date);
-            const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntil <= DUE_DATE_THRESHOLDS.UPCOMING) {
-              upcoming.push({
-                ...expense,
-                daysUntil,
-                type: 'monthly'
-              });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            if (expense.date && !expense.paid) {
+              const dueDate = new Date(expense.date);
+              const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntil <= DUE_DATE_THRESHOLDS.UPCOMING) {
+                upcoming.push({
+                  ...expense,
+                  daysUntil,
+                  type: 'monthly',
+                  amount: parseAmount(expense.actual || expense.amount)
+                });
+              }
             }
-          }
-        });
+          });
+        }
       });
 
       // Check annual expenses
       Object.values(annual).forEach(category => {
-        category.forEach(expense => {
-          if (expense.date && !expense.paid) {
-            const dueDate = new Date(expense.date);
-            const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-            
-            if (daysUntil <= DUE_DATE_THRESHOLDS.UPCOMING) {
-              upcoming.push({
-                ...expense,
-                daysUntil,
-                type: 'annual'
-              });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            if (expense.date && !expense.paid) {
+              const dueDate = new Date(expense.date);
+              const daysUntil = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+              
+              if (daysUntil <= DUE_DATE_THRESHOLDS.UPCOMING) {
+                upcoming.push({
+                  ...expense,
+                  daysUntil,
+                  type: 'annual',
+                  amount: parseAmount(expense.actual || expense.amount)
+                });
+              }
             }
-          }
-        });
+          });
+        }
       });
 
       return upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
@@ -254,13 +550,17 @@ export function useBudgetCalculations(budgetData) {
       const totals = { monthly: {}, annual: {} };
       
       Object.entries(monthly).forEach(([categoryKey, expenses]) => {
-        totals.monthly[categoryKey] = expenses.reduce((sum, expense) => 
-          currencyCalculator.add(sum, expense.actual || expense.amount || 0), 0);
+        if (Array.isArray(expenses)) {
+          totals.monthly[categoryKey] = expenses.reduce((sum, expense) => 
+            sum + parseAmount(expense.actual || expense.amount), 0);
+        }
       });
 
       Object.entries(annual).forEach(([categoryKey, expenses]) => {
-        totals.annual[categoryKey] = expenses.reduce((sum, expense) => 
-          currencyCalculator.add(sum, expense.actual || expense.amount || 0), 0);
+        if (Array.isArray(expenses)) {
+          totals.annual[categoryKey] = expenses.reduce((sum, expense) => 
+            sum + parseAmount(expense.actual || expense.amount), 0);
+        }
       });
 
       return totals;
@@ -272,31 +572,35 @@ export function useBudgetCalculations(budgetData) {
       
       // Process monthly expenses
       Object.values(monthly).forEach(category => {
-        category.forEach(expense => {
-          const account = expense.accountId || 'Unassigned';
-          const amount = currencyCalculator.parseAmount(expense.actual || expense.amount);
-          allocations[account] = currencyCalculator.add(allocations[account] || 0, amount);
-        });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            const account = expense.accountId || expense.account || 'Unassigned';
+            const amount = parseAmount(expense.actual || expense.amount);
+            allocations[account] = (allocations[account] || 0) + amount;
+          });
+        }
       });
 
       // Process annual expenses (as monthly equivalent)
       Object.values(annual).forEach(category => {
-        category.forEach(expense => {
-          const account = expense.accountId || 'Unassigned';
-          const amount = currencyCalculator.parseAmount(expense.actual || expense.amount);
-          const monthlyAmount = currencyCalculator.divide(amount, 12);
-          allocations[account] = currencyCalculator.add(allocations[account] || 0, monthlyAmount);
-        });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            const account = expense.accountId || expense.account || 'Unassigned';
+            const amount = parseAmount(expense.actual || expense.amount);
+            const monthlyAmount = amount / 12;
+            allocations[account] = (allocations[account] || 0) + monthlyAmount;
+          });
+        }
       });
 
       return allocations;
     };
 
-    // UPDATED: Budget health metrics with actual vs projected
+    // ENHANCED: Budget health metrics with actual vs projected
     const getBudgetHealth = () => {
       const projectedIncome = getTotalProjectedIncome();
       const actualIncome = getTotalActualIncome();
-      const totalExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
+      const totalExpenses = getTotalMonthlyExpenses() + getMonthlyAnnualImpact();
       const projectedNetIncome = getNetMonthlyIncome();
       const actualNetIncome = getActualNetIncome();
       const savingsRate = getSavingsRate();
@@ -304,15 +608,23 @@ export function useBudgetCalculations(budgetData) {
       const upcomingExpenses = getUpcomingExpenses();
       const incomeProgress = getIncomeProgress();
 
+      let status = 'good';
+      if (projectedNetIncome < 0 || actualNetIncome < 0) {
+        status = 'critical';
+      } else if (savingsRate < 10 || actualSavingsRate < 10) {
+        status = 'warning';
+      }
+
       return {
+        status,
         // Traditional metrics (projected)
-        incomeToExpenseRatio: projectedIncome > 0 ? currencyCalculator.divide(projectedIncome, totalExpenses) : 0,
-        debtToIncomeRatio: projectedIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, projectedIncome) : 0,
+        incomeToExpenseRatio: projectedIncome > 0 ? projectedIncome / totalExpenses : 0,
+        debtToIncomeRatio: projectedIncome > 0 ? (totalExpenses / projectedIncome) * 100 : 0,
         savingsRate,
-        emergencyFundWeeks: projectedNetIncome > 0 ? currencyCalculator.divide(projectedNetIncome * 4, totalExpenses) : 0,
+        emergencyFundWeeks: projectedNetIncome > 0 ? (projectedNetIncome * 4) / totalExpenses : 0,
         
-        // NEW: Actual performance metrics
-        actualIncomeToExpenseRatio: actualIncome > 0 ? currencyCalculator.divide(actualIncome, totalExpenses) : 0,
+        // Actual performance metrics
+        actualIncomeToExpenseRatio: actualIncome > 0 ? actualIncome / totalExpenses : 0,
         actualSavingsRate,
         incomeProgress: incomeProgress.percentReceived,
         isIncomeOnTrack: incomeProgress.isOnTrack,
@@ -320,26 +632,64 @@ export function useBudgetCalculations(budgetData) {
         // Expense tracking
         upcomingExpensesCount: upcomingExpenses.length,
         overdueExpensesCount: upcomingExpenses.filter(exp => exp.daysUntil < 0).length,
-        budgetUtilization: projectedIncome > 0 ? currencyCalculator.percentageOf(totalExpenses, projectedIncome) : 0,
+        budgetUtilization: projectedIncome > 0 ? (totalExpenses / projectedIncome) * 100 : 0,
         cashFlowStatus: projectedNetIncome >= 0 ? 'positive' : 'negative',
-        actualCashFlowStatus: actualNetIncome >= 0 ? 'positive' : 'negative'
+        actualCashFlowStatus: actualNetIncome >= 0 ? 'positive' : 'negative',
+        
+        // Weekly planner integration
+        weeklyPlannerTotals: getWeeklyPlannerTotals(),
+        totalPlannedIncome: getWeeklyIncome().reduce((sum, week) => sum + week, 0),
+        totalPlannedExpenses: getWeeklyPlannerTotals().reduce((sum, week) => sum + week.expenses, 0),
+        
+        recommendations: generateHealthRecommendations(status, savingsRate, actualSavingsRate, incomeProgress)
       };
+    };
+
+    // Generate health recommendations
+    const generateHealthRecommendations = (status, savingsRate, actualSavingsRate, incomeProgress) => {
+      const recommendations = [];
+
+      if (status === 'critical') {
+        recommendations.push('🚨 Your expenses exceed your income. Consider reducing non-essential spending.');
+        recommendations.push('💡 Review your largest expense categories for potential cuts.');
+        recommendations.push('📊 Use the Weekly Planner to better distribute expenses throughout the month.');
+      } else if (status === 'warning') {
+        recommendations.push('⚠️ Your savings rate is below 10%. Try to increase it gradually.');
+        recommendations.push('💡 Look for ways to reduce expenses or increase income.');
+        recommendations.push('📋 The Weekly Planner can help you identify weeks with excess cash flow for savings.');
+      } else {
+        recommendations.push('✅ Your budget is healthy! Keep up the good work.');
+        if (savingsRate >= 20) {
+          recommendations.push('🎉 Excellent savings rate! Consider investing for long-term goals.');
+        }
+      }
+
+      if (!incomeProgress.isOnTrack) {
+        recommendations.push('📈 Your income is behind schedule this month. Monitor actual vs projected closely.');
+      }
+
+      return recommendations;
     };
 
     // Variance analysis between planned and actual
     const getVarianceAnalysis = () => {
       const incomeProgress = getIncomeProgress();
-      const projectedExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
+      const projectedExpenses = getTotalMonthlyExpenses() + getMonthlyAnnualImpact();
       
       return {
         incomeVariance: incomeProgress.variance,
         incomeProgressVariance: incomeProgress.progressVariance,
-        incomeVariancePercent: incomeProgress.projected > 0 ? 
-          currencyCalculator.percentageOf(incomeProgress.variance, incomeProgress.projected) : 0,
+        incomeVariancePercent: incomeProgress.totalProjectedIncome > 0 ? 
+          (incomeProgress.variance / incomeProgress.totalProjectedIncome) * 100 : 0,
         monthProgress: incomeProgress.monthProgress,
         isIncomeOnTrack: incomeProgress.isOnTrack,
         projectedNetFlow: getNetMonthlyIncome(),
-        actualNetFlow: getActualNetIncome()
+        actualNetFlow: getActualNetIncome(),
+        weeklyVariance: getWeeklyPlannerTotals().map(week => ({
+          week: week.week,
+          variance: week.balance,
+          status: week.balance >= 0 ? 'surplus' : 'deficit'
+        }))
       };
     };
 
@@ -348,15 +698,17 @@ export function useBudgetCalculations(budgetData) {
       const frequencies = { monthly: 0, quarterly: 0, 'semi-annual': 0, annual: 0, 'one-time': 0 };
       
       Object.values(annual).forEach(category => {
-        category.forEach(expense => {
-          const frequency = expense.frequency || 'annual';
-          const amount = currencyCalculator.parseAmount(expense.actual || expense.amount);
-          frequencies[frequency] = currencyCalculator.add(frequencies[frequency] || 0, amount);
-        });
+        if (Array.isArray(category)) {
+          category.forEach(expense => {
+            const frequency = expense.frequency || 'annual';
+            const amount = parseAmount(expense.actual || expense.amount);
+            frequencies[frequency] = (frequencies[frequency] || 0) + amount;
+          });
+        }
       });
 
       // Add monthly expenses
-      frequencies.monthly = currencyCalculator.add(frequencies.monthly, getTotalMonthlyExpenses());
+      frequencies.monthly = getTotalMonthlyExpenses();
 
       return frequencies;
     };
@@ -365,7 +717,7 @@ export function useBudgetCalculations(budgetData) {
     const getMonthlyProjections = () => {
       const months = [];
       const baseIncome = getTotalProjectedIncome();
-      const baseExpenses = currencyCalculator.add(getTotalMonthlyExpenses(), getMonthlyAnnualImpact());
+      const baseExpenses = getTotalMonthlyExpenses() + getMonthlyAnnualImpact();
       
       for (let i = 0; i < 12; i++) {
         const month = new Date();
@@ -375,33 +727,28 @@ export function useBudgetCalculations(budgetData) {
           month: month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           income: baseIncome,
           expenses: baseExpenses,
-          netFlow: currencyCalculator.subtract(baseIncome, baseExpenses),
+          netFlow: baseIncome - baseExpenses,
           cumulative: i === 0 ? 
-            currencyCalculator.subtract(baseIncome, baseExpenses) :
-            currencyCalculator.add(months[i-1].cumulative, currencyCalculator.subtract(baseIncome, baseExpenses))
+            baseIncome - baseExpenses :
+            months[i-1].cumulative + (baseIncome - baseExpenses)
         });
       }
       
       return months;
     };
 
-    // Cash flow projection using planner data
+    // ENHANCED: Cash flow projection using weekly planner data
     const getCashFlowProjection = () => {
-      const weeklyIncome = plannerState.weeklyIncome || [0, 0, 0, 0];
-      const weeklyExpenses = plannerState.weeklyExpenses || [0, 0, 0, 0];
+      const weeklyTotals = getWeeklyPlannerTotals();
       
-      return weeklyIncome.map((income, index) => {
-        const expenses = weeklyExpenses[index] || 0;
-        const netFlow = currencyCalculator.subtract(income, expenses);
-        
-        return {
-          week: index + 1,
-          income,
-          expenses,
-          netFlow,
-          status: netFlow >= 0 ? 'positive' : 'negative'
-        };
-      });
+      return weeklyTotals.map(weekData => ({
+        week: weekData.week,
+        income: weekData.income,
+        expenses: weekData.expenses,
+        netFlow: weekData.balance,
+        status: weekData.balance >= 0 ? 'positive' : 'negative',
+        expenseCount: weekData.expenseCount
+      }));
     };
 
     // Top expense categories
@@ -415,7 +762,7 @@ export function useBudgetCalculations(budgetData) {
       });
 
       Object.entries(categoryTotals.annual).forEach(([key, total]) => {
-        const monthlyEquivalent = currencyCalculator.divide(total, 12);
+        const monthlyEquivalent = total / 12;
         allCategories.push({ key, total: monthlyEquivalent, type: 'annual' });
       });
 
@@ -425,7 +772,7 @@ export function useBudgetCalculations(budgetData) {
     };
 
     return {
-      // Income calculations (NEW and UPDATED)
+      // Income calculations (ENHANCED with actual vs projected)
       getTotalIncome, // Legacy - returns projected for compatibility
       getTotalProjectedIncome,
       getTotalActualIncome,
@@ -436,23 +783,27 @@ export function useBudgetCalculations(budgetData) {
       getTotalAnnualExpenses,
       getMonthlyAnnualImpact,
       
-      // Net income calculations (UPDATED)
+      // Net income calculations (ENHANCED)
       getNetMonthlyIncome, // Uses projected income
-      getActualNetIncome, // NEW - uses actual income
+      getActualNetIncome, // Uses actual income
       
-      // Savings rate calculations (UPDATED)
+      // Savings rate calculations (ENHANCED)
       getSavingsRate, // Uses projected income
-      getActualSavingsRate, // NEW - uses actual income
+      getActualSavingsRate, // Uses actual income
       
-      // Analysis functions
+      // ENHANCED: Weekly calculations for planner integration
+      getWeeklyIncome, // Uses actual vs projected priority logic
+      getWeeklyPlannerTotals, // Detailed weekly breakdown
+      
+      // Analysis functions (ALL ENHANCED)
       getUpcomingExpenses,
       getCategoryTotals,
       getAccountAllocations,
-      getBudgetHealth, // UPDATED with actual vs projected metrics
+      getBudgetHealth, // ENHANCED with actual vs projected metrics and weekly integration
       getExpensesByFrequency,
       getMonthlyProjections,
-      getCashFlowProjection,
-      getVarianceAnalysis, // UPDATED with income progress tracking
+      getCashFlowProjection, // ENHANCED with weekly planner data
+      getVarianceAnalysis, // ENHANCED with income progress and weekly variance
       getTopExpenseCategories
     };
   }, [budgetData]);
