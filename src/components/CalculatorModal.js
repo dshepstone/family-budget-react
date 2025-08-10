@@ -3,6 +3,57 @@ import React, { useState, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import './CalculatorModal.css';
 
+
+// Safe arithmetic expression evaluator (no eval / new Function)
+function evaluateExpression(expr) {
+  const tokens = expr.match(/(\d+(?:\.\d+)?)|[+\-*/()]|\s+/g)?.filter(t => !/^\s+$/.test(t)) || [];
+  const prec = { '+':1, '-':1, '*':2, '/':2 };
+  const output = [];
+  const opStack = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (/^\d+(?:\.\d+)?$/.test(t)) { output.push(parseFloat(t)); continue; }
+    if (t === '(') { opStack.push(t); continue; }
+    if (t === ')') {
+      while (opStack.length && opStack[opStack.length-1] !== '(') output.push(opStack.pop());
+      if (opStack.pop() !== '(') throw new Error('Mismatched parentheses');
+      continue;
+    }
+    if (/[+\-*/]/.test(t)) {
+      const prev = tokens[i-1];
+      const unaryMinus = (t === '-' && (i === 0 || prev === '(' || /[+\-*/]/.test(prev)));
+      if (unaryMinus) output.push(0);
+      while (opStack.length) {
+        const top = opStack[opStack.length-1];
+        if (/[+\-*/]/.test(top) && prec[top] >= prec[t]) output.push(opStack.pop()); else break;
+      }
+      opStack.push(t);
+      continue;
+    }
+    throw new Error('Invalid token');
+  }
+  while (opStack.length) {
+    const op = opStack.pop();
+    if (op === '(' || op === ')') throw new Error('Mismatched parentheses');
+    output.push(op);
+  }
+  const stack = [];
+  for (const x of output) {
+    if (typeof x === 'number') { stack.push(x); continue; }
+    const b = stack.pop(); const a = stack.pop();
+    if (a === undefined || b === undefined) throw new Error('Invalid expression');
+    switch (x) {
+      case '+': stack.push(a + b); break;
+      case '-': stack.push(a - b); break;
+      case '*': stack.push(a * b); break;
+      case '/': if (b === 0) throw new Error('Invalid calculation'); stack.push(a / b); break;
+      default: throw new Error('Invalid operator');
+    }
+  }
+  const result = stack.pop();
+  if (stack.length || !isFinite(result)) throw new Error('Invalid calculation');
+  return result;
+}
 const CalculatorModal = ({ onClose }) => {
     const [input, setInput] = useState('');
     const [previousExpression, setPreviousExpression] = useState('');
@@ -250,7 +301,7 @@ const CalculatorModal = ({ onClose }) => {
             // If sanitized input is empty, return
             if (!sanitizedInput) return;
             
-            const result = new Function('return ' + sanitizedInput)();
+            const result = evaluateExpression(sanitizedInput);
             
             if (isNaN(result) || !isFinite(result)) {
                 throw new Error('Invalid calculation');
