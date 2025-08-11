@@ -4811,3 +4811,27 @@
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* === Keep the vertical scrollbar gutter reserved so width never changes === */
+html { scrollbar-gutter: stable both-edges; }
+
+/* Fallback for older browsers that don't support scrollbar-gutter */
+@supports not (scrollbar-gutter: stable) {
+  html { overflow-y: scroll; }
+}
+/* === Shared page layout === */
+.page-container {
+  padding: 24px;               /* gives consistent breathing room */
+}
+
+/* Prevent margin-collapsing "headroom" from the first block element */
+.page-container > h1:first-child,
+.page-content > h1:first-child,
+.page-title {
+  margin-top: 0;
+}
+
+/* Optional: guarantees content area is tall enough so the scrollbar is always present */
+.main-content {
+  min-height: calc(100vh - var(--header-height, 64px));
+}
