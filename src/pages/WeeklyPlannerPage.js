@@ -1,4 +1,4 @@
-// src/pages/WeeklyPlannerPage.js - Enhanced with Actual vs Projected Income Logic
+// src/pages/WeeklyPlannerPage.js - Enhanced with Actual vs Projected Income Logic (CSS Fixed)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { WeeklyPlannerPrint } from '../utils/printUtils';
@@ -641,17 +641,29 @@ const WeeklyPlannerPage = () => {
   const groupedExpenses = groupExpensesByCategory();
 
   return (
-    <div style={{ padding: '20px', backgroundColor: '#fff', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
-      {/* All the existing styles from your original file */}
+    <div className="main-content weekly-planner-page no-top-gap">
+
       <style>{`
+      /* Remove inherited top spacing from global/components CSS just on these pages */
+        .main-content.no-top-gap { 
+          margin-top: 0 !important; 
+          padding-top: 8px !important; /* tweak to 0–12px if you want tighter/looser */
+        }
+
+        /* Make sure the first heading doesn’t add extra space */
+        .monthly-expenses-page .page-title,
+        .weekly-planner-page .page-title,
+        .annual-expenses-page .page-title {
+          margin-top: 0 !important;
+        }
+
         .weekly-planner-page {
-          padding: 20px;
-          background-color: #fff;
+          background-color: var(--bg-primary);
           min-height: 100vh;
         }
 
         .page-title {
-          color: #2c3e50;
+          color: var(--text-primary);
           margin-bottom: 20px;
           font-size: 1.8rem;
           font-weight: 600;
@@ -663,11 +675,12 @@ const WeeklyPlannerPage = () => {
           align-items: center;
           margin-bottom: 20px;
           padding: 15px;
-          background-color: #f8f9fa;
+          background-color: var(--card-bg);
           border-radius: 8px;
-          border: 1px solid #dee2e6;
+          border: 1px solid var(--card-border);
           flex-wrap: wrap;
           gap: 15px;
+          box-shadow: var(--card-shadow);
         }
 
         .week-visibility-controls {
@@ -683,6 +696,7 @@ const WeeklyPlannerPage = () => {
           gap: 5px;
           font-weight: 500;
           cursor: pointer;
+          color: var(--text-primary);
         }
 
         .action-controls {
@@ -694,46 +708,72 @@ const WeeklyPlannerPage = () => {
         .planner-table-container {
           overflow-x: auto;
           width: 100%;
-          border-radius: 8px;
-          border: 1px solid #dee2e6;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          border-radius: 12px;
+          border: 1px solid var(--card-border);
+          box-shadow: var(--card-shadow);
           margin-bottom: 20px;
+          background: var(--card-bg);
         }
 
         .planner-table {
           width: 100%;
           border-collapse: collapse;
-          background-color: #fff;
-          font-size: 0.9rem;
-          min-width: 1200px;
+          background-color: var(--card-bg);
+          font-size: 0.85rem;
+          min-width: 1400px;
+          table-layout: fixed;
         }
 
         .planner-table th,
         .planner-table td {
-          padding: 8px;
-          border: 1px solid #dee2e6;
+          padding: 10px 8px;
+          border: 1px solid var(--border-light);
           text-align: center;
           vertical-align: middle;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .planner-table th {
-          background-color: #007bff;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
           color: white;
           font-weight: 600;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           position: sticky;
           top: 0;
           z-index: 10;
+          white-space: nowrap;
         }
 
         .planner-table th:first-child {
           text-align: left;
-          width: 25%;
+          width: 240px;
+          min-width: 240px;
+        }
+
+        .planner-table th:nth-child(2) {
+          width: 120px;
+          min-width: 120px;
+        }
+
+        .planner-table th.week-1-col,
+        .planner-table th.week-2-col,
+        .planner-table th.week-3-col,
+        .planner-table th.week-4-col,
+        .planner-table th.week-5-col {
+          width: 140px;
+          min-width: 140px;
         }
 
         .planner-table th.status-header {
-          min-width: 60px;
-          font-size: 0.8rem;
+          width: 70px;
+          min-width: 70px;
+          font-size: 0.7rem;
+        }
+
+        .planner-table th:last-child {
+          width: 120px;
+          min-width: 120px;
         }
 
         .week-date-range-inputs {
@@ -743,65 +783,54 @@ const WeeklyPlannerPage = () => {
           margin: 4px 0;
         }
 
-        /* Fixed date input styles with proper specificity */
-        .planner-table th .week-date-start,
-        .planner-table th .week-date-end {
-          font-size: 0.7rem !important;
-          padding: 1px 2px !important;
+        .week-date-start,
+        .week-date-end {
+          font-size: 0.65rem !important;
+          padding: 2px 4px !important;
           border: 1px solid rgba(255,255,255,0.5) !important;
-          border-radius: 2px !important;
+          border-radius: 3px !important;
           background-color: rgba(255,255,255,0.9) !important;
           color: #495057 !important;
           transition: all 0.2s ease;
           cursor: default;
           outline: none;
-          -webkit-appearance: none;
-          -moz-appearance: textfield;
-          appearance: none;
+          width: 100%;
+          text-align: center;
         }
 
-        /* Ensure readability on hover */
-        .planner-table th .week-date-start:hover,
-        .planner-table th .week-date-end:hover {
+        .week-date-start:hover,
+        .week-date-end:hover {
           background-color: white !important;
-          border-color: #007bff !important;
-          color: #495057 !important;
-        }
-
-        /* Even when disabled/readonly, keep readable */
-        .planner-table th .week-date-start:disabled,
-        .planner-table th .week-date-start[readonly],
-        .planner-table th .week-date-end:disabled,
-        .planner-table th .week-date-end[readonly] {
-          background-color: rgba(255,255,255,0.9) !important;
-          color: #495057 !important;
-          opacity: 1 !important;
+          border-color: rgba(255,255,255,0.8) !important;
         }
 
         .category-row {
-          background-color: #f8f9fa !important;
+          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%) !important;
           font-weight: bold;
-          color: #2c3e50;
+          color: var(--text-primary);
         }
 
         .category-row td {
-          text-align: left;
-          padding-left: 15px;
-          font-size: 1rem;
-          background-color: #f8f9fa;
+          text-align: left !important;
+          padding-left: 15px !important;
+          font-size: 0.9rem !important;
+          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%) !important;
         }
 
         .expense-name {
           text-align: left !important;
           padding-left: 20px !important;
           font-weight: 500;
-          color: #495057;
+          color: var(--text-primary);
+          width: 240px;
+          max-width: 240px;
         }
 
         .annual-indicator {
           font-size: 0.7rem;
-          color: #6c757d;
+          color: var(--text-muted);
           font-style: italic;
+          margin-top: 2px;
         }
 
         .planner-input-group {
@@ -816,53 +845,56 @@ const WeeklyPlannerPage = () => {
         .table-input {
           width: 100%;
           padding: 6px 8px;
-          border: 1px solid #dee2e6;
+          border: 1px solid var(--input-border);
           border-radius: 4px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           text-align: right;
-          background-color: #fff;
-          color: #495057;
+          background-color: var(--input-bg);
+          color: var(--text-primary);
           transition: all 0.2s ease;
+          box-sizing: border-box;
         }
 
         .table-input:focus {
-          outline: 2px solid #007bff;
+          outline: 2px solid var(--primary);
           outline-offset: -1px;
-          border-color: #007bff;
+          border-color: var(--primary);
         }
 
         .table-input.has-value {
-          background-color: #e8f5e8 !important;
-          border-color: #28a745 !important;
+          background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%) !important;
+          border-color: var(--success) !important;
           font-weight: 600 !important;
           color: #155724 !important;
         }
 
         .table-input.zero-value {
-          background-color: #fff;
-          border-color: #dee2e6;
+          background-color: var(--input-bg);
+          border-color: var(--input-border);
           font-weight: normal;
         }
 
         .planner-action-select {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           padding: 2px 4px;
-          border: 1px solid #dee2e6;
+          border: 1px solid var(--input-border);
           border-radius: 3px;
-          background-color: #f8f9fa;
-          color: #495057;
+          background-color: var(--bg-secondary);
+          color: var(--text-primary);
           cursor: pointer;
-          max-width: 100%;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .planner-action-select:hover {
-          background-color: #e9ecef;
+          background-color: var(--hover-bg);
         }
 
         .status-cell {
           text-align: center !important;
-          padding: 4px !important;
-          min-width: 60px;
+          padding: 6px 4px !important;
+          width: 70px;
+          max-width: 70px;
           vertical-align: middle;
         }
 
@@ -871,11 +903,12 @@ const WeeklyPlannerPage = () => {
           flex-direction: column;
           align-items: center;
           gap: 4px;
+          width: 100%;
         }
 
         .transferred-checkbox,
         .paid-checkbox {
-          margin: 2px;
+          margin: 1px;
           transform: scale(1.1);
           cursor: pointer;
         }
@@ -885,46 +918,51 @@ const WeeklyPlannerPage = () => {
         }
 
         .paid-checkbox:checked {
-          accent-color: #28a745;
+          accent-color: var(--success);
         }
 
         .remaining-amount {
           font-weight: 600 !important;
-          text-align: right;
+          text-align: right !important;
           padding-right: 12px !important;
+          color: var(--text-primary);
+          width: 120px;
+          max-width: 120px;
         }
 
         .table-footer {
-          background-color: #f8f9fa;
+          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%);
           font-weight: bold;
-          border-top: 2px solid #007bff;
+          border-top: 2px solid var(--primary);
         }
 
         .table-footer td {
           padding: 12px 8px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           vertical-align: top;
+          color: var(--text-primary);
         }
 
         .table-footer .cash-flow-positive {
-          color: #28a745;
+          color: var(--success);
         }
 
         .table-footer .cash-flow-negative {
-          color: #dc3545;
+          color: var(--danger);
         }
 
         .cash-flow-analysis {
           margin-top: 20px;
-          padding: 15px;
-          background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
-          border-radius: 8px;
-          border: 1px solid #dee2e6;
+          padding: 20px;
+          background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.05) 100%);
+          border-radius: 12px;
+          border: 1px solid rgba(33, 150, 243, 0.3);
+          box-shadow: 0 2px 8px rgba(33, 150, 243, 0.1);
         }
 
         .cash-flow-analysis h3 {
           margin-bottom: 15px;
-          color: #2c3e50;
+          color: var(--text-primary);
           font-size: 1.2rem;
           font-weight: 600;
         }
@@ -937,16 +975,23 @@ const WeeklyPlannerPage = () => {
 
         .cash-flow-grid > div {
           text-align: center;
-          padding: 12px;
-          background-color: rgba(255,255,255,0.8);
-          border-radius: 6px;
-          border: 1px solid #dee2e6;
+          padding: 15px 12px;
+          background: rgba(255,255,255,0.8);
+          border-radius: 8px;
+          border: 1px solid rgba(33, 150, 243, 0.2);
+          transition: all 0.2s ease;
+        }
+
+        .cash-flow-grid > div:hover {
+          background: rgba(255,255,255,0.95);
+          transform: translateY(-1px);
         }
 
         .week-label {
           font-size: 0.9rem;
-          color: #7f8c8d;
+          color: var(--text-secondary);
           margin-bottom: 5px;
+          font-weight: 500;
         }
 
         .balance-amount {
@@ -955,11 +1000,11 @@ const WeeklyPlannerPage = () => {
         }
 
         .balance-amount.positive {
-          color: #27ae60;
+          color: var(--success);
         }
 
         .balance-amount.negative {
-          color: #e74c3c;
+          color: var(--danger);
         }
 
         .hidden {
@@ -968,82 +1013,79 @@ const WeeklyPlannerPage = () => {
 
         .income-section {
           margin-bottom: 20px;
-          padding: 15px;
-          background-color: #e8f5e8;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
           border-radius: 8px;
-          border: 1px solid #28a745;
+          border: 1px solid rgba(40, 167, 69, 0.3);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
         }
 
         .income-summary {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 10px;
-          margin-top: 10px;
+          gap: 12px;
+          margin-top: 12px;
         }
 
         .income-week {
           text-align: center;
-          padding: 8px;
-          background-color: rgba(255,255,255,0.8);
-          border-radius: 4px;
+          padding: 12px 8px;
+          background: rgba(255,255,255,0.8);
+          border-radius: 6px;
+          border: 1px solid rgba(40, 167, 69, 0.2);
+          transition: all 0.2s ease;
+        }
+
+        .income-week:hover {
+          background: rgba(255,255,255,0.95);
+          transform: translateY(-1px);
         }
 
         .btn {
           padding: 8px 16px;
           border: none;
-          border-radius: 4px;
+          border-radius: 6px;
           cursor: pointer;
           font-size: 0.9rem;
-          transition: background-color 0.2s;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          text-transform: none;
+        }
+
+        .btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .btn-primary {
-          background-color: #007bff;
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
           color: white;
-        }
-
-        .btn-primary:hover {
-          background-color: #0056b3;
         }
 
         .btn-secondary {
-          background-color: #6c757d;
+          background: linear-gradient(135deg, var(--btn-secondary-bg) 0%, #545b62 100%);
           color: white;
-        }
-
-        .btn-secondary:hover {
-          background-color: #545b62;
         }
 
         .btn-success {
-          background-color: #28a745;
+          background: linear-gradient(135deg, var(--success) 0%, #1e7e34 100%);
           color: white;
-        }
-
-        .btn-success:hover {
-          background-color: #1e7e34;
         }
 
         .btn-success.active {
-          background-color: #155724;
-          border-color: #155724;
+          background: linear-gradient(135deg, #155724 0%, #0d4521 100%);
         }
 
         .btn-danger {
-          background-color: #dc3545;
+          background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
           color: white;
-        }
-
-        .btn-danger:hover {
-          background-color: #c82333;
         }
 
         .btn-sm {
           padding: 4px 8px;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
         }
 
-        /* Enhanced income section with actual/projected indicator */
         .income-indicator {
           font-size: 0.75rem;
           color: #155724;
@@ -1052,7 +1094,7 @@ const WeeklyPlannerPage = () => {
         }
 
         .actual-income {
-          border-left: 3px solid #28a745;
+          border-left: 3px solid var(--success);
         }
 
         .projected-income {
@@ -1071,6 +1113,43 @@ const WeeklyPlannerPage = () => {
 
           .income-summary {
             grid-template-columns: repeat(2, 1fr);
+          }
+
+          .planner-table {
+            min-width: 1000px;
+            font-size: 0.75rem;
+          }
+
+          .planner-table th,
+          .planner-table td {
+            padding: 6px 4px;
+          }
+
+          .table-input {
+            font-size: 0.7rem;
+            padding: 4px 6px;
+          }
+
+          .planner-action-select {
+            font-size: 0.65rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .cash-flow-grid,
+          .income-summary {
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+
+          .planner-table {
+            min-width: 800px;
+            font-size: 0.7rem;
+          }
+
+          .btn {
+            font-size: 0.8rem;
+            padding: 6px 12px;
           }
         }
       `}</style>
@@ -1188,12 +1267,13 @@ const WeeklyPlannerPage = () => {
         <table className="planner-table" id="planner-table">
           <thead>
             <tr>
-              <th style={{ width: '25%' }}>Expense Category</th>
-              <th>Monthly Actual</th>
+              <th style={{ width: '240px' }}>Expense Category</th>
+              <th style={{ width: '120px' }}>Monthly Actual</th>
               {Array.from({ length: 5 }, (_, weekIndex) => (
                 <React.Fragment key={weekIndex}>
                   <th
                     className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
+                    style={{ width: '140px' }}
                   >
                     <div>Week {weekIndex + 1}</div>
                     <div className="week-date-range-inputs">
@@ -1217,19 +1297,19 @@ const WeeklyPlannerPage = () => {
                       Reset
                     </button>
                   </th>
-                  <th className={`week-${weekIndex + 1}-status-col status-header ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
+                  <th className={`week-${weekIndex + 1}-status-col status-header ${!weekVisibility[weekIndex] ? 'hidden' : ''}`} style={{ width: '70px' }}>
                     Status
                   </th>
                 </React.Fragment>
               ))}
-              <th>Remaining Balance</th>
+              <th style={{ width: '120px' }}>Remaining Balance</th>
             </tr>
           </thead>
 
           <tbody>
             {Object.keys(groupedExpenses).length === 0 ? (
               <tr>
-                <td colSpan="13" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                <td colSpan="13" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
                   No expense data found. Please add expenses in the Monthly and Annual Expenses tabs first.
                 </td>
               </tr>
@@ -1259,7 +1339,7 @@ const WeeklyPlannerPage = () => {
 
                       return (
                         <tr key={`${categoryKey}-${index}`} data-expense-id={expense.id}>
-                          <td className="expense-name" style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                          <td className="expense-name">
                             {expense.name}
                             {expense.isAnnual && (
                               <div className="annual-indicator">
@@ -1267,7 +1347,7 @@ const WeeklyPlannerPage = () => {
                               </div>
                             )}
                           </td>
-                          <td>
+                          <td style={{ textAlign: 'center' }}>
                             <strong>{formatCurrency(expense.monthlyAmount)}</strong>
                           </td>
 
@@ -1324,7 +1404,7 @@ const WeeklyPlannerPage = () => {
                             className="remaining-amount"
                             style={{
                               fontWeight: 'bold',
-                              color: Math.abs(remaining) < 0.001 ? 'black' : 'red'
+                              color: Math.abs(remaining) < 0.001 ? 'var(--text-primary)' : 'var(--danger)'
                             }}
                           >
                             {formatCurrency(remaining)}
@@ -1345,17 +1425,17 @@ const WeeklyPlannerPage = () => {
               {Array.from({ length: 5 }, (_, weekIndex) => (
                 <React.Fragment key={weekIndex}>
                   <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
-                    <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
                       <strong>Income: {formatCurrency(weeklyIncome[weekIndex] || 0)}</strong>
                     </div>
-                    <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.75rem', marginBottom: '4px' }}>
                       <strong>Expenses: {formatCurrency(weekTotals[weekIndex] || 0)}</strong>
                     </div>
                     <div style={{ 
-                      fontSize: '0.9rem', 
+                      fontSize: '0.8rem', 
                       fontWeight: 'bold',
-                      color: ((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0)) >= 0 ? '#28a745' : '#dc3545',
-                      borderTop: '1px solid #dee2e6',
+                      color: ((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0)) >= 0 ? 'var(--success)' : 'var(--danger)',
+                      borderTop: '1px solid var(--border-light)',
                       paddingTop: '4px'
                     }}>
                       Cash Flow: {formatCurrency((weeklyIncome[weekIndex] || 0) - (weekTotals[weekIndex] || 0))}
@@ -1364,13 +1444,13 @@ const WeeklyPlannerPage = () => {
                   <td className={`week-${weekIndex + 1}-status-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}></td>
                 </React.Fragment>
               ))}
-              <td style={{ fontSize: '0.9rem' }}>
+              <td style={{ fontSize: '0.8rem' }}>
                 <div><strong>Total Income: {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0))}</strong></div>
                 <div><strong>Total Expenses: {formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}</strong></div>
                 <div style={{ 
                   fontWeight: 'bold',
-                  color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? '#28a745' : '#dc3545',
-                  borderTop: '1px solid #dee2e6',
+                  color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? 'var(--success)' : 'var(--danger)',
+                  borderTop: '1px solid var(--border-light)',
                   paddingTop: '4px'
                 }}>
                   Net Cash Flow: {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
@@ -1396,29 +1476,29 @@ const WeeklyPlannerPage = () => {
                 className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}
               >
                 <div className="week-label"><strong>Week {weekIndex + 1}</strong></div>
-                <div className="week-label" style={{ color: '#28a745', fontWeight: '600' }}>
+                <div className="week-label" style={{ color: 'var(--success)', fontWeight: '600' }}>
                   📈 Income: {formatCurrency(income)}
                 </div>
-                <div className="week-label" style={{ color: '#dc3545', fontWeight: '600' }}>
+                <div className="week-label" style={{ color: 'var(--danger)', fontWeight: '600' }}>
                   📉 Expenses: {formatCurrency(expenses)}
                 </div>
                 <div style={{ 
                   fontSize: '1.1rem', 
                   fontWeight: 'bold',
-                  color: cashFlow >= 0 ? '#28a745' : '#dc3545',
-                  borderTop: '2px solid #dee2e6',
+                  color: cashFlow >= 0 ? 'var(--success)' : 'var(--danger)',
+                  borderTop: '2px solid var(--border-light)',
                   paddingTop: '8px',
                   marginTop: '8px'
                 }}>
                   💰 Cash Flow: {formatCurrency(cashFlow)}
                 </div>
                 {cashFlow < 0 && (
-                  <div style={{ fontSize: '0.8rem', color: '#dc3545', marginTop: '4px', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '4px', fontStyle: 'italic' }}>
                     ⚠️ Deficit
                   </div>
                 )}
                 {cashFlow > 0 && (
-                  <div style={{ fontSize: '0.8rem', color: '#28a745', marginTop: '4px', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--success)', marginTop: '4px', fontStyle: 'italic' }}>
                     ✅ Surplus
                   </div>
                 )}
@@ -1433,29 +1513,29 @@ const WeeklyPlannerPage = () => {
           padding: '15px', 
           backgroundColor: 'rgba(255,255,255,0.9)', 
           borderRadius: '8px',
-          border: '2px solid #007bff',
+          border: '2px solid var(--primary)',
           textAlign: 'center'
         }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#007bff' }}>📋 Monthly Summary</h4>
+          <h4 style={{ margin: '0 0 10px 0', color: 'var(--primary)' }}>📋 Monthly Summary</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
             <div>
-              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Total Monthly Income</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#28a745' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Monthly Income</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--success)' }}>
                 {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0))}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Total Planned Expenses</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#dc3545' }}>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Planned Expenses</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--danger)' }}>
                 {formatCurrency(weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Net Monthly Cash Flow</div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Net Monthly Cash Flow</div>
               <div style={{ 
                 fontSize: '1.3rem', 
                 fontWeight: 'bold', 
-                color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? '#28a745' : '#dc3545'
+                color: (weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0)) >= 0 ? 'var(--success)' : 'var(--danger)'
               }}>
                 {formatCurrency(weeklyIncome.reduce((sum, income) => sum + (income || 0), 0) - weekTotals.reduce((sum, total) => sum + (total || 0), 0))}
               </div>

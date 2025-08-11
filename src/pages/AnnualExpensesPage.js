@@ -206,8 +206,22 @@ const AnnualExpensesPage = () => {
   const savingsPlan = getMonthlySavingsPlan();
 
   return (
-    <div className="main-content">
+    <div className="main-content annual-expenses-page no-top-gap">
+
       <style>{`
+          /* Remove inherited top spacing from global/components CSS just on these pages */
+          .main-content.no-top-gap { 
+            margin-top: 0 !important; 
+            padding-top: 8px !important; /* tweak to 0–12px if you want tighter/looser */
+          }
+
+          /* Make sure the first heading doesn’t add extra space */
+          .monthly-expenses-page .page-title,
+          .weekly-planner-page .page-title,
+          .annual-expenses-page .page-title {
+            margin-top: 0 !important;
+          }
+
         .annual-expenses-page {
           padding: 20px 0;
           background-color: var(--bg-primary);
