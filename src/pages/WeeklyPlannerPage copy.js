@@ -384,17 +384,12 @@ const WeeklyPlannerPage = () => {
     return categoryNames[categoryKey] || categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
   };
 
-  // FIXED: Get planner data for expense - Always return well-formed object with safe arrays
+  // Get planner data for expense
   const getExpensePlannerData = (expenseName) => {
-    const entry = state.data.plannerState?.[expenseName];
-    const safe = (arr, len, fill) =>
-      Array.isArray(arr) ? arr.slice(0, len).concat(Array(Math.max(0, len - arr.length)).fill(fill))
-        : Array(len).fill(fill);
-
-    return {
-      weeks: safe(entry?.weeks, 5, 0),
-      transferred: safe(entry?.transferred, 5, false),
-      paid: safe(entry?.paid, 5, false)
+    return state.data.plannerState?.[expenseName] || {
+      weeks: Array(5).fill(0),
+      transferred: Array(5).fill(false),
+      paid: Array(5).fill(false)
     };
   };
 
@@ -489,12 +484,11 @@ const WeeklyPlannerPage = () => {
     return weekTotals;
   };
 
-  // FIXED: Check if an expense row has all zero values - Guard the reducer
+  // Check if an expense row has all zero values
   const hasAllZeroValues = (expense) => {
     const expenseData = getExpensePlannerData(expense.name);
     const monthlyAmount = expense.monthlyAmount || 0;
-    const weeklySum = (Array.isArray(expenseData.weeks) ? expenseData.weeks : [])
-      .reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
+    const weeklySum = expenseData.weeks.reduce((sum, amount) => sum + (parseFloat(amount) || 0), 0);
     
     // Hide if monthly amount is 0 AND all weekly amounts are 0
     return monthlyAmount === 0 && weeklySum === 0;
@@ -505,11 +499,10 @@ const WeeklyPlannerPage = () => {
     setHideZeroRows(!hideZeroRows);
   };
 
-  // FIXED: Calculate remaining balance for expense - Tolerant of bad input
+  // Calculate remaining balance for expense
   const calculateRemainingBalance = (expense, weeklyAmounts) => {
-    const monthlyAmount = Number(expense?.monthlyAmount) || 0;
-    const arr = Array.isArray(weeklyAmounts) ? weeklyAmounts : [];
-    const weeklySum = arr.reduce((sum, amount) => sum + (Number(amount) || 0), 0);
+    const monthlyAmount = expense.monthlyAmount;
+    const weeklySum = weeklyAmounts.reduce((sum, amount) => sum + amount, 0);
     return monthlyAmount - weeklySum;
   };
 
@@ -657,7 +650,7 @@ const WeeklyPlannerPage = () => {
           padding-top: 8px !important; /* tweak to 0–12px if you want tighter/looser */
         }
 
-        /* Make sure the first heading doesn't add extra space */
+        /* Make sure the first heading doesn’t add extra space */
         .monthly-expenses-page .page-title,
         .weekly-planner-page .page-title,
         .annual-expenses-page .page-title {
@@ -1365,8 +1358,8 @@ const WeeklyPlannerPage = () => {
                                 <div className="planner-input-group">
                                   <input
                                     type="number"
-                                    className={`table-input ${Number(expenseData.weeks[weekIndex] || 0) > 0 ? 'has-value' : 'zero-value'}`}
-                                    value={Number(expenseData.weeks[weekIndex] || 0).toFixed(2)}
+                                    className={`table-input ${expenseData.weeks[weekIndex] > 0 ? 'has-value' : 'zero-value'}`}
+                                    value={expenseData.weeks[weekIndex].toFixed(2)}
                                     step="0.01"
                                     onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
                                   />

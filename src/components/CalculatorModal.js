@@ -1,39 +1,39 @@
-// src/components/CalculatorModal.js - Fixed with true floating behavior
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+// src/components/CalculatorModal.js
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Draggable from 'react-draggable';
 import '../styles/CalculatorModal.css';
 
-// Safe arithmetic expression evaluator (no eval / new Function)
+
+/** Safe arithmetic evaluator (no eval) */
 function evaluateExpression(expr) {
   const tokens = expr.match(/(\d+(?:\.\d+)?)|[+\-*/()]|\s+/g)?.filter(t => !/^\s+$/.test(t)) || [];
-  const prec = { '+':1, '-':1, '*':2, '/':2 };
+  const prec = { '+': 1, '-': 1, '*': 2, '/': 2 };
   const output = [];
-  const opStack = [];
+  const ops = [];
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
     if (/^\d+(?:\.\d+)?$/.test(t)) { output.push(parseFloat(t)); continue; }
-    if (t === '(') { opStack.push(t); continue; }
+    if (t === '(') { ops.push(t); continue; }
     if (t === ')') {
-      while (opStack.length && opStack[opStack.length-1] !== '(') output.push(opStack.pop());
-      if (opStack.pop() !== '(') throw new Error('Mismatched parentheses');
+      while (ops.length && ops[ops.length - 1] !== '(') output.push(ops.pop());
+      if (ops.pop() !== '(') throw new Error('Mismatched parentheses');
       continue;
     }
     if (/[+\-*/]/.test(t)) {
-      const prev = tokens[i-1];
+      const prev = tokens[i - 1];
       const unaryMinus = (t === '-' && (i === 0 || prev === '(' || /[+\-*/]/.test(prev)));
       if (unaryMinus) output.push(0);
-      while (opStack.length) {
-        const top = opStack[opStack.length-1];
-        if (/[+\-*/]/.test(top) && prec[top] >= prec[t]) output.push(opStack.pop()); else break;
+      while (ops.length) {
+        const top = ops[ops.length - 1];
+        if (/[+\-*/]/.test(top) && prec[top] >= prec[t]) output.push(ops.pop()); else break;
       }
-      opStack.push(t);
+      ops.push(t);
       continue;
     }
     throw new Error('Invalid token');
   }
-  while (opStack.length) {
-    const op = opStack.pop();
+  while (ops.length) {
+    const op = ops.pop();
     if (op === '(' || op === ')') throw new Error('Mismatched parentheses');
     output.push(op);
   }
@@ -55,730 +55,502 @@ function evaluateExpression(expr) {
   return result;
 }
 
-const CalculatorModal = ({ onClose }) => {
-    const [input, setInput] = useState('');
-    const [previousExpression, setPreviousExpression] = useState('');
-    const [isError, setIsError] = useState(false);
-    const [isResultDisplayed, setIsResultDisplayed] = useState(false);
-    
-    // Memory and History Features
-    const [memory, setMemory] = useState(0);
-    const [showMemoryIndicator, setShowMemoryIndicator] = useState(false);
-    const [history, setHistory] = useState([]);
-    const [showHistory, setShowHistory] = useState(false);
-    const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
-    const [lastResult, setLastResult] = useState(null);
-    
-    const nodeRef = useRef(null);
-    const inputRef = useRef(null);
-    const historyRef = useRef(null);
-    const backdropRef = useRef(null);
+export default function CalculatorModal({ onClose }) {
+  const [input, setInput] = useState('');
+  const [previousExpression, setPreviousExpression] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [isResultDisplayed, setIsResultDisplayed] = useState(false);
 
-    // REMOVED: Body class management that prevents scrolling
-    // The main window should remain scrollable when calculator is open
+  const [memory, setMemory] = useState(0);
+  const [showMemoryIndicator, setShowMemoryIndicator] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showHamburgerMenu, setShowHamburgerMenu] = useState(false);
+  const [lastResult, setLastResult] = useState(null);
 
-    // Handle clicks on backdrop to close calculator
-    useEffect(() => {
-        const handleBackdropClick = (event) => {
-            if (backdropRef.current && event.target === backdropRef.current) {
-                onClose();
-            }
-        };
+  const nodeRef = useRef(null);
+  const inputRef = useRef(null);
+  const historyRef = useRef(null);
+  const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
-        const backdrop = backdropRef.current;
-        if (backdrop) {
-            backdrop.addEventListener('click', handleBackdropClick);
-            return () => backdrop.removeEventListener('click', handleBackdropClick);
-        }
-    }, [onClose]);
+  // --- Position & layout: prevent initial "jump" --- //
+  useLayoutEffect(() => {
+    const W = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const H = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const modalW = 380; // matches CSS
+    const x = Math.max(12, Math.round((W - modalW) / 2));
+    const y = Math.max(16, Math.round(H * 0.1));
+    setInitialPos({ x, y });
 
-    // Handle clicks outside hamburger menu to close it
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (showHamburgerMenu && nodeRef.current && !nodeRef.current.contains(event.target)) {
-                setShowHamburgerMenu(false);
-            }
-        };
+    // Lock width to avoid reflow based on font metrics
+    const el = nodeRef.current;
+    if (el) {
+      el.style.width = modalW + 'px';
+      el.style.maxWidth = modalW + 'px';
+    }
+  }, []);
 
-        if (showHamburgerMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showHamburgerMenu]);
-
-    // Focus management
-    useEffect(() => {
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, []);
-
-    // Auto-scroll history to bottom when new items are added
-    useEffect(() => {
-        if (historyRef.current) {
-            historyRef.current.scrollTop = historyRef.current.scrollHeight;
-        }
-    }, [history]);
-
-    // Load memory and history from sessionStorage on mount
-    useEffect(() => {
-        const savedMemory = sessionStorage.getItem('calculator-memory');
-        const savedHistory = sessionStorage.getItem('calculator-history');
-        
-        if (savedMemory) {
-            const memValue = parseFloat(savedMemory);
-            if (!isNaN(memValue) && memValue !== 0) {
-                setMemory(memValue);
-                setShowMemoryIndicator(true);
-            }
-        }
-        
-        if (savedHistory) {
-            try {
-                const parsedHistory = JSON.parse(savedHistory);
-                if (Array.isArray(parsedHistory)) {
-                    setHistory(parsedHistory);
-                }
-            } catch (e) {
-                console.warn('Failed to load calculator history:', e);
-            }
-        }
-    }, []);
-
-    // Save memory to sessionStorage whenever it changes
-    useEffect(() => {
-        sessionStorage.setItem('calculator-memory', memory.toString());
-        setShowMemoryIndicator(memory !== 0);
-    }, [memory]);
-
-    // Save history to sessionStorage whenever it changes
-    useEffect(() => {
-        sessionStorage.setItem('calculator-history', JSON.stringify(history));
-    }, [history]);
-
-    // Enhanced keyboard input handling - IMPROVED: Only when calculator is focused
-    useEffect(() => {
-        const handleKeyDown = (event) => {
-            // Only handle keyboard when calculator modal is actually focused or hovered
-            const calculatorElement = nodeRef.current;
-            const isCalculatorFocused = calculatorElement && calculatorElement.contains(document.activeElement);
-            const isInputFocused = document.activeElement === inputRef.current;
-            
-            // Only intercept calculator keys when the calculator is actually in focus
-            if (!isCalculatorFocused && !isInputFocused) {
-                return;
-            }
-
-            const key = event.key;
-            
-            // Prevent default for calculator-related keys only when calculator is focused
-            if (/[0-9+\-*/.=]/.test(key) || key === 'Enter' || key === 'Escape' || key === 'Backspace' || key === 'Delete') {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-
-            // Handle different key types
-            if (/[0-9]/.test(key)) {
-                handleButtonClick(key);
-            } else if (['+', '-', '*', '/'].includes(key)) {
-                handleButtonClick(key);
-            } else if (key === '.') {
-                handleButtonClick('.');
-            } else if (key === 'Enter' || key === '=') {
-                handleCalculate();
-            } else if (key === 'Escape' || key === 'Delete') {
-                handleClear();
-            } else if (key === 'Backspace') {
-                handleBackspace();
-            }
-            // Memory shortcuts
-            else if (event.ctrlKey && key === 'm') {
-                event.preventDefault();
-                event.stopPropagation();
-                handleMemoryStore();
-            } else if (event.ctrlKey && key === 'r') {
-                event.preventDefault();
-                event.stopPropagation();
-                handleMemoryRecall();
-            } else if (event.ctrlKey && key === 'l') {
-                event.preventDefault();
-                event.stopPropagation();
-                handleMemoryClear();
-            }
-        };
-
-        // Add event listener to the entire document to catch all keyboard events
-        document.addEventListener('keydown', handleKeyDown);
-        
-        // Cleanup
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [input, isError, memory, previousExpression, isResultDisplayed]);
-
-    const handleButtonClick = (value) => {
-        // Ensure input field gets focus when clicking buttons
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-        
-        if (isError) {
-            setInput(value);
-            setIsError(false);
-            setPreviousExpression('');
-            setIsResultDisplayed(false);
-        } else if (isResultDisplayed && /[0-9.]/.test(value)) {
-            // If a result is displayed and user enters a number, start fresh
-            setInput(value);
-            setPreviousExpression('');
-            setIsResultDisplayed(false);
-        } else if (isResultDisplayed && /[+\-*/]/.test(value)) {
-            // If a result is displayed and user enters an operator, continue with the result
-            setPreviousExpression(input + ' ' + value);
-            setInput('');
-            setIsResultDisplayed(false);
-        } else if (/[+\-*/]/.test(value)) {
-            // WINDOWS BEHAVIOR: When user enters an operator, move current input to previous expression
-            if (input) {
-                setPreviousExpression(input + ' ' + value);
-                setInput('');
-                setIsResultDisplayed(false);
-            } else if (previousExpression) {
-                // If there's already a previous expression, update the operator
-                const expressionWithoutOperator = previousExpression.replace(/[\s+\-*/=]+$/, '');
-                setPreviousExpression(expressionWithoutOperator + ' ' + value);
-            }
-        } else {
-            // Numbers and decimal point
-            setInput(prev => prev + value);
-        }
-    };
-
-    const handleClear = () => {
-        setInput('');
-        setPreviousExpression('');
-        setIsError(false);
-        setLastResult(null);
-        setIsResultDisplayed(false);
-        // Keep focus on input
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    };
-
-    const handleClearEntry = () => {
-        setInput('');
-        setIsError(false);
-        // Keep focus on input
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    };
-
-    const handleBackspace = () => {
-        if (isError || isResultDisplayed) {
-            handleClearEntry();
-        } else {
-            setInput(prev => prev.slice(0, -1));
-        }
-        // Keep focus on input
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    };
-
-    // Enhanced calculate function with overflow handling and smart operator handling
-    const handleCalculate = () => {
-        if (isError) return;
-        
-        let fullExpression = '';
-        if (previousExpression && input) {
-            fullExpression = previousExpression + ' ' + input;
-        } else if (input) {
-            fullExpression = input;
-        } else if (previousExpression) {
-            // If there's only previous expression, use it
-            fullExpression = previousExpression;
-        } else {
-            return;
-        }
-        
-        try {
-            // Smart handling of trailing operators - remove them before calculation
-            let cleanExpression = fullExpression.trim();
-            
-            // Remove trailing operators (handles cases like "25+25+" or "25+25+=")
-            cleanExpression = cleanExpression.replace(/[\+\-\*\/=\s]+$/, '');
-            
-            // If expression is empty after cleaning, return
-            if (!cleanExpression) return;
-            
-            // Basic validation to prevent code injection
-            const sanitizedInput = cleanExpression.replace(/[^0-9+\-*/.() ]/g, '');
-            
-            // If sanitized input is empty, return
-            if (!sanitizedInput) return;
-            
-            const result = evaluateExpression(sanitizedInput);
-            
-            if (isNaN(result) || !isFinite(result)) {
-                throw new Error('Invalid calculation');
-            }
-            
-            // Add to history with the cleaned expression
-            const historyEntry = {
-                id: Date.now(),
-                expression: cleanExpression,
-                result: result,
-                timestamp: new Date().toLocaleTimeString(),
-                fullTimestamp: new Date().toLocaleString()
-            };
-            
-            setHistory(prev => [...prev, historyEntry]);
-            setLastResult(result);
-            
-            // Handle display overflow
-            const resultString = String(result);
-            setPreviousExpression(cleanExpression + ' =');
-            setInput(resultString);
-            setIsResultDisplayed(true);
-            
-            // Keep focus on input
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-            
-        } catch (error) {
-            let errorExpression = fullExpression;
-            
-            // Try to clean the expression for error display too
-            if (fullExpression.trim()) {
-                errorExpression = fullExpression.trim().replace(/[\+\-\*\/=\s]+$/, '');
-            }
-            
-            const errorEntry = {
-                id: Date.now(),
-                expression: errorExpression || fullExpression,
-                result: 'Error',
-                timestamp: new Date().toLocaleTimeString(),
-                fullTimestamp: new Date().toLocaleString(),
-                isError: true
-            };
-            
-            setHistory(prev => [...prev, errorEntry]);
-            setInput('Error');
-            setIsError(true);
-            setPreviousExpression('');
-            setIsResultDisplayed(false);
-            
-            // Keep focus on input
-            if (inputRef.current) {
-                inputRef.current.focus();
-            }
-        }
-    };
-
-    // Memory functions
-    const handleMemoryStore = () => {
-        const currentValue = parseFloat(input) || 0;
-        setMemory(currentValue);
-        
-        // Add to history
-        const memoryEntry = {
-            id: Date.now(),
-            expression: `Memory Store: ${currentValue}`,
-            result: `M = ${currentValue}`,
-            timestamp: new Date().toLocaleTimeString(),
-            fullTimestamp: new Date().toLocaleString(),
-            isMemory: true
-        };
-        
-        setHistory(prev => [...prev, memoryEntry]);
-    };
-
-    const handleMemoryRecall = () => {
-        if (memory !== 0) {
-            if (isError || isResultDisplayed) {
-                setInput(String(memory));
-                setIsError(false);
-                setPreviousExpression('');
-                setIsResultDisplayed(false);
-            } else {
-                setInput(prev => prev + String(memory));
-            }
-            
-            // Add to history
-            const recallEntry = {
-                id: Date.now(),
-                expression: 'Memory Recall',
-                result: memory,
-                timestamp: new Date().toLocaleTimeString(),
-                fullTimestamp: new Date().toLocaleString(),
-                isMemory: true
-            };
-            
-            setHistory(prev => [...prev, recallEntry]);
-        }
-    };
-
-    const handleMemoryClear = () => {
-        setMemory(0);
-        
-        // Add to history
-        const clearEntry = {
-            id: Date.now(),
-            expression: 'Memory Clear',
-            result: 'M = 0',
-            timestamp: new Date().toLocaleTimeString(),
-            fullTimestamp: new Date().toLocaleString(),
-            isMemory: true
-        };
-        
-        setHistory(prev => [...prev, clearEntry]);
-    };
-
-    const handleMemoryAdd = () => {
-        const currentValue = parseFloat(input) || 0;
-        const newMemory = memory + currentValue;
-        setMemory(newMemory);
-        
-        // Add to history
-        const addEntry = {
-            id: Date.now(),
-            expression: `Memory Add: ${currentValue}`,
-            result: `M = ${newMemory}`,
-            timestamp: new Date().toLocaleTimeString(),
-            fullTimestamp: new Date().toLocaleString(),
-            isMemory: true
-        };
-        
-        setHistory(prev => [...prev, addEntry]);
-    };
-
-    const handleMemorySubtract = () => {
-        const currentValue = parseFloat(input) || 0;
-        const newMemory = memory - currentValue;
-        setMemory(newMemory);
-        
-        // Add to history
-        const subtractEntry = {
-            id: Date.now(),
-            expression: `Memory Subtract: ${currentValue}`,
-            result: `M = ${newMemory}`,
-            timestamp: new Date().toLocaleTimeString(),
-            fullTimestamp: new Date().toLocaleString(),
-            isMemory: true
-        };
-        
-        setHistory(prev => [...prev, subtractEntry]);
-    };
-
-    // Handle paste events
-    const handlePaste = (event) => {
-        event.preventDefault();
-        const pastedText = event.clipboardData.getData('text');
-        
-        // Validate pasted content
-        const validChars = /^[0-9+\-*/.() ]*$/;
-        if (validChars.test(pastedText)) {
-            if (isError || isResultDisplayed) {
-                setInput(pastedText);
-                setIsError(false);
-                setPreviousExpression('');
-                setIsResultDisplayed(false);
-            } else {
-                setInput(prev => prev + pastedText);
-            }
-        }
-    };
-
-    // Handle input changes
-    const handleInputChange = (event) => {
-        const value = event.target.value;
-        // Only allow valid calculator characters
-        const validChars = /^[0-9+\-*/.() ]*$/;
-        if (validChars.test(value)) {
-            setInput(value);
-            if (isError) {
-                setIsError(false);
-                setPreviousExpression('');
-                setIsResultDisplayed(false);
-            }
-        }
-    };
-
-    // Clear all history
-    const handleClearHistory = () => {
-        if (window.confirm('Clear all calculation history?')) {
-            setHistory([]);
-            sessionStorage.removeItem('calculator-history');
-        }
-    };
-
-    // Use history item
-    const handleUseHistoryItem = (item) => {
-        if (item.isError) return;
-        
-        const value = typeof item.result === 'number' ? String(item.result) : item.expression;
-        if (isError || isResultDisplayed) {
-            setInput(value);
-            setIsError(false);
-            setPreviousExpression('');
-            setIsResultDisplayed(false);
-        } else {
-            setInput(prev => prev + value);
-        }
-        
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    };
-
-    // Toggle hamburger menu
-    const toggleHamburgerMenu = (event) => {
-        event.stopPropagation();
-        setShowHamburgerMenu(!showHamburgerMenu);
-    };
-
-    // Handle menu item clicks
-    const handleMenuItemClick = (action, event) => {
-        event.stopPropagation();
-        switch (action) {
-            case 'history':
-                setShowHistory(!showHistory);
-                break;
-            case 'clearHistory':
-                handleClearHistory();
-                break;
-            default:
-                break;
-        }
+  // --- Click outside hamburger closes it --- //
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!showHamburgerMenu) return;
+      const root = nodeRef.current;
+      if (root && !root.contains(e.target)) {
         setShowHamburgerMenu(false);
+      }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showHamburgerMenu]);
 
-    const formatDisplayValue = (value) => {
-        if (!value || value === '0') return '0';
-        
-        // Handle very long numbers by using scientific notation if needed
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue)) {
-            if (numValue.toString().length > 12) {
-                return numValue.toExponential(6);
-            }
-        }
-        
-        return value;
+  // Focus the input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Auto-scroll history view
+  useEffect(() => {
+    if (historyRef.current) historyRef.current.scrollTop = historyRef.current.scrollHeight;
+  }, [history, showHistory]);
+
+  // Load memory and history
+  useEffect(() => {
+    const savedMemory = sessionStorage.getItem('calculator-memory');
+    const savedHistory = sessionStorage.getItem('calculator-history');
+    if (savedMemory) {
+      const m = parseFloat(savedMemory);
+      if (!isNaN(m) && m !== 0) {
+        setMemory(m);
+        setShowMemoryIndicator(true);
+      }
+    }
+    if (savedHistory) {
+      try {
+        const h = JSON.parse(savedHistory);
+        if (Array.isArray(h)) setHistory(h);
+      } catch {}
+    }
+  }, []);
+
+  // Persist memory & flag
+  useEffect(() => {
+    sessionStorage.setItem('calculator-memory', String(memory));
+    setShowMemoryIndicator(memory !== 0);
+  }, [memory]);
+
+  // Persist history
+  useEffect(() => {
+    sessionStorage.setItem('calculator-history', JSON.stringify(history));
+  }, [history]);
+
+  // Keyboard handling (only when over modal or input focused)
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const root = nodeRef.current;
+      const isOver = root && root.matches(':hover');
+      const isFocused = document.activeElement === inputRef.current;
+      if (!isOver && !isFocused) return;
+
+      const key = event.key;
+      if (/[0-9+\-*/.=]/.test(key) || ['Enter','Escape','Backspace','Delete'].includes(key)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      if (/[0-9]/.test(key)) handleButtonClick(key);
+      else if (['+','-','*','/'].includes(key)) handleButtonClick(key);
+      else if (key === '.') handleButtonClick('.');
+      else if (key === 'Enter' || key === '=') handleCalculate();
+      else if (key === 'Escape' || key === 'Delete') handleClear();
+      else if (key === 'Backspace') handleBackspace();
+
+      // Memory shortcuts
+      if (event.ctrlKey && key.toLowerCase() === 'm') { event.preventDefault(); handleMemoryStore(); }
+      if (event.ctrlKey && key.toLowerCase() === 'r') { event.preventDefault(); handleMemoryRecall(); }
+      if (event.ctrlKey && key.toLowerCase() === 'l') { event.preventDefault(); handleMemoryClear(); }
     };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [input, isError, previousExpression, isResultDisplayed, memory]);
 
-    // Render the calculator modal - FIXED: Use React Portal for true floating behavior
-    const calculatorContent = (
-        <div ref={backdropRef} className="calculator-backdrop">
-            <Draggable 
-                handle=".calculator-header" 
-                cancel=".hamburger-menu, .hamburger-dropdown, .close-button"
-                nodeRef={nodeRef}
-                defaultPosition={{ x: -170, y: 0 }} // Start slightly off-center
-            >
-                <div ref={nodeRef} className="calculator-modal enhanced">
-                    <div className="calculator-header">
-                        <div className="header-left">
-                            <button
-                                className="hamburger-menu"
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={toggleHamburgerMenu}
-                                title="Menu"
-                            >
-                                ☰
-                            </button>
-                            <h4 id="calculator-title">
-                                🧮 Calculator
-                                {showMemoryIndicator && (
-                                    <span className="memory-indicator" title={`Memory: ${memory}`}>
-                                        M
-                                    </span>
-                                )}
-                            </h4>
+  // --- Handlers --- //
+  const handleButtonClick = (value) => {
+    inputRef.current?.focus();
+    if (isError) {
+      setInput(value);
+      setIsError(false);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+      return;
+    }
+    if (isResultDisplayed && /[0-9.]/.test(value)) {
+      setInput(value);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+      return;
+    }
+    if (isResultDisplayed && /[+\-*/]/.test(value)) {
+      setPreviousExpression(input + ' ' + value);
+      setInput('');
+      setIsResultDisplayed(false);
+      return;
+    }
+    if (/[+\-*/]/.test(value)) {
+      if (input) {
+        setPreviousExpression(input + ' ' + value);
+        setInput('');
+        setIsResultDisplayed(false);
+      } else if (previousExpression) {
+        const exprWithoutOp = previousExpression.replace(/[\s+\-*/=]+$/, '');
+        setPreviousExpression(exprWithoutOp + ' ' + value);
+      }
+      return;
+    }
+    setInput((p) => p + value);
+  };
 
-                            {/* Hamburger Menu - Positioned under button */}
-                            {showHamburgerMenu && (
-                                <div 
-                                    className="hamburger-dropdown" 
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div 
-                                        className="menu-item"
-                                        onClick={(e) => handleMenuItemClick('history', e)}
-                                    >
-                                        📊 {showHistory ? 'Hide' : 'Show'} History
-                                    </div>
-                                    <div 
-                                        className="menu-item"
-                                        onClick={(e) => handleMenuItemClick('clearHistory', e)}
-                                    >
-                                        🗑️ Clear History
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <div className="header-controls">
-                            <button 
-                                className="close-button" 
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onClick={onClose}
-                            >×</button>
-                        </div>
-                    </div>
-                    
-                    <div className="calculator-content">
-                        {/* History Panel / Receipt */}
-                        {showHistory && (
-                            <div className="history-panel">
-                                <div className="history-header">
-                                    <span>Receipt History</span>
-                                    <button
-                                        className="close-history"
-                                        onClick={() => setShowHistory(false)}
-                                        title="Close History"
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                                <div className="history-list" ref={historyRef}>
-                                    {history.length === 0 ? (
-                                        <div className="history-empty">No calculations yet</div>
-                                    ) : (
-                                        history.map(item => (
-                                            <div
-                                                key={item.id}
-                                                className={`history-item ${item.isError ? 'error' : ''} ${item.isMemory ? 'memory' : ''}`}
-                                                onClick={() => handleUseHistoryItem(item)}
-                                                title="Click to use this value"
-                                            >
-                                                <div className="history-expression">{item.expression}</div>
-                                                <div className="history-result">= {item.result}</div>
-                                                <div className="history-time">{item.fullTimestamp}</div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
+  const handleClear = () => {
+    setInput('');
+    setPreviousExpression('');
+    setIsError(false);
+    setLastResult(null);
+    setIsResultDisplayed(false);
+    inputRef.current?.focus();
+  };
 
-                        {/* Calculator Panel */}
-                        <div className="calculator-panel">
-                            {/* Enhanced display with Windows-like previous expression */}
-                            <div className="display-container">
-                                {/* Previous Expression Display (Windows-like) */}
-                                {previousExpression && (
-                                    <div className="previous-expression">
-                                        {previousExpression}
-                                    </div>
-                                )}
+  const handleClearEntry = () => {
+    setInput('');
+    setIsError(false);
+    inputRef.current?.focus();
+  };
 
-                                {/* Main Calculator Display */}
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    className={`calculator-display ${isError ? 'error' : ''} ${previousExpression ? 'has-previous' : ''}`}
-                                    value={formatDisplayValue(input) || '0'}
-                                    onChange={handleInputChange}
-                                    onPaste={handlePaste}
-                                    placeholder="0"
-                                    autoComplete="off"
-                                    spellCheck="false"
-                                />
-                            </div>
-                            
-                            {/* Memory Controls */}
-                            <div className="memory-controls">
-                                <button 
-                                    className="memory-btn"
-                                    onClick={handleMemoryClear}
-                                    title="Memory Clear (Ctrl+L)"
-                                    disabled={memory === 0}
-                                >
-                                    MC
-                                </button>
-                                <button 
-                                    className="memory-btn"
-                                    onClick={handleMemoryRecall}
-                                    title="Memory Recall (Ctrl+R)"
-                                    disabled={memory === 0}
-                                >
-                                    MR
-                                </button>
-                                <button 
-                                    className="memory-btn"
-                                    onClick={handleMemoryStore}
-                                    title="Memory Store (Ctrl+M)"
-                                >
-                                    MS
-                                </button>
-                                <button 
-                                    className="memory-btn"
-                                    onClick={handleMemoryAdd}
-                                    title="Memory Add"
-                                >
-                                    M+
-                                </button>
-                                <button 
-                                    className="memory-btn"
-                                    onClick={handleMemorySubtract}
-                                    title="Memory Subtract"
-                                >
-                                    M-
-                                </button>
-                            </div>
-                            
-                            {/* Standard Keypad */}
-                            <div className="keypad-grid">
-                                <button className="keypad-button clear" onClick={handleClear}>C</button>
-                                <button className="keypad-button clear-entry" onClick={handleClearEntry}>CE</button>
-                                <button className="keypad-button backspace" onClick={handleBackspace}>⌫</button>
-                                <button className="keypad-button operator" onClick={() => handleButtonClick('/')}>÷</button>
-                                
-                                <button className="keypad-button number" onClick={() => handleButtonClick('7')}>7</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('8')}>8</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('9')}>9</button>
-                                <button className="keypad-button operator" onClick={() => handleButtonClick('*')}>×</button>
-                                
-                                <button className="keypad-button number" onClick={() => handleButtonClick('4')}>4</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('5')}>5</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('6')}>6</button>
-                                <button className="keypad-button operator" onClick={() => handleButtonClick('-')}>-</button>
-                                
-                                <button className="keypad-button number" onClick={() => handleButtonClick('1')}>1</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('2')}>2</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('3')}>3</button>
-                                <button className="keypad-button operator" onClick={() => handleButtonClick('+')}>+</button>
-                                
-                                <button className="keypad-button number zero" onClick={() => handleButtonClick('0')}>0</button>
-                                <button className="keypad-button number" onClick={() => handleButtonClick('.')}>.</button>
-                                <button className="keypad-button equals" onClick={handleCalculate}>=</button>
-                            </div>
-                            
-                            {/* Enhanced Instructions */}
-                            <div className="calculator-instructions">
-                                <small>
-                                    💡 <strong>Memory:</strong> Ctrl+M (Store) • Ctrl+R (Recall) • Ctrl+L (Clear)<br/>
-                                    <strong>Menu:</strong> Click ☰ for receipt history and more options<br/>
-                                    <strong>Input:</strong> Type, Ctrl+C/V, Enter for equals, Esc to clear
-                                </small>
-                            </div>
-                        </div>
-                    </div>
+  const handleBackspace = () => {
+    if (isError || isResultDisplayed) return handleClearEntry();
+    setInput((p) => p.slice(0, -1));
+    inputRef.current?.focus();
+  };
+
+  const handleCalculate = () => {
+    if (isError) return;
+    let full = '';
+    if (previousExpression && input) full = previousExpression + ' ' + input;
+    else if (input) full = input;
+    else if (previousExpression) full = previousExpression;
+    else return;
+
+    try {
+      let clean = full.trim().replace(/[\+\-\*\/=\s]+$/, '');
+      if (!clean) return;
+      const sanitized = clean.replace(/[^0-9+\-*/.() ]/g, '');
+      if (!sanitized) return;
+      const result = evaluateExpression(sanitized);
+      if (isNaN(result) || !isFinite(result)) throw new Error('Invalid calculation');
+
+      const entry = {
+        id: Date.now(),
+        expression: clean,
+        result,
+        timestamp: new Date().toLocaleTimeString(),
+        fullTimestamp: new Date().toLocaleString()
+      };
+      setHistory((h) => [...h, entry]);
+      setLastResult(result);
+
+      setPreviousExpression(clean + ' =');
+      setInput(String(result));
+      setIsResultDisplayed(true);
+      inputRef.current?.focus();
+    } catch (error) {
+      const entry = {
+        id: Date.now(),
+        expression: full.trim().replace(/[\+\-\*\/=\s]+$/, '') || full,
+        result: 'Error',
+        timestamp: new Date().toLocaleTimeString(),
+        fullTimestamp: new Date().toLocaleString(),
+        isError: true
+      };
+      setHistory((h) => [...h, entry]);
+      setInput('Error');
+      setIsError(true);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  // Memory
+  const handleMemoryStore = () => {
+    const v = parseFloat(input) || 0;
+    setMemory(v);
+    setHistory((h) => [...h, {
+      id: Date.now(),
+      expression: `Memory Store: ${v}`,
+      result: `M = ${v}`,
+      timestamp: new Date().toLocaleTimeString(),
+      fullTimestamp: new Date().toLocaleString(),
+      isMemory: true
+    }]);
+  };
+  const handleMemoryRecall = () => {
+    if (memory === 0) return;
+    if (isError || isResultDisplayed) {
+      setInput(String(memory));
+      setIsError(false);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+    } else {
+      setInput((p) => p + String(memory));
+    }
+    setHistory((h) => [...h, {
+      id: Date.now(),
+      expression: 'Memory Recall',
+      result: memory,
+      timestamp: new Date().toLocaleTimeString(),
+      fullTimestamp: new Date().toLocaleString(),
+      isMemory: true
+    }]);
+  };
+  const handleMemoryClear = () => {
+    setMemory(0);
+    setHistory((h) => [...h, {
+      id: Date.now(),
+      expression: 'Memory Clear',
+      result: 'M = 0',
+      timestamp: new Date().toLocaleTimeString(),
+      fullTimestamp: new Date().toLocaleString(),
+      isMemory: true
+    }]);
+  };
+  const handleMemoryAdd = () => {
+    const v = parseFloat(input) || 0;
+    const n = memory + v;
+    setMemory(n);
+    setHistory((h) => [...h, {
+      id: Date.now(),
+      expression: `Memory Add: ${v}`,
+      result: `M = ${n}`,
+      timestamp: new Date().toLocaleTimeString(),
+      fullTimestamp: new Date().toLocaleString(),
+      isMemory: true
+    }]);
+  };
+  const handleMemorySubtract = () => {
+    const v = parseFloat(input) || 0;
+    const n = memory - v;
+    setMemory(n);
+    setHistory((h) => [...h, {
+      id: Date.now(),
+      expression: `Memory Subtract: ${v}`,
+      result: `M = ${n}`,
+      timestamp: new Date().toLocaleTimeString(),
+      fullTimestamp: new Date().toLocaleString(),
+      isMemory: true
+    }]);
+  };
+
+  // Clipboard / input
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text');
+    const valid = /^[0-9+\-*/.() ]*$/.test(text);
+    if (valid) {
+      if (isError || isResultDisplayed) {
+        setInput(text);
+        setIsError(false);
+        setPreviousExpression('');
+        setIsResultDisplayed(false);
+      } else {
+        setInput((p) => p + text);
+      }
+    }
+  };
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    const valid = /^[0-9+\-*/.() ]*$/.test(value);
+    if (!valid) return;
+    setInput(value);
+    if (isError) {
+      setIsError(false);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+    }
+  };
+
+  // History
+  const handleClearHistory = () => {
+    if (window.confirm('Clear all calculation history?')) {
+      setHistory([]);
+      sessionStorage.removeItem('calculator-history');
+    }
+  };
+  const handleUseHistoryItem = (item) => {
+    if (item.isError) return;
+    const value = typeof item.result === 'number' ? String(item.result) : item.expression;
+    if (isError || isResultDisplayed) {
+      setInput(value);
+      setIsError(false);
+      setPreviousExpression('');
+      setIsResultDisplayed(false);
+    } else {
+      setInput((p) => p + value);
+    }
+    inputRef.current?.focus();
+  };
+
+  const toggleHamburgerMenu = (e) => {
+    e.stopPropagation();
+    setShowHamburgerMenu((s) => !s);
+  };
+  const handleMenuItemClick = (action, e) => {
+    e.stopPropagation();
+    if (action === 'history') setShowHistory((v) => !v);
+    if (action === 'clearHistory') handleClearHistory();
+    setShowHamburgerMenu(false);
+  };
+
+  const displayHasPrevious = Boolean(previousExpression);
+
+  return (
+    <div className="calculator-backdrop" aria-hidden="false">
+      <Draggable
+        nodeRef={nodeRef}
+        handle=".calculator-header"
+        cancel=".hamburger-menu, .hamburger-dropdown, .close-button, .history-panel, .keypad-button, .memory-btn, .calculator-display"
+        defaultPosition={initialPos}
+      >
+        <div ref={nodeRef} className="calculator-modal enhanced" role="dialog" aria-label="Calculator">
+          <div className="calculator-header">
+            <div className="header-left">
+              <button
+                className="hamburger-menu"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={toggleHamburgerMenu}
+                title="Menu"
+                aria-haspopup="true"
+                aria-expanded={showHamburgerMenu}
+              >
+                ☰
+              </button>
+              <h4 id="calculator-title">
+                🧮 Calculator
+                {showMemoryIndicator && <span className="memory-indicator" title={`Memory: ${memory}`}>M</span>}
+              </h4>
+              {showHamburgerMenu && (
+                <div
+                  className="hamburger-dropdown"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="menu-item" onClick={(e) => handleMenuItemClick('history', e)}>
+                    📊 {showHistory ? 'Hide' : 'Show'} History
+                  </div>
+                  <div className="menu-item" onClick={(e) => handleMenuItemClick('clearHistory', e)}>
+                    🗑️ Clear History
+                  </div>
                 </div>
-            </Draggable>
+              )}
+            </div>
+            <div className="header-controls">
+              <button
+                className="close-button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={onClose}
+                aria-label="Close calculator"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div className="calculator-content">
+            {showHistory && (
+              <div className="history-panel" aria-label="Calculation history">
+                <div className="history-header">
+                  <span>Receipt History</span>
+                  <div className="history-actions">
+                    <button className="clear-history" title="Clear history" onClick={handleClearHistory}>🗑️</button>
+                    <button className="close-history" title="Close history" onClick={() => setShowHistory(false)}>×</button>
+                  </div>
+                </div>
+                <div className="history-list" ref={historyRef}>
+                  {history.length === 0 ? (
+                    <div className="history-empty">No calculations yet</div>
+                  ) : (
+                    history.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`history-item ${item.isError ? 'error' : ''} ${item.isMemory ? 'memory' : ''}`}
+                        onClick={() => handleUseHistoryItem(item)}
+                        title="Click to use this value"
+                      >
+                        <div className="history-expression">{item.expression}</div>
+                        <div className="history-result">= {item.result}</div>
+                        <div className="history-time">{item.fullTimestamp}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="calculator-panel">
+              <div className="display-container">
+                {displayHasPrevious && <div className="previous-expression">{previousExpression}</div>}
+                <textarea
+                  className={`calculator-display ${isError ? 'error' : ''} ${displayHasPrevious ? 'has-previous' : ''}`}
+                  value={input || '0'}
+                  onChange={handleInputChange}
+                  onPaste={handlePaste}
+                  ref={inputRef}
+                  aria-live="polite"
+                />
+              </div>
+
+              {/* Memory buttons */}
+              <div className="memory-controls" aria-label="Memory controls">
+                <button className="memory-btn" onClick={handleMemoryClear} disabled={memory === 0}>MC</button>
+                <button className="memory-btn" onClick={handleMemoryRecall} disabled={memory === 0}>MR</button>
+                <button className="memory-btn" onClick={handleMemoryStore}>MS</button>
+                <button className="memory-btn" onClick={handleMemoryAdd}>M+</button>
+                <button className="memory-btn" onClick={handleMemorySubtract}>M-</button>
+              </div>
+
+              {/* Keypad */}
+              <div className="keypad-grid">
+                <button className="keypad-button clear" onClick={handleClear}>C</button>
+                <button className="keypad-button clear-entry" onClick={handleClearEntry}>CE</button>
+                <button className="keypad-button backspace" onClick={() => handleButtonClick('')} title="Backspace">⌫</button>
+                <button className="keypad-button operator" onClick={() => handleButtonClick('/')}>÷</button>
+
+                <button className="keypad-button number" onClick={() => handleButtonClick('7')}>7</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('8')}>8</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('9')}>9</button>
+                <button className="keypad-button operator" onClick={() => handleButtonClick('*')}>×</button>
+
+                <button className="keypad-button number" onClick={() => handleButtonClick('4')}>4</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('5')}>5</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('6')}>6</button>
+                <button className="keypad-button operator" onClick={() => handleButtonClick('-')}>-</button>
+
+                <button className="keypad-button number" onClick={() => handleButtonClick('1')}>1</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('2')}>2</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('3')}>3</button>
+                <button className="keypad-button operator" onClick={() => handleButtonClick('+')}>+</button>
+
+                <button className="keypad-button number zero" onClick={() => handleButtonClick('0')}>0</button>
+                <button className="keypad-button number" onClick={() => handleButtonClick('.')}>.</button>
+                <button className="keypad-button equals" onClick={handleCalculate}>=</button>
+              </div>
+
+              <div className="calculator-instructions">
+                <div><strong>Memory:</strong> Ctrl+M (Store) • Ctrl+R (Recall) • Ctrl+L (Clear)</div>
+                <div><strong>Menu:</strong> Click ☰ for receipt history and more options</div>
+                <div><strong>Input:</strong> Type, Ctrl+CV, Enter for equals, Esc to clear</div>
+              </div>
+            </div>
+          </div>
         </div>
-    );
-
-    // Use React Portal to render the calculator directly in the document body
-    // This ensures it's completely independent of the main app's positioning and scroll
-    return createPortal(calculatorContent, document.body);
-};
-
-export default CalculatorModal;
+      </Draggable>
+    </div>
+  );
+}

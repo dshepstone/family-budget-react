@@ -528,16 +528,18 @@ const AnnualExpensesPage = () => {
         }
 
         .amount-input {
-          width: 90px;
-          padding: 8px 10px;
-          border: 1px solid var(--input-border);
-          border-radius: 6px;
-          font-size: 0.85rem;
-          text-align: right;
-          background-color: var(--input-bg);
-          color: var(--text-primary);
-          transition: all 0.2s ease;
-        }
+        width: 90px;
+        padding: 8px 10px;
+        border: 1px solid var(--input-border);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        text-align: right;
+        background-color: var(--input-bg);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        flex-shrink: 0; /* Add this line */
+        box-sizing: border-box; /* Add this line */
+      }
 
         .amount-input:focus {
           outline: none;
@@ -584,17 +586,42 @@ const AnnualExpensesPage = () => {
           background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
           border: none;
           color: white;
-          padding: 6px 10px;
+          padding: 6px; /* Changed from 6px 10px */
           border-radius: 4px;
           cursor: pointer;
           font-size: 0.8rem;
-          width: 35px;
+          width: 32px; /* Reduced from 35px */
+          height: 32px; /* Added fixed height */
+          display: flex; /* Added for better centering */
+          align-items: center; /* Center vertically */
+          justify-content: center; /* Center horizontally */
           transition: all 0.2s ease;
+          flex-shrink: 0; /* Prevent shrinking */
+          text-align: center;
+          line-height: 1;
+          overflow: hidden; /* Prevent content overflow */
+          box-sizing: border-box;
         }
 
-        .item-delete-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        .item-delete-btn {
+          background: linear-gradient(135deg, var(--danger) 0%, #c82333 100%);
+          border: none;
+          color: white;
+          padding: 6px; /* Changed from 6px 10px */
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.8rem;
+          width: 32px; /* Reduced from 35px */
+          height: 32px; /* Added fixed height */
+          display: flex; /* Added for better centering */
+          align-items: center; /* Center vertically */
+          justify-content: center; /* Center horizontally */
+          transition: all 0.2s ease;
+          flex-shrink: 0; /* Prevent shrinking */
+          text-align: center;
+          line-height: 1;
+          overflow: hidden;
+          box-sizing: border-box;
         }
 
         .yearly-total {
@@ -888,7 +915,7 @@ const AnnualExpensesPage = () => {
                               checked={getPlannerStatus(expense.name, 'paid')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'paid', e.target.checked)}
                             />
-                            <span className="checkbox-label">Paid</span>
+                            <span className="checkbox-label">P</span>
                           </label>
                           <label className="status-checkbox-label">
                             <input
@@ -897,7 +924,7 @@ const AnnualExpensesPage = () => {
                               checked={getPlannerStatus(expense.name, 'transferred')}
                               onChange={(e) => handleStatusChange(categoryKey, index, 'transferred', e.target.checked)}
                             />
-                            <span className="checkbox-label">Trans</span>
+                            <span className="checkbox-label">T</span>
                           </label>
                         </div>
 

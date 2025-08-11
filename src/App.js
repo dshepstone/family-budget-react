@@ -15,6 +15,7 @@ import AnnualExpensesPage from './pages/AnnualExpensesPage';
 import AccountsPage from './pages/AccountsPage';
 import WeeklyPlannerPage from './pages/WeeklyPlannerPage';
 import ReportsPage from './pages/ReportsPage';
+import './styles/reports.css';
 
 // ✅ new pages
 import NotesPage from './pages/NotesPage';
