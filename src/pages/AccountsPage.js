@@ -18,9 +18,10 @@ const AccountsPage = () => {
 
   const accounts = Array.isArray(state.data.accounts) ? state.data.accounts : [];
 
+  // Updated setField function - removed sanitizeInput from name and bank to allow spaces
   const setField = (k, v) => setForm(prev => ({ 
     ...prev, 
-    [k]: (k === 'name' || k === 'bank') ? sanitizeInput(v) : v 
+    [k]: v // Allow spaces in all fields, including name and bank
   }));
 
   const reset = () => { 
@@ -50,11 +51,14 @@ const AccountsPage = () => {
       id: editingId || `account-${Date.now()}` 
     };
     
-    const next = editingId 
-      ? accounts.map(a => a.id === editingId ? data : a) 
-      : [...accounts, data];
+    if (editingId) {
+      // Update existing account
+      actions.updateAccount(data);
+    } else {
+      // Add new account
+      actions.addAccount(data);
+    }
     
-    actions.updateAccounts(next);
     reset();
   };
 
@@ -72,7 +76,7 @@ const AccountsPage = () => {
 
   const deleteAccount = (accountId) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
-      actions.updateAccounts(accounts.filter(a => a.id !== accountId));
+      actions.removeAccount(accountId);
     }
   };
 
