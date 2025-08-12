@@ -77,30 +77,35 @@ export default function CalculatorModal({ onClose }) {
   useLayoutEffect(() => {
     const W = typeof window !== 'undefined' ? window.innerWidth : 1200;
     const H = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const modalW = 380; // matches CSS
+    const modalW = showHistory ? 680 : 380; // Wider when history is shown
     const x = Math.max(12, Math.round((W - modalW) / 2));
     const y = Math.max(16, Math.round(H * 0.1));
     setInitialPos({ x, y });
 
-    // Lock width to avoid reflow based on font metrics
+    // Update width based on history visibility
     const el = nodeRef.current;
     if (el) {
       el.style.width = modalW + 'px';
       el.style.maxWidth = modalW + 'px';
     }
-  }, []);
+  }, [showHistory]);
 
   // --- Click outside hamburger closes it --- //
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!showHamburgerMenu) return;
-      const root = nodeRef.current;
-      if (root && !root.contains(e.target)) {
+      const hamburgerEl = e.target.closest('.hamburger-menu');
+      const dropdownEl = e.target.closest('.hamburger-dropdown');
+      
+      if (!hamburgerEl && !dropdownEl) {
         setShowHamburgerMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    if (showHamburgerMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
   }, [showHamburgerMenu]);
 
   // Focus the input on mount
@@ -382,6 +387,7 @@ export default function CalculatorModal({ onClose }) {
       setHistory([]);
       sessionStorage.removeItem('calculator-history');
     }
+    setShowHamburgerMenu(false);
   };
   const handleUseHistoryItem = (item) => {
     if (item.isError) return;
@@ -401,10 +407,15 @@ export default function CalculatorModal({ onClose }) {
     e.stopPropagation();
     setShowHamburgerMenu((s) => !s);
   };
+  
   const handleMenuItemClick = (action, e) => {
     e.stopPropagation();
-    if (action === 'history') setShowHistory((v) => !v);
-    if (action === 'clearHistory') handleClearHistory();
+    if (action === 'history') {
+      setShowHistory((v) => !v);
+    }
+    if (action === 'clearHistory') {
+      handleClearHistory();
+    }
     setShowHamburgerMenu(false);
   };
 
@@ -418,37 +429,44 @@ export default function CalculatorModal({ onClose }) {
         cancel=".hamburger-menu, .hamburger-dropdown, .close-button, .history-panel, .keypad-button, .memory-btn, .calculator-display"
         defaultPosition={initialPos}
       >
-        <div ref={nodeRef} className="calculator-modal enhanced" role="dialog" aria-label="Calculator">
+        <div 
+          ref={nodeRef} 
+          className={`calculator-modal enhanced ${showHistory ? 'with-history' : ''}`} 
+          role="dialog" 
+          aria-label="Calculator"
+        >
           <div className="calculator-header">
             <div className="header-left">
-              <button
-                className="hamburger-menu"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={toggleHamburgerMenu}
-                title="Menu"
-                aria-haspopup="true"
-                aria-expanded={showHamburgerMenu}
-              >
-                ☰
-              </button>
+              <div className="hamburger-container">
+                <button
+                  className="hamburger-menu"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={toggleHamburgerMenu}
+                  title="Menu"
+                  aria-haspopup="true"
+                  aria-expanded={showHamburgerMenu}
+                >
+                  ☰
+                </button>
+                {showHamburgerMenu && (
+                  <div
+                    className="hamburger-dropdown"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="menu-item" onClick={(e) => handleMenuItemClick('history', e)}>
+                      📊 {showHistory ? 'Hide' : 'Show'} History
+                    </div>
+                    <div className="menu-item" onClick={(e) => handleMenuItemClick('clearHistory', e)}>
+                      🗑️ Clear History
+                    </div>
+                  </div>
+                )}
+              </div>
               <h4 id="calculator-title">
                 🧮 Calculator
                 {showMemoryIndicator && <span className="memory-indicator" title={`Memory: ${memory}`}>M</span>}
               </h4>
-              {showHamburgerMenu && (
-                <div
-                  className="hamburger-dropdown"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="menu-item" onClick={(e) => handleMenuItemClick('history', e)}>
-                    📊 {showHistory ? 'Hide' : 'Show'} History
-                  </div>
-                  <div className="menu-item" onClick={(e) => handleMenuItemClick('clearHistory', e)}>
-                    🗑️ Clear History
-                  </div>
-                </div>
-              )}
             </div>
             <div className="header-controls">
               <button
@@ -519,7 +537,7 @@ export default function CalculatorModal({ onClose }) {
               <div className="keypad-grid">
                 <button className="keypad-button clear" onClick={handleClear}>C</button>
                 <button className="keypad-button clear-entry" onClick={handleClearEntry}>CE</button>
-                <button className="keypad-button backspace" onClick={() => handleButtonClick('')} title="Backspace">⌫</button>
+                <button className="keypad-button backspace" onClick={handleBackspace} title="Backspace">⌫</button>
                 <button className="keypad-button operator" onClick={() => handleButtonClick('/')}>÷</button>
 
                 <button className="keypad-button number" onClick={() => handleButtonClick('7')}>7</button>

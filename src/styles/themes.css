@@ -30,7 +30,7 @@
   --nav-active-border: #3498db;
 
   /* Header Colors */
-  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-bg: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
   --header-text: #ffffff;
 
   /* Status Colors */
@@ -104,10 +104,12 @@
   --chart-text: #7f8c8d;
   --chart-tooltip-bg: #2c3e50;
   --chart-tooltip-text: #ffffff;
-}
+
+  --header-start: #667eea;
+  --header-end: #764ba2;}
 
 /* Dark Theme */
-[data-theme="dark"] {
+:root[data-theme="dark"] {
   /* Primary Colors */
   --primary: #5dade2;
   --primary-dark: #3498db;
@@ -136,7 +138,7 @@
   --nav-active-border: #5dade2;
 
   /* Header Colors */
-  --header-bg: linear-gradient(135deg, #4a6fa5 0%, #5a4b7c 100%);
+  --header-bg: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
   --header-text: #ecf0f1;
 
   /* Status Colors */
@@ -210,10 +212,12 @@
   --chart-text: #bdc3c7;
   --chart-tooltip-bg: #ecf0f1;
   --chart-tooltip-text: #2c3e50;
-}
+
+  --header-start: #3b3f9f;
+  --header-end: #5b2d88;}
 
 /* High Contrast Theme */
-[data-theme="high-contrast"] {
+:root[data-theme="high-contrast"] {
   --primary: #0066cc;
   --primary-dark: #004499;
   --primary-light: #3388dd;
@@ -263,21 +267,21 @@
 }
 
 /* Theme-specific Component Adjustments */
-[data-theme="dark"] .nav-btn {
+:root[data-theme="dark"] .nav-btn {
   color: var(--nav-text);
 }
 
-[data-theme="dark"] .nav-btn:hover {
+:root[data-theme="dark"] .nav-btn:hover {
   background-color: rgba(93, 173, 226, 0.1);
 }
 
-[data-theme="dark"] .summary-card {
+:root[data-theme="dark"] .summary-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
 }
 
-[data-theme="dark"] input::placeholder,
-[data-theme="dark"] textarea::placeholder {
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
   color: var(--text-muted);
 }
 
@@ -300,15 +304,15 @@
   background: var(--border-dark);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-track {
+:root[data-theme="dark"] ::-webkit-scrollbar-track {
   background: var(--bg-tertiary);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: var(--border-light);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: var(--border-medium);
 }
 
@@ -321,4 +325,24 @@
 ::-moz-selection {
   background-color: var(--primary-alpha);
   color: var(--text-primary);
+}
+/* --- Token bridge: map new names to your existing tokens --- */
+:root {
+  --bg: var(--bg-primary);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --surface: var(--card-bg);
+  --surface-muted: var(--table-header-bg);
+  --border: var(--border-light);
+}
+
+:root[data-theme="dark"] {
+  /* If you have dark equivalents, map them here.
+     If not, re-use the same tokens as a safe default. */
+  --bg: var(--bg-primary);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --surface: var(--card-bg);
+  --surface-muted: var(--table-header-bg);
+  --border: var(--border-light);
 }

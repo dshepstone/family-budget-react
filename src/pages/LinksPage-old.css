@@ -2,19 +2,19 @@
 
 .links-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--header-start) 0%, var(--header-end) 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     padding: 2rem 1rem;
 }
 
 /* Header Section */
 .links-header {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 2.5rem;
     margin-bottom: 2rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header-content {
@@ -43,7 +43,7 @@
 
 .page-description {
     font-size: 1.1rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     line-height: 1.6;
     margin: 0;
     max-width: 600px;
@@ -55,7 +55,7 @@
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--header-start), var(--header-end));
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     padding: 1.5rem;
     border-radius: 15px;
@@ -81,13 +81,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 1.5rem 2rem;
     margin-bottom: 2rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     gap: 2rem;
 }
 
@@ -137,7 +137,7 @@
 .search-input {
     padding: 0.75rem 1rem 0.75rem 2.5rem;
     border-radius: 25px;
-    border: 2px solid var(--card-border);
+    border: 2px solid #e9ecef;
     width: 250px;
     font-size: 0.9rem;
     transition: all 0.3s ease;
@@ -174,7 +174,7 @@
 
 /* Empty State */
 .empty-state {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 3rem;
@@ -192,17 +192,17 @@
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    color: var(--text-primary) !important;
+    color: #2c3e50 !important;
     text-shadow: none;
-    
-    
-    
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
 }
 
 /* Fix for small description text - override components.css */
 .empty-content p {
     font-size: 1.1rem;
-    color: var(--text-secondary) !important;
+    color: #495057 !important;
     text-shadow: none !important;
     margin-bottom: 2rem;
     max-width: 600px;
@@ -218,8 +218,8 @@
 }
 
 .suggested-category {
-    background: var(--card-bg);
-    border: 2px solid var(--card-border);
+    background: white;
+    border: 2px solid #e9ecef;
     border-radius: 12px;
     padding: 1rem;
     display: flex;
@@ -283,7 +283,7 @@
 }
 
 .form-modal {
-    background: var(--card-bg);
+    background: white;
     border-radius: 15px;
     padding: 0;
     max-width: 700px;
@@ -311,7 +311,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, var(--header-start), var(--header-end));
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border-radius: 15px 15px 0 0;
 }
@@ -378,7 +378,7 @@
 
 .form-group label {
     font-weight: 600;
-    color: var(--text-secondary);
+    color: #495057;
     margin-bottom: 0.5rem;
 }
 
@@ -391,8 +391,8 @@
 .custom-select {
     position: relative;
     cursor: pointer;
-    background: var(--card-bg);
-    border: 2px solid var(--card-border);
+    background: white;
+    border: 2px solid #e9ecef;
     border-radius: 8px;
     transition: all 0.3s ease;
 }
@@ -449,8 +449,8 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: var(--card-bg);
-    border: 2px solid var(--brand-primary, #667eea);
+    background: white;
+    border: 2px solid #667eea;
     border-top: none;
     border-radius: 0 0 8px 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -476,11 +476,11 @@
 }
 
 .dropdown-option:hover {
-    background: var(--bg-tertiary);
+    background: #f8f9fa;
 }
 
 .dropdown-option.selected {
-    background: var(--brand-primary, #667eea);
+    background: #667eea;
     color: white;
 }
 
@@ -523,8 +523,8 @@
 
 .form-select option {
     padding: 0.75rem 0.5rem;
-    background: var(--card-bg);
-    color: var(--text-primary);
+    background: white;
+    color: #495057;
     border: none;
     font-size: 0.9rem;
     line-height: 1.4;
@@ -560,8 +560,8 @@
 
 /* URL Preview Feature */
 .url-preview {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--card-border);
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
     border-radius: 6px;
     padding: 0.5rem;
     margin-top: 0.5rem;
@@ -572,19 +572,19 @@
 }
 
 .preview-label {
-    color: var(--text-secondary);
+    color: #6c757d;
     font-weight: 500;
     flex-shrink: 0;
 }
 
 .preview-url {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
+    background: white;
+    border: 1px solid #dee2e6;
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
     font-family: 'Courier New', monospace;
     font-size: 0.8rem;
-    color: var(--text-primary);
+    color: #495057;
     flex: 1;
     word-break: break-all;
     overflow-x: auto;
@@ -626,7 +626,7 @@
 .icon-preview {
     font-size: 1.5rem;
     padding: 0.5rem;
-    background: var(--bg-tertiary);
+    background: #f8f9fa;
     border-radius: 8px;
     min-width: 50px;
     text-align: center;
@@ -635,7 +635,7 @@
 .color-input {
     width: 60px;
     height: 40px;
-    border: 2px solid var(--card-border);
+    border: 2px solid #e9ecef;
     border-radius: 8px;
     cursor: pointer;
 }
@@ -655,12 +655,12 @@
 }
 
 .category-card {
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
 }
 
@@ -702,20 +702,20 @@
 .category-name {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #495057;
     display: block;
 }
 
 .category-count {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     display: block;
     margin-top: 0.25rem;
 }
 
 .expand-icon {
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     margin-left: auto;
     transition: transform 0.3s;
 }
@@ -731,7 +731,7 @@
 }
 
 .link-item {
-    background: var(--bg-tertiary);
+    background: rgba(248, 249, 250, 0.8);
     border-radius: 10px;
     padding: 1rem;
     transition: all 0.3s ease;
@@ -776,7 +776,7 @@
 .link-name {
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #495057;
     margin-bottom: 0.25rem;
     line-height: 1.3;
     word-wrap: break-word;
@@ -786,7 +786,7 @@
 
 .link-url {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     line-height: 1.2;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -794,7 +794,7 @@
 
 .link-description {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     line-height: 1.4;
     margin-bottom: 0.5rem;
     word-wrap: break-word;
@@ -876,17 +876,17 @@
 .quick-access-section {
     background: var(--card-bg);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
+    border: 1px solid var(--card-border);
     padding: 2rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .quick-access-section h3 {
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0 0 1.5rem;
-    color: var(--text-primary);
+    color: #495057;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -899,7 +899,7 @@
 }
 
 .quick-category {
-    background: rgba(248, 249, 250, 0.8);
+    { background: var(--bg-tertiary); }
     border-radius: 12px;
     padding: 1rem;
     border: 2px solid transparent;
@@ -924,7 +924,7 @@
 
 .quick-name {
     font-weight: 600;
-    color: var(--text-primary);
+    color: #495057;
 }
 
 .quick-links {
@@ -934,14 +934,14 @@
 }
 
 .quick-link {
-    background: white;
-    border: 1px solid #e9ecef;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 8px;
     padding: 0.75rem;
     text-align: left;
     cursor: pointer;
     font-size: 0.9rem;
-    color: #495057;
+    color: var(--text-primary);
     transition: all 0.3s ease;
     word-break: break-word;
 }
@@ -954,10 +954,10 @@
 
 .quick-more {
     background: transparent;
-    border: 1px dashed var(--text-secondary);
+    border: 1px dashed #6c757d;
     border-radius: 8px;
     padding: 0.75rem;
-    color: var(--text-secondary);
+    color: #6c757d;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.3s ease;

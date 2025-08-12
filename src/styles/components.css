@@ -135,7 +135,7 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); /* Add text shadow for better contrast */
 }
 
-.stat-value {
+.homepage-redesigned .overview-stat .stat-value {
   font-size: 1.4rem; /* Increased from 1rem */
   font-weight: 700;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -1025,7 +1025,7 @@
   min-width: 0;
 }
 
-.stat-value {
+.homepage-redesigned .overview-stat .stat-value {
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -1505,7 +1505,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.stat-value.income {
+.homepage-redesigned .overview-stat .stat-value.income {
   color: #10b981;
   background: rgba(16, 185, 129, 0.1);
   padding: 0.25rem 0.5rem;
@@ -1513,7 +1513,7 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.stat-value.expense {
+.homepage-redesigned .overview-stat .stat-value.expense {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
   padding: 0.25rem 0.5rem;
@@ -1521,7 +1521,7 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-.stat-value.annual {
+.homepage-redesigned .overview-stat .stat-value.annual {
   color: #f59e0b;
   background: rgba(251, 191, 36, 0.1);
   padding: 0.25rem 0.5rem;
@@ -1529,7 +1529,7 @@
   border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
-.stat-value.positive {
+.homepage-redesigned .overview-stat .stat-value.positive {
   color: #10b981;
   background: rgba(16, 185, 129, 0.2); /* More opaque */
   border-color: rgba(16, 185, 129, 0.4);
@@ -1537,7 +1537,7 @@
   font-size: 1.4rem;
   padding: 0.5rem 0.75rem;
 }
-.stat-value.income-value {
+.homepage-redesigned .overview-stat .stat-value.income-value {
   color: #fbbf24;
   background: rgba(251, 191, 36, 0.2);
   border-color: rgba(251, 191, 36, 0.4);
@@ -1545,7 +1545,7 @@
   font-size: 1.4rem;
   padding: 0.5rem 0.75rem;
 }
-.stat-value.expense-value {
+.homepage-redesigned .overview-stat .stat-value.expense-value {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
@@ -1553,17 +1553,17 @@
   font-size: 1.4rem;
   padding: 0.5rem 0.75rem;
 }
-.stat-value.health-indicator {
+.homepage-redesigned .overview-stat .stat-value.health-indicator {
   font-size: 1.2rem; /* Slightly smaller since it includes text */
   padding: 0.5rem 0.75rem;
   white-space: nowrap;
 }
-.stat-value.health-indicator.positive {
+.homepage-redesigned .overview-stat .stat-value.health-indicator.positive {
   color: #10b981;
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.4);
 }
-.stat-value.health-indicator.negative {
+.homepage-redesigned .overview-stat .stat-value.health-indicator.negative {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.2);
   border-color: rgba(255, 107, 107, 0.4);
@@ -1575,7 +1575,7 @@
   align-items: center;
   justify-content: center;
 }
-.stat-value.negative {
+.homepage-redesigned .overview-stat .stat-value.negative {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.2);
   border-color: rgba(255, 107, 107, 0.4);
@@ -1584,7 +1584,7 @@
   padding: 0.5rem 0.75rem;
 }
 
-.stat-value.warning {
+.homepage-redesigned .overview-stat .stat-value.warning {
   color: #f59e0b;
   background: rgba(251, 191, 36, 0.15);
   padding: 0.25rem 0.5rem;
@@ -4011,7 +4011,7 @@
     min-width: 100px;
   }
   
-  .stat-value {
+  .homepage-redesigned .overview-stat .stat-value {
     font-size: 0.75rem;
     padding: 0.125rem 0.25rem;
   }
@@ -4600,7 +4600,7 @@
     grid-template-columns: 1fr;
   }
 
-  .stat-value {
+  .homepage-redesigned .overview-stat .stat-value {
     font-size: 1.5rem;
   }
 
@@ -4841,7 +4841,7 @@
   outline-offset: 2px;
 }
 
-.stat-value:focus-within {
+.homepage-redesigned .overview-stat .stat-value:focus-within {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
 }
@@ -4853,7 +4853,7 @@
 .stat-item:hover .stat-label {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
-.stat-value[data-changed="true"] {
+.homepage-redesigned .overview-stat .stat-value[data-changed="true"] {
   animation: valueChange 0.6s ease;
 }
 @keyframes valueChange {

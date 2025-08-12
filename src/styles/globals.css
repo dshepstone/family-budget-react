@@ -346,3 +346,117 @@ html {
     page-break-inside: avoid;
   }
 }
+
+
+/* Theme application helpers */
+html[data-theme="dark"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Header uses tokenized gradient */
+.app-header {
+  background: var(--header-bg);
+}
+/* === THEME UNIFIER (drop-in) === */
+/* Base page */
+.app-shell, .page, .content, body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Common surfaces: make every card/panel use theme surfaces */
+:where(.card, .panel, .module, .section, .block, .widget,
+       .summary-card, .overview-card, .stat-container, .stat-tile,
+       .quick-actions, .quick-actions-card, .progress-card,
+       [class*="card"], [class*="panel"]) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Muted text inside cards */
+:where(.card, .panel, .module, .section, .block, .widget) .muted,
+:where(.summary, .description, .hint, .subtext) {
+  color: var(--text-muted);
+}
+
+/* Nav bar / tab strip */
+.nav-bar {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+/* Kill any leftover glass/white overlays on these containers */
+:where(.card, .panel, .summary-card, .quick-actions, .stat-container)::before,
+:where(.card, .panel, .summary-card, .quick-actions, .stat-container)::after {
+  content: none;
+}
+
+/* Ensure header uses themed gradient (already set in globals.updated.css) */
+.app-header { background: var(--header-bg); }
+/* ===== FINAL THEME NORMALIZER (wins over component styles) ===== */
+
+/* Base surface + text across the app */
+body, .app-shell, .page, .content {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Panels / cards / sections */
+:where(.card, .panel, .module, .section, .block, .widget,
+       .summary-card, .overview-card, .stat-container, .stat-tile,
+       .quick-actions, .quick-actions-card, .progress-card,
+       .income-progress, .report-card, .notes-card,
+       [class*="card"], [class*="panel"], [class*="section"]) {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--card-shadow, none) !important;
+}
+
+/* Nav/tab bars or strip-style containers */
+.nav-bar, .tabs, .tab-strip, .subnav, .toolbar {
+  background: var(--surface-muted) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+/* Kill leftover glass overlays and pseudo elements */
+:where(.card, .panel, .summary-card, .quick-actions, .stat-container)::before,
+:where(.card, .panel, .summary-card, .quick-actions, .stat-container)::after {
+  content: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Tables */
+table, .table, .data-table {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+.table thead, .data-table thead {
+  background: var(--surface-muted) !important;
+  color: var(--text) !important;
+}
+.table tr:hover, .data-table tr:hover {
+  background: var(--hover-bg, var(--bg-secondary)) !important;
+}
+
+/* Inputs/buttons inside dark sections that were hardcoded */
+input, select, textarea {
+  background: var(--input-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--input-border) !important;
+}
+button {
+  color: var(--btn-primary-text) !important;
+}
+/* put this in globals.css (bottom) so it wins */
+[data-theme="dark"] .quick-actions {
+  background: var(--bg-primary);   /* or transparent */
+  border-color: transparent;       /* optional */
+}

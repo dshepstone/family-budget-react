@@ -414,13 +414,12 @@ const HomePage = () => {
           min-width: 0;
         }
         
-        .stat-value {
+       .homepage-redesigned .overview-stat .stat-value {
           font-size: 1.25rem;
           font-weight: 700;
           margin-bottom: 0.25rem;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
         }
-        
         .stat-label {
           font-size: 0.875rem;
           color: #6b7280;

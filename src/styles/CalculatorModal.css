@@ -1,43 +1,59 @@
-/* src/components/CalculatorModal.css - compact, stable modal with overlay history drawer */
+/* src/components/CalculatorModal.css - compact, stable modal with side-by-side history */
 
 /* ---------- Backdrop ---------- */
 .calculator-backdrop{position:fixed;inset:0;background:transparent;z-index:2147483646;pointer-events:none;display:block}
 
 /* ---------- Modal ---------- */
-.calculator-modal{position:fixed;z-index:2147483647;color:#fff;background:#2c3e50;border-radius:12px;padding:12px 12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);animation:calculatorFade .18s ease-out;pointer-events:auto;max-height:90vh;overflow:visible;display:flex;flex-direction:column;isolation:isolate;contain:layout style paint;user-select:none;width:380px}
+.calculator-modal{position:fixed;z-index:2147483647;color:#fff;background:#2c3e50;border-radius:12px;padding:12px 12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);animation:calculatorFade .18s ease-out;pointer-events:auto;max-height:90vh;overflow:visible;display:flex;flex-direction:column;isolation:isolate;contain:layout style paint;user-select:none;width:380px;transition:width .3s ease}
+
+.calculator-modal.with-history{width:680px}
+
 @keyframes calculatorFade{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /* Header */
 .calculator-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:move;padding:6px;border-radius:8px;background:rgba(255,255,255,.05)}
 .header-left{display:flex;align-items:center;gap:.75rem}
+
+/* Hamburger menu container */
+.hamburger-container{position:relative}
 .hamburger-menu{background:rgba(52,152,219,.9);border:none;font-size:1rem;cursor:pointer;color:#fff;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:transform .15s ease,background .15s ease;font-weight:700;line-height:1}
 .hamburger-menu:hover{background:rgba(52,152,219,1);transform:scale(1.05)}
+
+/* Hamburger dropdown */
+.hamburger-dropdown{position:absolute;top:100%;left:0;margin-top:4px;background:rgba(44,62,80,.95);border:1px solid rgba(255,255,255,.2);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.3);min-width:160px;z-index:2147483648;animation:dropdownIn .15s ease-out}
+@keyframes dropdownIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.menu-item{padding:8px 12px;cursor:pointer;border-radius:4px;margin:2px;font-size:.9rem;transition:background .15s ease}
+.menu-item:hover{background:rgba(255,255,255,.1)}
+
 .close-button{background:rgba(231,76,60,.9);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
 .close-button:hover{background:rgba(231,76,60,1)}
 .calculator-header h4{margin:0;font-size:1rem;font-weight:600;display:flex;align-items:center;gap:.5rem}
 .memory-indicator{background:#e74c3c;color:#fff;padding:2px 6px;border-radius:12px;font-size:.7rem;font-weight:700}
 
-/* Content */
-.calculator-content{position:relative;display:flex}
+/* Content - Side by side layout */
+.calculator-content{position:relative;display:flex;gap:12px}
 
-/* Overlay history drawer */
-.history-panel{position:absolute;left:8px;top:52px;bottom:12px;width:280px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px;display:flex;flex-direction:column;box-shadow:0 8px 20px rgba(0,0,0,.25);animation:drawerIn .18s ease-out;overflow:hidden}
-@keyframes drawerIn{from{transform:translateX(-10px);opacity:0}to{transform:none;opacity:1}}
+/* History panel - side by side */
+.history-panel{width:280px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px;display:flex;flex-direction:column;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:slideIn .2s ease-out;overflow:hidden;flex-shrink:0}
+@keyframes slideIn{from{transform:translateX(-20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
 .history-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.2);margin-bottom:6px}
-.history-header span{font-weight:600}
+.history-header span{font-weight:600;font-size:.9rem}
 .history-actions{display:flex;gap:6px}
-.clear-history,.close-history{background:rgba(255,255,255,.12);border:none;color:#fff;width:26px;height:26px;border-radius:6px;cursor:pointer}
-.history-list{overflow:auto;flex:1;scrollbar-width:thin}
+.clear-history,.close-history{background:rgba(255,255,255,.12);border:none;color:#fff;width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:.8rem}
+.clear-history:hover,.close-history:hover{background:rgba(255,255,255,.2)}
+
+.history-list{overflow:auto;flex:1;scrollbar-width:thin;max-height:420px}
 .history-list::-webkit-scrollbar{width:6px}
 .history-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:3px}
-.history-empty{text-align:center;color:rgba(255,255,255,.6);font-style:italic;padding:10px 0}
+.history-empty{text-align:center;color:rgba(255,255,255,.6);font-style:italic;padding:20px 0;font-size:.9rem}
 .history-item{background:rgba(255,255,255,.08);border-left:3px solid #27ae60;border-radius:6px;padding:.5rem;margin-bottom:.45rem;cursor:pointer;transition:transform .15s ease,background .15s ease}
 .history-item:hover{background:rgba(255,255,255,.14);transform:translateX(2px)}
 .history-item.error{border-left-color:#e74c3c;background:rgba(231,76,60,.12)}
 .history-item.memory{border-left-color:#f39c12;background:rgba(243,156,18,.12)}
 .history-expression{font-size:.85rem;color:rgba(255,255,255,.85);word-break:break-all}
-.history-result{font-weight:700;margin-top:2px}
-.history-time{font-size:.7rem;color:rgba(255,255,255,.6)}
+.history-result{font-weight:700;margin-top:2px;font-size:.9rem}
+.history-time{font-size:.7rem;color:rgba(255,255,255,.6);margin-top:2px}
 
 /* Calculator panel */
 .calculator-panel{flex:1;min-width:320px}
@@ -51,27 +67,44 @@
 
 /* Memory controls */
 .memory-controls{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
-.memory-btn{background:rgba(243,156,18,.9);border:1px solid rgba(243,156,18,.6);color:#fff;padding:.45rem;border-radius:6px;font-size:.85rem;font-weight:600;min-height:34px}
+.memory-btn{background:rgba(243,156,18,.9);border:1px solid rgba(243,156,18,.6);color:#fff;padding:.45rem;border-radius:6px;font-size:.85rem;font-weight:600;min-height:34px;cursor:pointer;transition:background .15s ease}
+.memory-btn:hover:not(:disabled){background:rgba(243,156,18,1)}
 .memory-btn:disabled{opacity:.45;cursor:not-allowed;background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.2)}
 
 /* Keypad */
 .keypad-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);gap:8px;margin-bottom:10px}
-.keypad-button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:10px 8px;border-radius:10px;font-size:1rem;font-weight:600;min-height:42px;display:flex;align-items:center;justify-content:center;transition:transform .15s ease,background .15s ease}
+.keypad-button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:10px 8px;border-radius:10px;font-size:1rem;font-weight:600;min-height:42px;display:flex;align-items:center;justify-content:center;transition:transform .15s ease,background .15s ease;cursor:pointer}
 .keypad-button:hover{background:rgba(255,255,255,.2);transform:translateY(-1px)}
 .keypad-button:active{transform:translateY(0)}
 .keypad-button.clear{background:#e74c3c}
+.keypad-button.clear:hover{background:rgba(231,76,60,1)}
 .keypad-button.clear-entry{background:#e67e22}
+.keypad-button.clear-entry:hover{background:rgba(230,126,34,1)}
 .keypad-button.backspace{background:#f39c12}
+.keypad-button.backspace:hover{background:rgba(243,156,18,1)}
 .keypad-button.operator{background:#27ae60;font-size:1.15rem}
+.keypad-button.operator:hover{background:rgba(39,174,96,1)}
 .keypad-button.equals{background:#3498db;font-size:1.15rem}
+.keypad-button.equals:hover{background:rgba(52,152,219,1)}
 .keypad-button.number{background:rgba(255,255,255,.15)}
+.keypad-button.number:hover{background:rgba(255,255,255,.25)}
 .keypad-button.number.zero{grid-column:span 2}
 
 /* Instructions */
 .calculator-instructions{text-align:center;color:rgba(255,255,255,.75);font-size:10px;line-height:1.35;padding:.5rem;background:rgba(255,255,255,.06);border-radius:6px;border:1px solid rgba(255,255,255,.12)}
 
 /* Responsive */
-@media (max-width:480px){.calculator-modal{width:92vw}.history-panel{width:85vw;left:8px}}
+@media (max-width:720px){
+  .calculator-modal.with-history{width:95vw}
+  .calculator-content{flex-direction:column}
+  .history-panel{width:100%;max-height:200px}
+}
+
+@media (max-width:480px){
+  .calculator-modal{width:92vw}
+  .calculator-modal.with-history{width:95vw}
+  .history-panel{width:100%}
+}
 
 /* z-index safety */
 .MuiModal-root .calculator-modal,.modal-backdrop .calculator-modal,.ant-modal-mask .calculator-modal{z-index:2147483647!important}

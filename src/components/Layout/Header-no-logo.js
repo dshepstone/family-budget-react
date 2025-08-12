@@ -3,8 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import '../../styles/header.css';
 import { useBudget } from '../../context/BudgetContext';
 import { APP_NAME, APP_VERSION } from '../../utils/constants';
-import logo from '../../logo/FamilyBudgetLogo_ImageOnly.png';
-
 
 const Header = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
@@ -255,71 +253,65 @@ const Header = () => {
         </div>
 
         <div className="header-content">
-  {/* Theme Toggle */}
-  
+          {/* Theme Toggle */}
+          <button className="theme-toggle" onClick={handleThemeToggle} aria-label="Toggle theme">
+            <span className="theme-icon">{theme === 'light' ? '🌙' : '☀️'}</span>
+            <span className="theme-toggle-text">{theme === 'light' ? 'Dark' : 'Light'}</span>
+          </button>
 
-  {/* App Title and Logo */}
-  <div className="app-title-section">
-    <img
-      src={logo}
-      alt="Family Budget Simplified"
-      className="app-logo-img"
-      style={{ height: '60px', width: 'auto' }}
-    />
-  </div>
+          {/* App Title and Logo */}
+          <div className="app-title-section">
+            <div className="app-logo">💰</div>
+            <div className="title-info">
+              <h1 className="app-title">{APP_NAME}</h1>
+              <div className="app-subtitle">Complete Budget Management</div>
+            </div>
+          </div>
 
-  <div className="title-info">
-    <h1 className="app-title">{APP_NAME}</h1>
-    <div className="app-subtitle">Complete Budget Management</div>
-  </div>
+          {/* Month Selector */}
+          <div className="month-selector">
+            <label htmlFor="budget-month" className="month-label">Budget Month:</label>
+            <select id="budget-month" value={currentMonth} onChange={handleMonthChange} className="month-select">
+              {months.map((month, index) => (
+                <option key={index} value={index}>{month}</option>
+              ))}
+            </select>
+          </div>
 
-  {/* Month Selector */}
-  <div className="month-selector">
-    <label htmlFor="budget-month" className="month-label">Budget Month:</label>
-    <select id="budget-month" value={currentMonth} onChange={handleMonthChange} className="month-select">
-      {months.map((month, index) => (
-        <option key={index} value={index}>{month}</option>
-      ))}
-    </select>
-  </div>
+          {/* Enhanced Quick Stats - FIXED CLASS NAMES */}
+          <div className="header-stats">
+            <div className="stat-item">
+              <span className="stat-label">Net Monthly:</span>
+              <span className={`stat-value ${netMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
+                {formatCurrency(netMonthlyIncome)}
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Projected Income:</span>
+              <span className="stat-value income-value">
+                {formatCurrency(totalProjectedIncome)}
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Total Expenses:</span>
+              <span className="stat-value expense">
+                {formatCurrency(totalExpenses)}
+              </span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-label">Budget Health:</span>
+              <span className={`stat-value warning ${netMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
+                {netMonthlyIncome >= 0 ? '✅ Good' : '⚠️ Alert'}
+              </span>
+            </div>
+          </div>
 
-  {/* Enhanced Quick Stats */}
-  <div className="header-stats">
-    <div className="stat-item">
-      <span className="stat-label">Net Monthly:</span>
-      <span className={`stat-value ${netMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-        {formatCurrency(netMonthlyIncome)}
-      </span>
-    </div>
-    <div className="stat-item">
-      <span className="stat-label">Projected Income:</span>
-      <span className="stat-value income-value">
-        {formatCurrency(totalProjectedIncome)}
-      </span>
-    </div>
-    <div className="stat-item">
-      <span className="stat-label">Total Expenses:</span>
-      <span className="stat-value expense">
-        {formatCurrency(totalExpenses)}
-      </span>
-    </div>
-    <div className="stat-item">
-      <span className="stat-label">Budget Health:</span>
-      <span className={`stat-value warning ${netMonthlyIncome >= 0 ? 'positive' : 'negative'}`}>
-        {netMonthlyIncome >= 0 ? '✅ Good' : '⚠️ Alert'}
-      </span>
-    </div>
-  </div>
-
-  {/* Version Info */}
-  <div className="version-info">
-    <span className="version-number">v{APP_VERSION}</span>
-    <span className="file-name">Family Budget</span>
-  </div>
-</div> {/* <-- this closes header-content exactly once, here */}
-
-
-     
+          {/* Version Info */}
+          <div className="version-info">
+            <span className="version-number">v{APP_VERSION}</span>
+            <span className="file-name">Family Budget</span>
+          </div>
+        </div>
       </header>
     </>
   );

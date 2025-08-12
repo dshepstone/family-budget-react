@@ -90,24 +90,56 @@ const ReportsPrint = {
   baseStyles: `
     <style>
       * { box-sizing: border-box; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #111827; }
-      h1 { margin: 0 0 16px; font-size: 22px; }
-      h2 { margin: 24px 0 8px; font-size: 18px; }
-      .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; margin: 12px 0 20px; }
-      .tile { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
-      .tile .label { color: #6b7280; font-size: 12px; margin-bottom: 6px; }
-      .tile .value { font-weight: 700; font-size: 16px; }
-      table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; }
-      th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; font-size: 13px; }
-      th { background: #f8fafc; }
+      body { 
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; 
+        padding: 24px; 
+        color: #111827;
+        line-height: 1.3;
+      }
+      h1 { margin: 0 0 12px; font-size: 20px; }
+      h2 { margin: 16px 0 8px; font-size: 16px; }
+      h3 { margin: 12px 0 6px; font-size: 14px; }
+      h4 { margin: 10px 0 6px; font-size: 13px; }
+      .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 10px; margin: 10px 0 16px; }
+      .tile { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
+      .tile .label { color: #6b7280; font-size: 11px; margin-bottom: 4px; }
+      .tile .value { font-weight: 700; font-size: 14px; }
+      table { width: 100%; border-collapse: collapse; margin: 6px 0 16px; }
+      th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; font-size: 12px; }
+      th { background: #f8fafc; font-weight: 600; }
       td.amount { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
       tr.total-row td { background: #f9fafb; font-weight: 700; }
       .positive { color: #059669; }
       .negative { color: #dc2626; }
       .muted { color: #6b7280; }
+      @media print {
+        @page { 
+          size: Letter; 
+          margin: 0.6in;
+        }
+        body { 
+          padding: 0; 
+          font-size: 10px;
+          line-height: 1.2;
+        }
+        h1 { font-size: 16px; page-break-after: avoid; margin-bottom: 8px; }
+        h2 { font-size: 14px; page-break-after: avoid; margin: 12px 0 6px 0; }
+        h3 { font-size: 12px; page-break-after: avoid; margin: 8px 0 4px 0; }
+        table { page-break-inside: auto; font-size: 8px; margin: 6px 0 10px 0; }
+        th, td { padding: 3px 5px; font-size: 8px; }
+        .kpi { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0 10px 0; }
+        .tile { padding: 6px; }
+        .tile .label { font-size: 8px; margin-bottom: 2px; }
+        .tile .value { font-size: 10px; }
+      }
     </style>
   `,
   wrap(title, body) {
+    const hasCharts = body.includes('id="pieChart"') || body.includes('id="barChart"');
+    const printScript = hasCharts 
+      ? '' // Charts handle their own printing timing
+      : '<script>window.onload = () => setTimeout(() => window.print(), 800);</script>';
+    
     return `
       <!doctype html>
       <html>
@@ -119,7 +151,7 @@ const ReportsPrint = {
         <body>
           <h1>${title}</h1>
           ${body}
-          <script>window.onload = () => setTimeout(() => window.print(), 50);</script>
+          ${printScript}
         </body>
       </html>
     `;
@@ -290,6 +322,498 @@ const ReportsPrint = {
 
     return body;
   },
+  sectionExpenseCategories({ formatCurrency, monthly, annual }) {
+    // Process monthly categories
+    const monthlyCategoryTotals = Object.entries(monthly || {}).map(([category, items]) => ({
+      category,
+      total: (items || []).reduce((s, e) => s + parseAmount(e.actual ?? e.amount ?? 0), 0),
+      count: (items || []).length,
+      monthlyImpact: (items || []).reduce((s, e) => s + parseAmount(e.actual ?? e.amount ?? 0), 0),
+      items: items || []
+    }));
+
+    // Process annual categories (show monthly impact)
+    const annualCategoryTotals = Object.entries(annual || {}).map(([category, items]) => ({
+      category,
+      total: (items || []).reduce((s, e) => s + parseAmount(e.actual ?? e.amount ?? 0), 0),
+      count: (items || []).length,
+      monthlyImpact: (items || []).reduce((s, e) => s + parseAmount(e.actual ?? e.amount ?? 0), 0) / 12,
+      items: items || []
+    }));
+
+    // Combine for totals
+    const allCategories = {};
+    monthlyCategoryTotals.forEach(cat => {
+      allCategories[cat.category] = {
+        monthlyDirect: cat.monthlyImpact,
+        monthlyFromAnnual: 0,
+        totalMonthlyImpact: cat.monthlyImpact,
+        monthlyItems: cat.items,
+        annualItems: []
+      };
+    });
+
+    annualCategoryTotals.forEach(cat => {
+      if (allCategories[cat.category]) {
+        allCategories[cat.category].monthlyFromAnnual = cat.monthlyImpact;
+        allCategories[cat.category].totalMonthlyImpact += cat.monthlyImpact;
+        allCategories[cat.category].annualItems = cat.items;
+      } else {
+        allCategories[cat.category] = {
+          monthlyDirect: 0,
+          monthlyFromAnnual: cat.monthlyImpact,
+          totalMonthlyImpact: cat.monthlyImpact,
+          monthlyItems: [],
+          annualItems: cat.items
+        };
+      }
+    });
+
+    const sortedCategories = Object.entries(allCategories).sort((a, b) => b[1].totalMonthlyImpact - a[1].totalMonthlyImpact);
+    const totalMonthlyImpact = sortedCategories.reduce((s, [, data]) => s + data.totalMonthlyImpact, 0);
+
+    // Prepare data for charts
+    const chartData = sortedCategories.map(([category, data]) => ({
+      category,
+      amount: data.totalMonthlyImpact,
+      percentage: totalMonthlyImpact > 0 ? (data.totalMonthlyImpact / totalMonthlyImpact * 100) : 0
+    }));
+
+    const chartLabels = JSON.stringify(chartData.map(d => d.category));
+    const chartValues = JSON.stringify(chartData.map(d => d.amount));
+    const chartPercentages = JSON.stringify(chartData.map(d => d.percentage));
+
+    // Colors for charts
+    const colors = [
+      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+      '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+      '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308'
+    ];
+    const backgroundColors = JSON.stringify(colors);
+    const borderColors = JSON.stringify(colors.map(c => c + 'dd'));
+
+    return `
+      <h2>Expense Categories Analysis</h2>
+      
+      <div class="kpi">
+        <div class="tile">
+          <div class="label">Total Monthly Impact</div>
+          <div class="value">${formatCurrency(totalMonthlyImpact)}</div>
+        </div>
+        <div class="tile">
+          <div class="label">Total Categories</div>
+          <div class="value">${sortedCategories.length}</div>
+        </div>
+        <div class="tile">
+          <div class="label">Largest Category</div>
+          <div class="value">${sortedCategories.length > 0 ? sortedCategories[0][0] : 'N/A'}</div>
+        </div>
+        <div class="tile">
+          <div class="label">Annual Equivalent</div>
+          <div class="value">${formatCurrency(totalMonthlyImpact * 12)}</div>
+        </div>
+      </div>
+
+      <div class="charts-container">
+        <div class="chart-card">
+          <h3>Expense Distribution</h3>
+          <div class="chart-wrapper pie-chart-wrapper">
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Monthly Impact by Category</h3>
+          <div class="chart-wrapper bar-chart-wrapper">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <h3>Category Breakdown</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Category</th>
+            <th style="width: 15%;">Monthly Direct</th>
+            <th style="width: 15%;">Monthly from Annual</th>
+            <th style="width: 15%;">Total Monthly Impact</th>
+            <th style="width: 10%;">% of Total</th>
+            <th style="width: 10%;">Items (Mo.)</th>
+            <th style="width: 10%;">Items (Ann.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sortedCategories.map(([category, data]) => {
+            const percentage = totalMonthlyImpact > 0 ? (data.totalMonthlyImpact / totalMonthlyImpact * 100) : 0;
+            return `
+              <tr>
+                <td><strong>${category}</strong></td>
+                <td class="amount">${formatCurrency(data.monthlyDirect)}</td>
+                <td class="amount">${formatCurrency(data.monthlyFromAnnual)}</td>
+                <td class="amount"><strong>${formatCurrency(data.totalMonthlyImpact)}</strong></td>
+                <td class="amount">${percentage.toFixed(1)}%</td>
+                <td class="amount">${data.monthlyItems.length}</td>
+                <td class="amount">${data.annualItems.length}</td>
+              </tr>
+            `;
+          }).join('')}
+          <tr class="total-row">
+            <td>Total</td>
+            <td class="amount">${formatCurrency(monthlyCategoryTotals.reduce((s, c) => s + c.monthlyImpact, 0))}</td>
+            <td class="amount">${formatCurrency(annualCategoryTotals.reduce((s, c) => s + c.monthlyImpact, 0))}</td>
+            <td class="amount">${formatCurrency(totalMonthlyImpact)}</td>
+            <td class="amount">100.0%</td>
+            <td class="amount">${monthlyCategoryTotals.reduce((s, c) => s + c.count, 0)}</td>
+            <td class="amount">${annualCategoryTotals.reduce((s, c) => s + c.count, 0)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Detailed Category Items</h3>
+      ${sortedCategories.map(([category, data]) => {
+        if (data.monthlyItems.length === 0 && data.annualItems.length === 0) return '';
+        
+        return `
+          <h4 style="margin-top: 20px; color: #374151;">${category} - ${formatCurrency(data.totalMonthlyImpact)}/mo</h4>
+          ${data.monthlyItems.length > 0 ? `
+            <table style="margin-bottom: 12px;">
+              <thead>
+                <tr style="background: #f3f4f6;">
+                  <th colspan="4">Monthly Expenses</th>
+                </tr>
+                <tr>
+                  <th>Item</th>
+                  <th>Amount</th>
+                  <th>Account</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.monthlyItems.map(item => `
+                  <tr>
+                    <td>${item.name || 'Untitled'}</td>
+                    <td class="amount">${formatCurrency(parseAmount(item.actual ?? item.amount))}</td>
+                    <td>${item.accountId || '-'}</td>
+                    <td>${item.paid ? '✅ Paid' : '⏳ Pending'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+          ${data.annualItems.length > 0 ? `
+            <table>
+              <thead>
+                <tr style="background: #fef3c7;">
+                  <th colspan="5">Annual Expenses (showing monthly impact)</th>
+                </tr>
+                <tr>
+                  <th>Item</th>
+                  <th>Annual Amount</th>
+                  <th>Monthly Impact</th>
+                  <th>Due Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.annualItems.map(item => `
+                  <tr>
+                    <td>${item.name || 'Untitled'}</td>
+                    <td class="amount">${formatCurrency(parseAmount(item.actual ?? item.amount))}</td>
+                    <td class="amount">${formatCurrency(parseAmount(item.actual ?? item.amount) / 12)}</td>
+                    <td>${item.date || item.dueDate ? new Date(item.date || item.dueDate).toLocaleDateString() : '-'}</td>
+                    <td>${item.paid ? '✅ Paid' : '⏳ Pending'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : ''}
+        `;
+      }).join('')}
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+      <script>
+        // Prevent multiple print dialogs
+        let printTriggered = false;
+        
+        // Wait for Chart.js to load and charts to render before printing
+        window.addEventListener('load', function() {
+          if (typeof Chart !== 'undefined') {
+            const labels = ${chartLabels};
+            const data = ${chartValues};
+            const percentages = ${chartPercentages};
+            const backgroundColors = ${backgroundColors};
+            const borderColors = ${borderColors};
+            
+            let chartsRendered = 0;
+            const totalCharts = 2;
+            
+            function triggerPrint() {
+              if (!printTriggered) {
+                printTriggered = true;
+                setTimeout(() => {
+                  window.print();
+                }, 800);
+              }
+            }
+            
+            function chartComplete() {
+              chartsRendered++;
+              if (chartsRendered >= totalCharts) {
+                triggerPrint();
+              }
+            }
+
+            // Pie Chart
+            const pieCtx = document.getElementById('pieChart');
+            if (pieCtx) {
+              new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: {
+                    duration: 0,
+                    onComplete: chartComplete
+                  },
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: {
+                        font: { size: 10 },
+                        padding: 8,
+                        boxWidth: 12,
+                        usePointStyle: false,
+                        generateLabels: function(chart) {
+                          const data = chart.data;
+                          return data.labels.map((label, i) => ({
+                            text: label + ' (' + percentages[i].toFixed(1) + '%)',
+                            fillStyle: data.datasets[0].backgroundColor[i],
+                            strokeStyle: data.datasets[0].borderColor[i],
+                            lineWidth: 1,
+                            index: i
+                          }));
+                        }
+                      }
+                    },
+                    tooltip: { enabled: false }
+                  },
+                  layout: {
+                    padding: {
+                      top: 5,
+                      bottom: 5,
+                      left: 5,
+                      right: 5
+                    }
+                  }
+                }
+              });
+            } else {
+              chartComplete();
+            }
+
+            // Bar Chart
+            const barCtx = document.getElementById('barChart');
+            if (barCtx) {
+              new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Monthly Impact',
+                    data: data,
+                    backgroundColor: backgroundColors,
+                    borderColor: borderColors,
+                    borderWidth: 1
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  aspectRatio: 1.5,
+                  animation: {
+                    duration: 0,
+                    onComplete: chartComplete
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      ticks: {
+                        font: { size: 9 },
+                        callback: function(value) {
+                          return new Intl.NumberFormat('en-US', { 
+                            style: 'currency', 
+                            currency: 'USD',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          }).format(value);
+                        }
+                      }
+                    },
+                    x: {
+                      ticks: {
+                        font: { size: 8 },
+                        maxRotation: 45,
+                        minRotation: 0
+                      }
+                    }
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                  },
+                  layout: {
+                    padding: {
+                      top: 10,
+                      bottom: 5,
+                      left: 5,
+                      right: 5
+                    }
+                  }
+                }
+              });
+            } else {
+              chartComplete();
+            }
+          } else {
+            // Fallback if Chart.js doesn't load
+            if (!printTriggered) {
+              printTriggered = true;
+              setTimeout(() => window.print(), 1500);
+            }
+          }
+        });
+      </script>
+
+      <style>
+        .charts-container { 
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin: 16px 0;
+        }
+        .chart-card {
+          background: #f9fafb;
+          padding: 12px;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+          page-break-inside: avoid;
+        }
+        .chart-card h3 {
+          margin: 0 0 10px 0;
+          font-size: 14px;
+          color: #374151;
+          text-align: center;
+        }
+        .chart-wrapper {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .pie-chart-wrapper {
+          height: 280px;
+          width: 280px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .bar-chart-wrapper {
+          height: 280px;
+          width: 100%;
+        }
+        .chart-card canvas {
+          max-width: 100%;
+          max-height: 100%;
+        }
+        @media print {
+          body { 
+            margin: 0.5in;
+            font-size: 11px;
+            line-height: 1.2;
+          }
+          h2 {
+            margin: 8px 0 6px 0;
+            font-size: 16px;
+          }
+          .kpi {
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 8px !important;
+            margin: 8px 0 12px 0 !important;
+          }
+          .tile {
+            padding: 6px !important;
+            font-size: 9px !important;
+          }
+          .tile .label {
+            font-size: 8px !important;
+            margin-bottom: 3px !important;
+          }
+          .tile .value {
+            font-size: 11px !important;
+          }
+          .charts-container {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 15px !important;
+            margin: 12px 0 !important;
+            page-break-inside: avoid;
+          }
+          .chart-card {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+            background: #fff !important;
+            border: 1px solid #ccc !important;
+            padding: 15px;
+            box-shadow: none !important;
+          }
+          .chart-card h3 {
+            font-size: 12px !important;
+            margin-bottom: 10px !important;
+          }
+          .pie-chart-wrapper {
+            height: 220px !important;
+            width: 220px !important;
+            margin: 0 auto;
+          }
+          .bar-chart-wrapper {
+            height: 200px !important;
+            width: 100% !important;
+          }
+          .chart-card canvas {
+            width: 100% !important;
+            height: 100% !important;
+          }
+          h1, h2, h3, h4 {
+            page-break-after: avoid;
+          }
+          table {
+            page-break-inside: auto;
+            font-size: 9px !important;
+            margin: 8px 0 12px 0 !important;
+          }
+          th, td {
+            padding: 4px 6px !important;
+            font-size: 9px !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .charts-container {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      </style>
+    `;
+  },
   sectionCompleteBudget({ formatCurrency, monthly, annual, income }) {
     // Monthly totals by category
     const monthlyCategoryTotals = Object.entries(monthly || {}).map(([category, items]) => ({
@@ -419,6 +943,15 @@ const ReportsPage = () => {
     ReportsPrint.open(html, 'Expense Status (Monthly View)');
   };
 
+  const handlePrintExpenseCategories = () => {
+    const html = ReportsPrint.sectionExpenseCategories({
+      formatCurrency,
+      monthly: data.monthly || {},
+      annual: data.annual || {}
+    });
+    ReportsPrint.open(html, 'Expense Categories Analysis');
+  };
+
   const handlePrintCompleteBudget = () => {
     const html = ReportsPrint.sectionCompleteBudget({
       formatCurrency,
@@ -468,6 +1001,13 @@ const ReportsPage = () => {
         <p>Shows monthly expense items and annual items (as monthly impact), including paid/transferred status.</p>
         <div style={{ marginTop: 8 }}>
           <Button variant="outline" onClick={handlePrintExpenseStatus}>🖨️ Print Expense Status</Button>
+        </div>
+      </Card>
+
+      <Card title="Expense Categories Analysis">
+        <p>Interactive visual breakdown of expenses by category with pie charts, bar charts, and detailed analysis. Shows monthly impact from both monthly and annual expenses.</p>
+        <div style={{ marginTop: 8 }}>
+          <Button variant="outline" onClick={handlePrintExpenseCategories}>📊 Print Interactive Expense Analysis</Button>
         </div>
       </Card>
 
