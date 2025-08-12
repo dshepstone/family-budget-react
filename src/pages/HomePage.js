@@ -114,33 +114,118 @@ const HomePage = () => {
     }, 0);
   }, [state.data.income]);
 
-  // Enhanced income analysis using corrected calculations
-  const incomeAnalysis = useMemo(() => {
-    const variance = totalActualIncome - totalProjectedIncome;
-    const percentReceived = totalProjectedIncome > 0 ? (totalActualIncome / totalProjectedIncome) * 100 : 0;
-    
-    // Calculate expected income based on how far through the month we are
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const daysInMonth = endOfMonth.getDate();
-    const dayOfMonth = now.getDate();
-    const monthProgress = (dayOfMonth / daysInMonth) * 100;
-    const expectedAtThisPoint = (totalProjectedIncome * monthProgress) / 100;
-    const progressVariance = totalActualIncome - expectedAtThisPoint;
-    const isOnTrack = progressVariance >= 0;
 
-    return {
-      totalProjectedIncome,
-      totalActualIncome,
-      variance,
-      percentReceived,
-      monthProgress,
-      expectedAtThisPoint,
-      progressVariance,
-      isOnTrack
-    };
-  }, [totalProjectedIncome, totalActualIncome]);
+
+
+
+// Replace your existing incomeAnalysis useMemo (around line 142) with this enhanced version:
+
+const incomeAnalysis = useMemo(() => {
+  // Helper function to parse amounts safely
+  const parseAmount = (value) => {
+    if (typeof value === 'number') return value;
+    if (!value && value !== 0) return 0;
+    const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Get current month and year from the first pay date
+  const getCurrentMonthYear = () => {
+    const incomeData = state.data.income || [];
+    for (const income of incomeData) {
+      if (income.payDates && income.payDates.length > 0) {
+        const dateString = income.payDates[0];
+        const [year, month] = dateString.split('-').map(num => parseInt(num, 10));
+        return { month: month - 1, year }; // Convert to 0-indexed month
+      }
+    }
+    return { month: new Date().getMonth(), year: new Date().getFullYear() };
+  };
+
+  // Enhanced getExpectedIncomeByNow function
+  const getExpectedIncomeByNow = (incomeData, currentDay) => {
+    const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
+    let expectedByNow = 0;
+
+    incomeData.forEach(income => {
+      const payDates = Array.isArray(income.payDates) ? income.payDates : [];
+      const payActuals = Array.isArray(income.payActuals) ? income.payActuals : [];
+      const projectedAmount = parseAmount(income.projectedAmount || income.amount || 0);
+
+      // Process each pay date to see if it should have occurred by now
+      payDates.forEach((dateStr, index) => {
+        const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+        const payMonth = month - 1; // Convert to 0-indexed
+        const payDay = day;
+
+        // Check if this pay date is in the current month and should have occurred by now
+        if (payMonth === currentMonth && year === currentYear && payDay <= currentDay) {
+          // Use actual amount if available, otherwise use projected
+          if (payActuals[index] !== undefined && payActuals[index] !== null && payActuals[index] !== '') {
+            expectedByNow += parseAmount(payActuals[index]);
+          } else {
+            expectedByNow += projectedAmount;
+          }
+        }
+      });
+
+      // Handle frequencies without specific pay dates
+      if (payDates.length === 0) {
+        // Estimate based on frequency and current day
+        const monthlyAmount = projectedAmount;
+        const progressRatio = currentDay / 31; // Rough estimate for month progress
+
+        switch (income.frequency) {
+          case 'weekly':
+            expectedByNow += (monthlyAmount * (52/12)) * progressRatio;
+            break;
+          case 'bi-weekly':
+            expectedByNow += (monthlyAmount * (26/12)) * progressRatio;
+            break;
+          case 'monthly':
+            // For monthly income, typically received at start or end of month
+            // Assume if we're past day 15, monthly income should be received
+            if (currentDay >= 15) {
+              expectedByNow += monthlyAmount;
+            }
+            break;
+          default:
+            expectedByNow += monthlyAmount * progressRatio;
+        }
+      }
+    });
+
+    return expectedByNow;
+  };
+
+  // Basic calculations
+  const variance = totalActualIncome - totalProjectedIncome;
+  const percentReceived = totalProjectedIncome > 0 ? (totalActualIncome / totalProjectedIncome) * 100 : 0;
+  
+  // Enhanced progress calculations
+  const now = new Date();
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthProgress = (dayOfMonth / daysInMonth) * 100;
+  
+  // Use the enhanced function to calculate expected income by now
+  const incomeData = state.data.income || [];
+  const expectedAtThisPoint = getExpectedIncomeByNow(incomeData, dayOfMonth);
+  
+  const progressVariance = totalActualIncome - expectedAtThisPoint;
+  const isOnTrack = progressVariance >= 0;
+
+  return {
+    totalProjectedIncome,
+    totalActualIncome,
+    variance,
+    percentReceived,
+    monthProgress,
+    expectedAtThisPoint,
+    progressVariance,
+    isOnTrack
+  };
+}, [totalProjectedIncome, totalActualIncome, state.data.income]);
 
   // Use existing BudgetContext calculations for expenses
   const totalMonthlyExpenses = calculations.getTotalMonthlyExpenses();

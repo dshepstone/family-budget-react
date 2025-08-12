@@ -1,11 +1,11 @@
-// src/components/UpcomingExpenses.js - Enhanced with Modern Styling
+// src/components/UpcomingExpenses.js - Fixed with Working Actions
 import React from 'react';
 import { useBudget } from '../context/BudgetContext';
 import Button from './ui/Button';
 import { formatRelativeDate } from '../utils/formatters';
 
 const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
-  const { formatCurrency, state } = useBudget();
+  const { formatCurrency, state, actions } = useBudget();
 
   if (!expenses || expenses.length === 0) {
     return (
@@ -82,14 +82,110 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
     return `Due in ${daysUntil} days`;
   };
 
+  // FIXED: Find the expense in the data and mark it as paid
   const markAsPaid = (expense) => {
-    // This would need to be connected to the appropriate update action
-    alert(`Mark "${expense.name}" as paid? This feature would update the expense status.`);
+    try {
+      // Find the expense in the appropriate category
+      let found = false;
+      
+      // Check monthly expenses first
+      if (expense.type === 'monthly') {
+        Object.keys(state.data.monthly || {}).forEach(categoryKey => {
+          const categoryExpenses = state.data.monthly[categoryKey] || [];
+          const expenseIndex = categoryExpenses.findIndex(e => 
+            e.name === expense.name || e.id === expense.id
+          );
+          
+          if (expenseIndex !== -1 && !found) {
+            found = true;
+            const updatedExpense = {
+              ...categoryExpenses[expenseIndex],
+              paid: true,
+              paidDate: new Date().toISOString().split('T')[0] // Today's date
+            };
+            
+            actions.updateMonthlyExpense(categoryKey, updatedExpense, expenseIndex);
+            
+            // Also update expense status in planner if available
+            if (actions.updateExpenseStatus && expense.name) {
+              actions.updateExpenseStatus(
+                updatedExpense.id || expense.id,
+                expense.name,
+                0, // Week index (current week)
+                'paid',
+                true,
+                'monthly'
+              );
+            }
+          }
+        });
+      } 
+      // Check annual expenses
+      else if (expense.type === 'annual') {
+        Object.keys(state.data.annual || {}).forEach(categoryKey => {
+          const categoryExpenses = state.data.annual[categoryKey] || [];
+          const expenseIndex = categoryExpenses.findIndex(e => 
+            e.name === expense.name || e.id === expense.id
+          );
+          
+          if (expenseIndex !== -1 && !found) {
+            found = true;
+            const updatedExpense = {
+              ...categoryExpenses[expenseIndex],
+              paid: true,
+              paidDate: new Date().toISOString().split('T')[0] // Today's date
+            };
+            
+            actions.updateAnnualExpense(categoryKey, updatedExpense, expenseIndex);
+            
+            // Also update expense status in planner if available
+            if (actions.updateExpenseStatus && expense.name) {
+              actions.updateExpenseStatus(
+                updatedExpense.id || expense.id,
+                expense.name,
+                0, // Week index (current week)
+                'paid',
+                true,
+                'annual'
+              );
+            }
+          }
+        });
+      }
+      
+      if (found) {
+        // Show success message
+        console.log(`✅ Marked "${expense.name}" as paid`);
+      } else {
+        console.warn(`⚠️ Could not find expense "${expense.name}" to mark as paid`);
+      }
+      
+    } catch (error) {
+      console.error('Error marking expense as paid:', error);
+      alert(`Error marking "${expense.name}" as paid. Please try again.`);
+    }
   };
 
+  // FIXED: Navigate to the appropriate page to view/edit the expense
   const viewExpense = (expense) => {
-    // Navigate to the appropriate page based on expense type
-    alert(`Navigate to ${expense.type === 'monthly' ? 'Monthly' : 'Annual'} Expenses page to edit "${expense.name}"`);
+    try {
+      if (expense.type === 'monthly') {
+        actions.setCurrentPage('monthly');
+      } else if (expense.type === 'annual') {
+        actions.setCurrentPage('annual');
+      } else {
+        // Fallback - try to determine based on the expense properties
+        // If it has a yearly amount or annual-related properties, go to annual
+        if (expense.amount > 1000 || expense.frequency === 'yearly') {
+          actions.setCurrentPage('annual');
+        } else {
+          actions.setCurrentPage('monthly');
+        }
+      }
+    } catch (error) {
+      console.error('Error navigating to expense page:', error);
+      alert('Error navigating to expense page. Please try again.');
+    }
   };
 
   return (
@@ -524,7 +620,7 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
             <div className="more-expenses">
               <span>+{expenses.length - maxDisplay} more upcoming expenses</span>
             </div>
-            <button onClick={() => alert('Navigate to full expenses view')}>
+            <button onClick={() => actions.setCurrentPage('planner')}>
               View All
             </button>
           </div>

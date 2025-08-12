@@ -1,6 +1,6 @@
 {
   "name": "family-budget-react",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A comprehensive React-based family budget management application with real-time calculations, import/export capabilities, and modular architecture.",
   "private": true,
   "dependencies": {

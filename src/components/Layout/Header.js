@@ -2,12 +2,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import '../../styles/header.css';
 import { useBudget } from '../../context/BudgetContext';
+import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { APP_NAME, APP_VERSION } from '../../utils/constants';
 import logo from '../../logo/FamilyBudgetLogo_ImageOnly.png';
 
 
 const Header = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
+  const _calcHas = (obj, fn) => obj && typeof obj[fn] === 'function';
+  const _needsFallback = !_calcHas(calculations, 'getTotalProjectedIncome');
+  const _localCalcs = useBudgetCalculations(state?.data || {});
+  const calcs = _needsFallback ? _localCalcs : calculations;
+
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const ref = useRef(null);
@@ -59,69 +65,16 @@ const Header = () => {
     setCurrentMonth(parseInt(e.target.value, 10));
   };
 
-  // Month-aware projected income (mirrors IncomePage logic)
-  const getProjectedNetMonthlyIncome = () => {
-    try {
-      const income = state.data.income || [];
-      const totalProjectedIncome = income.reduce((total, item) => {
-        const hasDates = Array.isArray(item.payDates) && item.payDates.length > 0;
-        const perCheckProjected = Number.parseFloat(item.projectedAmount ?? item.amount ?? 0) || 0;
-        let monthlyProjected = 0;
-
-        switch (item.frequency) {
-          case 'weekly':
-            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * (52 / 12);
-            break;
-          case 'bi-weekly':
-            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * (26 / 12);
-            break;
-          case 'semi-monthly':
-            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected * 2;
-            break;
-          case 'monthly':
-            monthlyProjected = hasDates ? perCheckProjected * item.payDates.length : perCheckProjected;
-            break;
-          case 'quarterly':
-            monthlyProjected = perCheckProjected / 3;
-            break;
-          case 'semi-annual':
-            monthlyProjected = perCheckProjected / 6;
-            break;
-          case 'annual':
-            monthlyProjected = perCheckProjected / 12;
-            break;
-          case 'one-time':
-            monthlyProjected = 0;
-            break;
-          default:
-            monthlyProjected = perCheckProjected;
-        }
-        return total + monthlyProjected;
-      }, 0);
-
-      const monthlyExpenses = calculations.getTotalMonthlyExpenses();
-      const annualImpact = calculations.getMonthlyAnnualImpact
-        ? calculations.getMonthlyAnnualImpact()
-        : (calculations.getTotalAnnualExpenses ? calculations.getTotalAnnualExpenses() / 12 : 0);
-
-      const projectedNetIncome = totalProjectedIncome - monthlyExpenses - annualImpact;
-      return { netIncome: projectedNetIncome, totalIncome: totalProjectedIncome };
-    } catch (err) {
-      console.error('Error calculating projected net monthly income:', err);
-      return { netIncome: 0, totalIncome: 0 };
-    }
-  };
-
-  const projectedBudget = getProjectedNetMonthlyIncome();
-  const netMonthlyIncome = projectedBudget.netIncome;
-  const totalProjectedIncome = projectedBudget.totalIncome;
+  // Header totals via shared calcs (with fallback)
+  const totalProjectedIncome = calcs.getTotalProjectedIncome();
+  const netMonthlyIncome = calcs.getNetMonthlyIncome();
 
   const totalExpenses = (() => {
     try {
-      const monthly = calculations.getTotalMonthlyExpenses();
+      const monthly = calcs.getTotalMonthlyExpenses();
       const annualImpact = calculations.getMonthlyAnnualImpact
-        ? calculations.getMonthlyAnnualImpact()
-        : (calculations.getTotalAnnualExpenses ? calculations.getTotalAnnualExpenses() / 12 : 0);
+        ? calcs.getMonthlyAnnualImpact()
+        : (calculations.getTotalAnnualExpenses ? calcs.getTotalAnnualExpenses() / 12 : 0);
       return monthly + annualImpact;
     } catch {
       return 0;
@@ -264,7 +217,7 @@ const Header = () => {
       src={logo}
       alt="Family Budget Simplified"
       className="app-logo-img"
-      style={{ height: '60px', width: 'auto' }}
+      style={{ height: '110px', width: 'auto' }}
     />
   </div>
 

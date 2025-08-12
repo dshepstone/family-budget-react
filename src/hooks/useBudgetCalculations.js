@@ -35,7 +35,8 @@ export function useBudgetCalculations(budgetData) {
         getVarianceAnalysis: () => ({}),
         getTopExpenseCategories: () => ([]),
         getWeeklyIncome: () => [0, 0, 0, 0, 0],
-        getWeeklyPlannerTotals: () => []
+        getWeeklyPlannerTotals: () => [],
+        getExpectedIncomeByNow: () => 0
       };
     }
 
@@ -129,6 +130,114 @@ export function useBudgetCalculations(budgetData) {
         year: new Date().getFullYear()
       };
     };
+
+    
+    // ---- Expected-by-Now helpers ----
+    const _parseBudgetDate = (val) => {
+      if (val instanceof Date) return val;
+      if (!val && val !== 0) return null;
+      const s = String(val).trim();
+      let dt = new Date(s);
+      if (!isNaN(dt.getTime())) return dt;
+      const nums = s.split(/[^0-9]+/).filter(Boolean).map(n => parseInt(n,10));
+      if (nums.length >= 3) {
+        let mm, dd, yyyy;
+        if (nums[0] > 1900) { yyyy = nums[0]; mm = nums[1]; dd = nums[2]; }
+        else { mm = nums[0]; dd = nums[1]; yyyy = nums[2] < 100 ? 2000 + nums[2] : nums[2]; }
+        dt = new Date(yyyy, (mm||1)-1, dd||1);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+      return null;
+    };
+
+    const _getActiveYearMonth = () => {
+      // try plannerState or meta-like fields if present
+      const ps = plannerState || {};
+      if (typeof ps.year === 'number' && typeof ps.month === 'number') {
+        return { year: ps.year, month: ps.month };
+      }
+      if (typeof budgetData?.year === 'number' && typeof budgetData?.month === 'number') {
+        return { year: budgetData.year, month: budgetData.month };
+      }
+      // fallback to "today"
+      const now = new Date();
+      return { year: now.getFullYear(), month: now.getMonth() };
+    };
+
+    const getExpectedIncomeByNow = (incomeData, currentDay) => {
+  // Helper function to parse amounts safely
+  const parseAmount = (value) => {
+    if (typeof value === 'number') return value;
+    if (!value && value !== 0) return 0;
+    const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Get current month and year from the first pay date
+  const getCurrentMonthYear = () => {
+    for (const income of incomeData) {
+      if (income.payDates && income.payDates.length > 0) {
+        const dateString = income.payDates[0];
+        const [year, month] = dateString.split('-').map(num => parseInt(num, 10));
+        return { month: month - 1, year }; // Convert to 0-indexed month
+      }
+    }
+    return { month: new Date().getMonth(), year: new Date().getFullYear() };
+  };
+
+  const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
+  let expectedByNow = 0;
+
+  incomeData.forEach(income => {
+    const payDates = Array.isArray(income.payDates) ? income.payDates : [];
+    const payActuals = Array.isArray(income.payActuals) ? income.payActuals : [];
+    const projectedAmount = parseAmount(income.projectedAmount || income.amount || 0);
+
+    // Process each pay date to see if it should have occurred by now
+    payDates.forEach((dateStr, index) => {
+      const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+      const payMonth = month - 1; // Convert to 0-indexed
+      const payDay = day;
+
+      // Check if this pay date is in the current month and should have occurred by now
+      if (payMonth === currentMonth && year === currentYear && payDay <= currentDay) {
+        // Use actual amount if available, otherwise use projected
+        if (payActuals[index] !== undefined && payActuals[index] !== null && payActuals[index] !== '') {
+          expectedByNow += parseAmount(payActuals[index]);
+        } else {
+          expectedByNow += projectedAmount;
+        }
+      }
+    });
+
+    // Handle frequencies without specific pay dates
+    if (payDates.length === 0) {
+      // Estimate based on frequency and current day
+      const monthlyAmount = projectedAmount;
+      const progressRatio = currentDay / 31; // Rough estimate for month progress
+
+      switch (income.frequency) {
+        case 'weekly':
+          expectedByNow += (monthlyAmount * (52/12)) * progressRatio;
+          break;
+        case 'bi-weekly':
+          expectedByNow += (monthlyAmount * (26/12)) * progressRatio;
+          break;
+        case 'monthly':
+          // For monthly income, typically received at start or end of month
+          // Assume if we're past day 15, monthly income should be received
+          if (currentDay >= 15) {
+            expectedByNow += monthlyAmount;
+          }
+          break;
+        default:
+          expectedByNow += monthlyAmount * progressRatio;
+      }
+    }
+  });
+
+  return expectedByNow;
+};
 
     // ENHANCED: Weekly income calculation with actual vs projected priority (mirrors WeeklyPlannerPage logic)
     const getWeeklyIncome = () => {
@@ -389,7 +498,7 @@ export function useBudgetCalculations(budgetData) {
       const daysInMonth = endOfMonth.getDate();
       const dayOfMonth = now.getDate();
       const monthProgress = (dayOfMonth / daysInMonth) * 100;
-      const expectedAtThisPoint = (projected * monthProgress) / 100;
+      const expectedAtThisPoint = getExpectedIncomeByNow();
       const progressVariance = actual - expectedAtThisPoint;
 
       return {
@@ -777,6 +886,7 @@ export function useBudgetCalculations(budgetData) {
       getTotalProjectedIncome,
       getTotalActualIncome,
       getIncomeProgress,
+      getExpectedIncomeByNow,
       
       // Expense calculations
       getTotalMonthlyExpenses,
@@ -806,7 +916,7 @@ export function useBudgetCalculations(budgetData) {
       getVarianceAnalysis, // ENHANCED with income progress and weekly variance
       getTopExpenseCategories
     };
-  }, [budgetData]);
+  }, [budgetData, new Date().toDateString()]);
 
   return calculations;
 }

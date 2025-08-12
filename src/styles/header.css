@@ -112,6 +112,133 @@
     font-size: 1.1rem !important;
   }
 }
+/* Add this CSS to your components.css or Header.css file to fix the white box issue */
+
+/* CRITICAL FIX: Prevent HomePage inline styles from overriding header stats */
+/* Use higher specificity to ensure header stat colors persist */
+
+.app-header .header-stats .stat-value {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.375rem !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s ease !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+  line-height: 1.2 !important;
+}
+
+.app-header .header-stats .stat-value.positive {
+  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.app-header .header-stats .stat-value.negative {
+  color: #ff6b6b !important;
+  background: rgba(255, 107, 107, 0.15) !important;
+  border-color: rgba(255, 107, 107, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.app-header .header-stats .stat-value.income-value {
+  color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.app-header .header-stats .stat-value.expense {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.app-header .header-stats .stat-value.warning {
+  color: #f59e0b !important;
+  background: rgba(251, 191, 36, 0.15) !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Ensure labels remain visible */
+.app-header .header-stats .stat-label {
+  font-size: 0.75rem !important;
+  opacity: 1 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Animation for value changes */
+.app-header .header-stats .stat-value[data-changed="true"] {
+  animation: valueChange 0.6s ease !important;
+}
+
+@keyframes valueChange {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .app-header .header-stats .stat-item { 
+    min-width: 170px !important; 
+  }
+  .app-header .header-stats .stat-value { 
+    font-size: 0.95rem !important; 
+  }
+}
+
+
+/* --- ENLARGED HEADER NUMBERS - Enhanced for better visibility --- */
+/* Use higher specificity and !important to beat the base 1rem !important rule */
+.app-header .header-stats .stat-value.header-stat-value {
+  font-size: 2.25rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  padding: 0.4rem 0.85rem !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  letter-spacing: -0.02em !important;
+  transform: scale(1) !important;
+  transition: transform 0.2s ease !important;
+}
+
+/* Add subtle hover effect for interactivity */
+.app-header .header-stats .stat-value.header-stat-value:hover {
+  transform: scale(1.02) !important;
+}
+
+/* Responsive: keep it readable and prominent on smaller screens */
+@media (max-width: 992px) {
+  .app-header .header-stats .stat-value.header-stat-value {
+    font-size: 2rem !important;
+    padding: 0.35rem 0.75rem !important;
+  }
+}
+@media (max-width: 768px) {
+  .app-header .header-stats .stat-value.header-stat-value {
+    font-size: 1.75rem !important;
+    padding: 0.3rem 0.65rem !important;
+  }
+}
+@media (max-width: 480px) {
+  .app-header .header-stats .stat-value.header-stat-value {
+    font-size: 1.4rem !important;
+    padding: 0.25rem 0.55rem !important;
+  }
+}
+
 /* HARD RESET: remove any card background from header stat containers */
 .app-header .header-stats :where(.stat, .stat-card, .stat-box, .stat-item, .stat-container, .stat-tile) {
   background: transparent !important;
@@ -132,4 +259,28 @@
   border: 0 !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+}
+
+
+/* --- FORCE POP: higher-specificity important rule for header numbers --- */
+/* This beats later 1rem !important resets because specificity is higher (class repeated). */
+.app-header.app-header .header-stats.header-stats .stat-value.stat-value,
+.app-header.app-header .header-stats.header-stats .stat-value.stat-value.income-value,
+.app-header.app-header .header-stats.header-stats .stat-value.stat-value.expense,
+.app-header.app-header .header-stats.header-stats .stat-value.stat-value.warning {
+  font-size: 2.25rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  padding: 0.4rem 0.85rem !important;
+}
+
+/* Responsive scaling */
+@media (max-width: 992px) {
+  .app-header.app-header .header-stats.header-stats .stat-value.stat-value { font-size: 2rem !important; }
+}
+@media (max-width: 768px) {
+  .app-header.app-header .header-stats.header-stats .stat-value.stat-value { font-size: 1.75rem !important; }
+}
+@media (max-width: 480px) {
+  .app-header.app-header .header-stats.header-stats .stat-value.stat-value { font-size: 1.4rem !important; }
 }

@@ -1,7 +1,7 @@
 // src/utils/constants.js
 
 // Application version and metadata
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '3.0.0';
 export const APP_NAME = 'Family Budget';
 export const STORAGE_KEY = 'family-budget-data';
 
