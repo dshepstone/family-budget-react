@@ -1159,63 +1159,446 @@ const WeeklyPlannerPage = () => {
             padding: 6px 12px;
           }
         }
+          /* Enhanced CSS for Weekly Planner Income Section - Scoped to weekly-planner-page only */
+
+.weekly-planner-page .income-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.08) 0%, rgba(40, 167, 69, 0.03) 100%);
+  border-radius: 12px;
+  border: 2px solid rgba(40, 167, 69, 0.25);
+  box-shadow: 0 4px 16px rgba(40, 167, 69, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.weekly-planner-page .income-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+}
+
+.weekly-planner-page .income-section h3 {
+  margin: 0 0 8px 0;
+  color: #155724;
+  font-size: 1.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weekly-planner-page .income-section p {
+  margin: 0 0 16px 0;
+  fontSize: 0.95rem;
+  color: #155724;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 4px solid #28a745;
+  font-weight: 500;
+}
+
+.weekly-planner-page .income-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.weekly-planner-page .income-week {
+  text-align: center;
+  padding: 16px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.weekly-planner-page .income-week:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.weekly-planner-page .income-week.actual-income {
+  border-color: #28a745;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.weekly-planner-page .income-week.projected-income {
+  border-color: #ffc107;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.weekly-planner-page .income-week.future-pay-income {
+  border-color: #17a2b8;
+  background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.weekly-planner-page .income-week .week-label {
+  font-size: 0.85rem;
+  color: #495057;
+  margin-bottom: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.weekly-planner-page .income-week .income-amount {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #155724;
+  margin: 8px 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.weekly-planner-page .income-week .income-indicator {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  margin: 8px auto 0;
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.weekly-planner-page .income-week.actual-income .income-indicator {
+  color: #155724;
+  background: rgba(40, 167, 69, 0.15);
+  border-color: #28a745;
+}
+
+.weekly-planner-page .income-week.projected-income .income-indicator {
+  color: #856404;
+  background: rgba(255, 193, 7, 0.15);
+  border-color: #ffc107;
+}
+
+.weekly-planner-page .income-week.future-pay-income .income-indicator {
+  color: #0c5460;
+  background: rgba(23, 162, 184, 0.15);
+  border-color: #17a2b8;
+}
+
+.weekly-planner-page .income-week .pay-dates-container {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(248, 249, 250, 0.9);
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.weekly-planner-page .income-week .pay-date-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 2px 0;
+  font-weight: 500;
+}
+
+.weekly-planner-page .income-week .pay-date-item.past-date {
+  color: #155724;
+  font-weight: 700;
+}
+
+.weekly-planner-page .income-week .pay-date-item.future-date {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.weekly-planner-page .income-week .pay-date-item .date-text {
+  font-family: 'Courier New', monospace;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments for income section */
+@media (max-width: 1200px) {
+  .weekly-planner-page .income-summary {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  
+  .weekly-planner-page .income-week {
+    padding: 14px 10px;
+    min-height: 120px;
+  }
+  
+  .weekly-planner-page .income-week .income-amount {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .weekly-planner-page .income-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .weekly-planner-page .income-week {
+    padding: 12px 8px;
+    min-height: 100px;
+  }
+  
+  .weekly-planner-page .income-week .income-amount {
+    font-size: 1.1rem;
+  }
+  
+  .weekly-planner-page .income-week .week-label {
+    font-size: 0.8rem;
+  }
+  
+  .weekly-planner-page .income-week .income-indicator {
+    font-size: 0.75rem;
+    padding: 3px 6px;
+    min-width: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-planner-page .income-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .weekly-planner-page .income-section {
+    padding: 16px;
+  }
+  
+  .weekly-planner-page .income-section h3 {
+    font-size: 1.2rem;
+  }
+  
+  .weekly-planner-page .income-week {
+    padding: 10px 8px;
+    min-height: 90px;
+  }
+}
+
+/* Animation for status changes */
+.weekly-planner-page .income-week .income-indicator {
+  transition: all 0.3s ease;
+}
+
+.weekly-planner-page .income-week:hover .income-indicator {
+  transform: scale(1.05);
+}
+
+/* Enhanced visual hierarchy */
+.weekly-planner-page .income-section strong {
+  color: #155724;
+  font-weight: 700;
+}
+
+/* Print-friendly styles */
+@media print {
+  .weekly-planner-page .income-section {
+    background: white !important;
+    border: 2px solid #ccc !important;
+    box-shadow: none !important;
+  }
+  
+  .weekly-planner-page .income-week {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+}
       `}</style>
 
       <h2 className="page-title">📋 Weekly Budget Planner</h2>
 
-      {/* Enhanced Income Section with Actual vs Projected Indicator */}
-      <div className="income-section">
-        <h3 style={{ margin: '0 0 10px 0', color: '#155724' }}>💵 Weekly Income (Actual vs Projected)</h3>
-        <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#155724' }}>
-          ✨ <strong>Smart Income Tracking:</strong> Shows actual amounts when available, falls back to projected amounts as placeholders
-        </p>
-        <div className="income-summary">
-          {weeklyIncome.map((income, index) => {
-            // Determine if this week has actual or projected data
-            const hasActualData = (state.data.income || []).some(incomeSource => {
-              const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
-              const payActuals = Array.isArray(incomeSource.payActuals) ? incomeSource.payActuals : [];
-              
-              return payDates.some((dateStr, payIndex) => {
-                const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
-                const payMonth = month - 1;
-                const payYear = year;
-                const dayOfMonth = day;
-                
-                if (payMonth === currentMonth && payYear === currentYear) {
-                  let weekIndex;
-                  if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
-                  else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
-                  else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
-                  else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
-                  else if (dayOfMonth >= 29) weekIndex = 4;
-                  
-                  return weekIndex === index && (
-                    (payActuals[payIndex] !== undefined && payActuals[payIndex] !== null) ||
-                    incomeSource.actualAmount > 0
-                  );
-                }
-                return false;
-              });
-            });
+      // Updated section of WeeklyPlannerPage.js - Enhanced Actual vs Projected Logic with Date Checking
 
-            return (
-              <div 
-                key={index} 
-                className={`income-week ${!weekVisibility[index] ? 'hidden' : ''} ${hasActualData ? 'actual-income' : 'projected-income'}`}
-              >
-                <div className="week-label">Week {index + 1}</div>
-                <div style={{ fontWeight: 'bold', color: '#155724' }}>
-                  {formatCurrency(income)}
+/* Updated Income Section JSX for WeeklyPlannerPage.js with Enhanced Styling */
+
+{/* Enhanced Income Section with Date-based Actual vs Projected Indicator */}
+<div className="income-section">
+  <h3>
+    💵 Weekly Income (Date-based Actual vs Projected)
+  </h3>
+  <p>
+    ✨ <strong>Smart Income Tracking:</strong> Shows actual amounts only after pay dates have passed, projected amounts for future dates
+  </p>
+  <div className="income-summary">
+    {weeklyIncome.map((income, index) => {
+      // Enhanced logic: Check if actual data exists AND if pay date has passed
+      const hasActualData = (state.data.income || []).some(incomeSource => {
+        const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
+        const payActuals = Array.isArray(incomeSource.payActuals) ? incomeSource.payActuals : [];
+        const currentDate = new Date();
+        
+        return payDates.some((dateStr, payIndex) => {
+          const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+          const payMonth = month - 1;
+          const payYear = year;
+          const dayOfMonth = day;
+          
+          // Check if this pay date falls in the current budget month/year and specific week
+          if (payMonth === currentMonth && payYear === currentYear) {
+            let weekIndex;
+            if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+            else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+            else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+            else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+            else if (dayOfMonth >= 29) weekIndex = 4;
+            
+            if (weekIndex === index) {
+              // Create the actual pay date for comparison
+              const payDate = new Date(year, month - 1, day); // month - 1 because Date constructor expects 0-indexed month
+              
+              // Only consider it "actual" if:
+              // 1. Actual data exists (either individual pay actual or overall actual amount)
+              // 2. Current date is on or after the pay date
+              const hasActualAmount = (
+                (payActuals[payIndex] !== undefined && payActuals[payIndex] !== null) ||
+                (incomeSource.actualAmount > 0)
+              );
+              
+              const payDateHasPassed = currentDate >= payDate;
+              
+              return hasActualAmount && payDateHasPassed;
+            }
+          }
+          return false;
+        });
+      });
+
+      // Determine the status for display
+      let statusText = '📊 Projected';
+      let statusColor = '#ffc107';
+      
+      if (hasActualData) {
+        statusText = '✅ Actual';
+        statusColor = '#28a745';
+      } else {
+        // Check if there are any pay dates in this week that haven't passed yet
+        const hasFuturePayDates = (state.data.income || []).some(incomeSource => {
+          const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
+          const currentDate = new Date();
+          
+          return payDates.some(dateStr => {
+            const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+            const payMonth = month - 1;
+            const payYear = year;
+            const dayOfMonth = day;
+            
+            if (payMonth === currentMonth && payYear === currentYear) {
+              let weekIndex;
+              if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+              else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+              else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+              else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+              else if (dayOfMonth >= 29) weekIndex = 4;
+              
+              if (weekIndex === index) {
+                const payDate = new Date(year, month - 1, day);
+                return currentDate < payDate; // Pay date is in the future
+              }
+            }
+            return false;
+          });
+        });
+        
+        if (hasFuturePayDates) {
+          statusText = '🔮 Future Pay Date';
+          statusColor = '#17a2b8';
+        }
+      }
+
+      // Determine CSS class based on status
+      let statusClass = 'projected-income';
+      if (hasActualData) {
+        statusClass = 'actual-income';
+      } else if (statusText === '🔮 Future Pay Date') {
+        statusClass = 'future-pay-income';
+      }
+
+      // Collect pay dates for this week
+      const weekPayDates = [];
+      (state.data.income || []).forEach(incomeSource => {
+        const payDates = Array.isArray(incomeSource.payDates) ? incomeSource.payDates : [];
+        payDates.forEach((dateStr, payIndex) => {
+          const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+          const payMonth = month - 1;
+          const payYear = year;
+          const dayOfMonth = day;
+          
+          if (payMonth === currentMonth && payYear === currentYear) {
+            let weekIndex;
+            if (dayOfMonth >= 1 && dayOfMonth <= 7) weekIndex = 0;
+            else if (dayOfMonth >= 8 && dayOfMonth <= 14) weekIndex = 1;
+            else if (dayOfMonth >= 15 && dayOfMonth <= 21) weekIndex = 2;
+            else if (dayOfMonth >= 22 && dayOfMonth <= 28) weekIndex = 3;
+            else if (dayOfMonth >= 29) weekIndex = 4;
+            
+            if (weekIndex === index) {
+              const payDate = new Date(year, month - 1, day);
+              const currentDate = new Date();
+              const isPast = currentDate >= payDate;
+              weekPayDates.push({
+                date: dateStr,
+                isPast,
+                sourceName: incomeSource.name || 'Income'
+              });
+            }
+          }
+        });
+      });
+
+      return (
+        <div 
+          key={index} 
+          className={`income-week ${!weekVisibility[index] ? 'hidden' : ''} ${statusClass}`}
+        >
+          <div className="week-label">Week {index + 1}</div>
+          
+          <div className="income-amount">
+            {formatCurrency(income)}
+          </div>
+          
+          <div className="income-indicator">
+            {statusText}
+          </div>
+          
+          {/* Enhanced pay dates display */}
+          {weekPayDates.length > 0 && (
+            <div className="pay-dates-container">
+              {weekPayDates.map((payInfo, idx) => (
+                <div 
+                  key={idx} 
+                  className={`pay-date-item ${payInfo.isPast ? 'past-date' : 'future-date'}`}
+                >
+                  <span>{payInfo.isPast ? '✅' : '📅'}</span>
+                  <span className="date-text">{payInfo.date}</span>
                 </div>
-                <div className="income-indicator">
-                  {hasActualData ? '✅ Actual' : '📊 Projected'}
-                </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      );
+    })}
+  </div>
+</div>
 
       {/* Rest of your existing component with all the controls and table */}
       <div className="page-controls">
