@@ -1,12 +1,59 @@
 // src/pages/WeeklyPlannerPage.js - Enhanced with Actual vs Projected Income Logic (CSS Fixed)
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { WeeklyPlannerPrint } from '../utils/printUtils';
+
 
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
   const [hideZeroRows, setHideZeroRows] = useState(false);
+
+  // Table horizontal scroll controls
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [showScrollControls, setShowScrollControls] = useState(false);
+  const tableContainerRef = useRef(null);
+
+  // == Horizontal Scroll Helpers ==
+  const checkScrollNeeded = useCallback(() => {
+    if (tableContainerRef.current) {
+      const { scrollWidth, clientWidth } = tableContainerRef.current;
+      setShowScrollControls(scrollWidth > clientWidth);
+    }
+  }, [weekVisibility]);
+
+  const handleScroll = (e) => {
+    setScrollPosition(e.target.scrollLeft);
+  };
+
+  const scrollLeft = () => {
+    if (tableContainerRef.current) {
+      const scrollAmount = 200;
+      tableContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (tableContainerRef.current) {
+      const scrollAmount = 200;
+      tableContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const scrollToWeek = (weekIndex) => {
+    if (tableContainerRef.current) {
+      const weekColumns = tableContainerRef.current.querySelectorAll(`.week-${weekIndex + 1}-col`);
+      if (weekColumns.length > 0) {
+        const firstWeekColumn = weekColumns[0];
+        const containerRect = tableContainerRef.current.getBoundingClientRect();
+        const columnRect = firstWeekColumn.getBoundingClientRect();
+        const scrollAmount = columnRect.left - containerRect.left + tableContainerRef.current.scrollLeft - 50;
+        tableContainerRef.current.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+      }
+    }
+  };
+
+
 
   // Get month/year from first pay date instead of current date - FIXED DATE PARSING
   const getBudgetMonthYear = useCallback(() => {
@@ -307,6 +354,20 @@ const WeeklyPlannerPage = () => {
   useEffect(() => {
     actions.autoPopulatePlanner();
   }, [state.data.monthly, state.data.annual]);
+
+  // Check scroll needed on mount and window resize
+  useEffect(() => {
+    checkScrollNeeded();
+    const onResize = () => checkScrollNeeded();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [checkScrollNeeded]);
+
+  // Recompute scroll-need when week visibility toggles
+  useEffect(() => {
+    checkScrollNeeded();
+  }, [weekVisibility, checkScrollNeeded]);
+
 
   // Get all expenses from monthly and annual data
   const getAllExpenses = useCallback(() => {
@@ -647,6 +708,9 @@ const WeeklyPlannerPage = () => {
   const weeklyIncome = getWeeklyIncomeAmounts();
   const groupedExpenses = groupExpensesByCategory();
 
+
+
+  // effects below will ensure nav shows appropriately
   return (
     <div className="main-content weekly-planner-page no-top-gap">
 
@@ -1423,7 +1487,134 @@ const WeeklyPlannerPage = () => {
     box-shadow: none !important;
   }
 }
-      `}</style>
+      
+        /* === Table Navigation Controls (Horizontal Scroll) === */
+        .weekly-planner-page .table-navigation-container {
+          position: relative;
+          margin-bottom: 20px;
+        }
+        .weekly-planner-page .table-scroll-controls {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 15px;
+          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%);
+          border: 1px solid var(--card-border);
+          border-bottom: none;
+          border-radius: 12px 12px 0 0;
+          margin-bottom: 0;
+          box-shadow: var(--card-shadow);
+        }
+        .weekly-planner-page .scroll-navigation {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .weekly-planner-page .scroll-btn {
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 8px 12px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          min-width: 80px;
+          justify-content: center;
+        }
+        .weekly-planner-page .scroll-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .weekly-planner-page .scroll-btn:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+          opacity: 0.6;
+        }
+        .weekly-planner-page .week-jump-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .weekly-planner-page .week-jump-btn {
+          background: linear-gradient(135deg, var(--btn-secondary-bg) 0%, #545b62 100%);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          padding: 4px 8px;
+          cursor: pointer;
+          font-size: 0.8rem;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          min-width: 30px;
+        }
+        .weekly-planner-page .week-jump-btn:hover {
+          background: linear-gradient(135deg, #545b62 0%, #495057 100%);
+          transform: translateY(-1px);
+        }
+        .weekly-planner-page .scroll-indicator {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: 4px;
+          border: 1px solid var(--border-light);
+          min-width: 100px;
+          text-align: center;
+          font-weight: 500;
+        }
+        .weekly-planner-page .planner-table-container.has-scroll-controls {
+          border-radius: 0 0 12px 12px;
+          border-top: none;
+        }
+        /* Enhanced scrollbar styling */
+        .weekly-planner-page .planner-table-container::-webkit-scrollbar {
+          height: 12px;
+        }
+        .weekly-planner-page .planner-table-container::-webkit-scrollbar-track {
+          background: var(--bg-secondary);
+          border-radius: 6px;
+          margin: 0 4px;
+        }
+        .weekly-planner-page .planner-table-container::-webkit-scrollbar-thumb {
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+          border-radius: 6px;
+          border: 2px solid var(--bg-secondary);
+        }
+        .weekly-planner-page .planner-table-container::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+        }
+        @media (max-width: 768px) {
+          .weekly-planner-page .table-scroll-controls {
+            flex-direction: column;
+            gap: 10px;
+            padding: 8px 12px;
+          }
+          .weekly-planner-page .scroll-navigation {
+            width: 100%;
+            justify-content: space-between;
+          }
+          .weekly-planner-page .week-jump-controls {
+            justify-content: center;
+          }
+          .weekly-planner-page .scroll-btn {
+            padding: 6px 10px;
+            font-size: 0.8rem;
+            min-width: 70px;
+          }
+          .weekly-planner-page .week-jump-btn {
+            padding: 3px 6px;
+            font-size: 0.75rem;
+          }
+        }
+    `}</style>
 
       <h2 className="page-title">📋 Weekly Budget Planner</h2>
 
@@ -1640,21 +1831,75 @@ const WeeklyPlannerPage = () => {
       </div>
 
       {/* All your existing table and analysis components remain exactly the same */}
-      <div className="planner-table-container">
-        {hideZeroRows && (
-          <div style={{ 
-            padding: '8px 15px', 
-            backgroundColor: '#fff3cd', 
-            border: '1px solid #ffeaa7', 
-            borderBottom: 'none',
-            borderRadius: '8px 8px 0 0',
-            fontSize: '0.9rem',
-            color: '#856404'
-          }}>
-            ℹ️ Filtering: Rows with $0.00 values are hidden. Click "Show $0 Rows" to see all expenses.
+      
+      <div className="table-navigation-container">
+        {showScrollControls && (
+          <div className="table-scroll-controls">
+            <div className="scroll-navigation">
+              <button
+                className="scroll-btn"
+                onClick={scrollLeft}
+                disabled={scrollPosition <= 0}
+                title="Scroll Left"
+              >
+                ⬅️ Left
+              </button>
+
+              <div className="scroll-indicator">
+                Scroll: {tableContainerRef.current ? Math.round((scrollPosition / Math.max(tableContainerRef.current.scrollWidth - tableContainerRef.current.clientWidth, 1)) * 100) : 0}%
+              </div>
+
+              <button
+                className="scroll-btn"
+                onClick={scrollRight}
+                disabled={tableContainerRef.current && scrollPosition >= (tableContainerRef.current.scrollWidth - tableContainerRef.current.clientWidth)}
+                title="Scroll Right"
+              >
+                Right ➡️
+              </button>
+            </div>
+
+            <div className="week-jump-controls">
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Jump to:
+              </span>
+              {Array.from({ length: 5 }, (_, i) => (
+                weekVisibility[i] && (
+                  <button
+                    key={i}
+                    className="week-jump-btn"
+                    onClick={() => scrollToWeek(i)}
+                    title={`Scroll to Week ${i + 1}`}
+                  >
+                    W{i + 1}
+                  </button>
+                )
+              ))}
+            </div>
           </div>
         )}
-        <table className="planner-table" id="planner-table">
+
+        <div
+          className={`planner-table-container ${showScrollControls ? 'has-scroll-controls' : ''}`}
+          ref={tableContainerRef}
+          onScroll={handleScroll}
+        >
+          {hideZeroRows && (
+            <div style={{
+              padding: '8px 15px',
+              backgroundColor: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderBottom: 'none',
+              borderRadius: showScrollControls ? '0' : '8px 8px 0 0',
+              fontSize: '0.9rem',
+              color: '#856404'
+            }}>
+              ℹ️ Filtering: Rows with $0.00 values are hidden. Click "Show $0 Rows" to see all expenses.
+            </div>
+          )}
+
+          {/* Existing table remains unchanged - inserted below */}
+<table className="planner-table" id="planner-table">
           <thead>
             <tr>
               <th style={{ width: '240px' }}>Expense Category</th>
@@ -1849,9 +2094,9 @@ const WeeklyPlannerPage = () => {
             </tr>
           </tfoot>
         </table>
-      </div>
-
-      {/* Enhanced Cash Flow Analysis */}
+          </div>
+        </div>
+          {/* Enhanced Cash Flow Analysis */}
       <div className="cash-flow-analysis">
         <h3>📊 Weekly Cash Flow Summary (Actual vs Projected Income)</h3>
         <div className="cash-flow-grid">
