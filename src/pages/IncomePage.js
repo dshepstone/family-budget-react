@@ -503,8 +503,18 @@ const IncomePage = () => {
     const newDate = quickData.payDates?.[rowIndex];
     const rawAmount = quickData.payActuals?.[rowIndex];
     if (newDate) payDates[rowIndex] = newDate;
-    if (rawAmount !== undefined && rawAmount !== '') {
+    if (rawAmount === '') {
+      payActuals[rowIndex] = undefined;
+    } else if (rawAmount !== undefined) {
       payActuals[rowIndex] = parseMoneyInput(rawAmount);
+    }
+
+    while (
+      payActuals.length &&
+      (payActuals[payActuals.length - 1] === undefined ||
+        payActuals[payActuals.length - 1] === '')
+    ) {
+      payActuals.pop();
     }
 
     const updatedIncome = {

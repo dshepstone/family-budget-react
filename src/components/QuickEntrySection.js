@@ -107,7 +107,8 @@ const QuickEntrySection = ({
                         pattern="[0-9]*[.,]?[0-9]*"
                         autoComplete="off"
                         className={`quick-entry-amount-input ${
-                          income.payActuals?.[index] !== undefined
+                          income.payActuals?.[index] !== undefined &&
+                          income.payActuals[index] !== ''
                             ? 'has-existing-data'
                             : ''
                         }`}
@@ -129,7 +130,7 @@ const QuickEntrySection = ({
                           isUpdated ? 'updated' : ''
                         }`}
                         onClick={() => handleQuickEntryUpdate(incomeKey, index)}
-                        disabled={!currentDate || !currentAmount}
+                        disabled={!currentDate}
                         style={{
                           background: isUpdated
                             ? 'rgba(16, 185, 129, 0.3)'
