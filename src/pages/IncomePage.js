@@ -426,11 +426,16 @@ const IncomePage = () => {
       sanitized = sanitized.replace(/[.,]/g, '');
     }
 
+    const hasTrailingDecimal = sanitized.endsWith('.');
     const parts = sanitized.split('.');
     const intPart = parts[0] || '';
     const decPart = parts[1] ? parts[1].slice(0, 2) : '';
     let result = intPart;
-    if (decPart) result += '.' + decPart;
+    if (decPart) {
+      result += '.' + decPart;
+    } else if (hasTrailingDecimal) {
+      result += '.';
+    }
     return negative && result ? '-' + result : result;
   };
 
