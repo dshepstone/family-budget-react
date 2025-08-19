@@ -404,9 +404,28 @@ const IncomePage = () => {
   // Helpers for quick entry inputs
   const sanitizeMoneyInput = (value) => {
     if (typeof value !== 'string') return '';
-    let sanitized = value.replace(/,/g, '.').replace(/[^0-9.-]/g, '');
+    // Normalize thousands separators and decimals from various locales
+    let sanitized = value.replace(/[^0-9.,-]/g, '');
     const negative = sanitized.startsWith('-');
     sanitized = sanitized.replace(/-/g, '');
+
+    const lastComma = sanitized.lastIndexOf(',');
+    const lastDot = sanitized.lastIndexOf('.');
+    let decimalSep = '';
+    if (lastComma > lastDot) {
+      decimalSep = ',';
+    } else if (lastDot > lastComma) {
+      decimalSep = '.';
+    }
+
+    if (decimalSep) {
+      const otherSepRegex = decimalSep === '.' ? /,/g : /\./g;
+      sanitized = sanitized.replace(otherSepRegex, '');
+      sanitized = sanitized.replace(decimalSep, '.');
+    } else {
+      sanitized = sanitized.replace(/[.,]/g, '');
+    }
+
     const parts = sanitized.split('.');
     const intPart = parts[0] || '';
     const decPart = parts[1] ? parts[1].slice(0, 2) : '';
