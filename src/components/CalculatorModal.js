@@ -202,7 +202,7 @@ export default function CalculatorModal({ onClose }) {
     }
     if (/[+\-*/]/.test(value)) {
       if (input) {
-        setPreviousExpression(input + ' ' + value);
+        setPreviousExpression((prev) => (prev ? prev + ' ' + input + ' ' + value : input + ' ' + value));
         setInput('');
         setIsResultDisplayed(false);
       } else if (previousExpression) {
