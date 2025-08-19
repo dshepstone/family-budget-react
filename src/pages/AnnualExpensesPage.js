@@ -716,6 +716,89 @@ const AnnualExpensesPage = () => {
           color: white;
         }
 
+        /* Status Summary Section Styling */
+        .status-summary-card {
+          margin: 30px 0;
+          padding: 25px;
+          background: linear-gradient(135deg, var(--card-bg) 0%, var(--bg-secondary) 100%);
+          border-radius: 12px;
+          border: 1px solid var(--card-border);
+          box-shadow: var(--card-shadow);
+          transition: all 0.2s ease;
+        }
+        .status-summary-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-1px); }
+        .status-summary-card h3 {
+          margin: 0 0 20px 0; color: var(--text-primary); font-size: 1.3rem; font-weight: 600; text-align: center;
+          padding-bottom: 15px; border-bottom: 2px solid var(--primary);
+          background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+          background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .status-summary-table {
+          width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 8px; overflow: hidden;
+          box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        }
+        .status-summary-table thead { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); }
+        .status-summary-table th {
+          padding: 15px 20px; color: #fff; font-weight: 600; font-size: .95rem; text-align: left; border: none;
+          text-shadow: 0 1px 2px rgba(0,0,0,.1);
+        }
+        .status-summary-table th:last-child { text-align: right; }
+        .status-summary-table td {
+          padding: 15px 20px; border-bottom: 1px solid var(--border-light); color: var(--text-primary); font-size: .9rem;
+          transition: background-color .2s ease;
+        }
+        .status-summary-table tbody tr:hover { background-color: var(--hover-bg); }
+        .status-summary-table tbody tr:last-child td { border-bottom: none; }
+        .status-summary-table .amount { text-align: right; font-weight: 600; font-family: 'Courier New', monospace; color: var(--text-primary); }
+        .status-summary-table .overall-row {
+          background: linear-gradient(135deg, rgba(33,150,243,.08), rgba(33,150,243,.04)); border-top: 2px solid var(--primary);
+        }
+        .status-summary-table .overall-row td { font-weight: 700; font-size: 1rem; color: var(--primary); border-bottom: none; }
+        .status-summary-table .overall-row .amount { color: var(--primary); font-size: 1.1rem; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .status-summary-card { margin: 20px 0; padding: 20px 15px; }
+          .status-summary-table { font-size: .85rem; }
+          .status-summary-table th, .status-summary-table td { padding: 12px 10px; }
+          .status-summary-table th { font-size: .85rem; }
+
+          @media (max-width: 480px) {
+            .status-summary-table, .status-summary-table thead, .status-summary-table tbody,
+            .status-summary-table th, .status-summary-table td, .status-summary-table tr { display: block; }
+            .status-summary-table thead tr { position: absolute; top: -9999px; left: -9999px; }
+            .status-summary-table tr {
+              border: 1px solid var(--card-border); border-radius: 8px; margin-bottom: 15px; padding: 15px;
+              background: var(--card-bg); box-shadow: 0 2px 4px rgba(0,0,0,.05);
+            }
+            .status-summary-table td {
+              border: none; position: relative; padding: 8px 0 8px 120px; text-align: left !important;
+            }
+            .status-summary-table td:before {
+              content: attr(data-label) ": "; position: absolute; left: 0; width: 110px; padding-right: 10px;
+              white-space: nowrap; font-weight: 600; color: var(--text-secondary);
+            }
+            .status-summary-table .overall-row { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff; }
+            .status-summary-table .overall-row td, .status-summary-table .overall-row td:before { color: rgba(255,255,255,.9); }
+          }
+        }
+
+        /* Accents */
+        .status-summary-card .amount { position: relative; }
+        .status-summary-card .amount:after {
+          content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 1px;
+          background: linear-gradient(90deg, transparent, var(--primary), transparent);
+          opacity: 0; transition: opacity .2s ease;
+        }
+        .status-summary-table tbody tr:hover .amount:after { opacity: 1; }
+
+        /* Optional horizontal scroll aesthetics */
+        .status-summary-table { overflow-x: auto; }
+        .status-summary-table::-webkit-scrollbar { height: 6px; }
+        .status-summary-table::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 3px; }
+        .status-summary-table::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+        .status-summary-table::-webkit-scrollbar-thumb:hover { background: var(--primary-dark); }
+
         .savings-plan-section {
           margin-top: 30px;
           padding: 20px;
@@ -1035,8 +1118,12 @@ const AnnualExpensesPage = () => {
         </button>
       </div>
 
+      <div className="yearly-total">
+        Total Annual Expenses: {formatCurrency(getTotalAnnualExpenses())}/yr ({formatCurrency(getTotalAnnualExpenses() / 12)}/mo)
+      </div>
+
       <div className="status-summary-card">
-        <h3>Status Summary</h3>
+        <h3>💰 Status Summary</h3>
         <table className="status-summary-table">
           <thead>
             <tr>
@@ -1048,29 +1135,26 @@ const AnnualExpensesPage = () => {
           </thead>
           <tbody>
             {statusSummary.rows.map(row => {
-              const account = (Array.isArray(state.data.accounts) ? state.data.accounts : []).find(a => a.id === row.id);
+              const account = (Array.isArray(state.data.accounts) ? state.data.accounts : [])
+                .find(a => a.id === row.id);
               const name = account ? account.name : 'Unassigned';
               return (
                 <tr key={row.id}>
-                  <td>{name}</td>
-                  <td className="amount">{formatCurrency(row.required)}</td>
-                  <td className="amount">{formatCurrency(row.paid)}</td>
-                  <td className="amount">{formatCurrency(row.net)}</td>
+                  <td data-label="Account">{name}</td>
+                  <td data-label="Required Transfers" className="amount">{formatCurrency(row.required)}</td>
+                  <td data-label="Paid" className="amount">{formatCurrency(row.paid)}</td>
+                  <td data-label="Net to Hold" className="amount">{formatCurrency(row.net)}</td>
                 </tr>
               );
             })}
             <tr className="overall-row">
-              <td><strong>Overall</strong></td>
-              <td className="amount">{formatCurrency(statusSummary.totalRequired)}</td>
-              <td className="amount">{formatCurrency(statusSummary.totalPaid)}</td>
-              <td className="amount">{formatCurrency(statusSummary.balanceAfterPayments)}</td>
+              <td data-label="Account"><strong>Overall</strong></td>
+              <td data-label="Required Transfers" className="amount">{formatCurrency(statusSummary.totalRequired)}</td>
+              <td data-label="Paid" className="amount">{formatCurrency(statusSummary.totalPaid)}</td>
+              <td data-label="Net to Hold" className="amount">{formatCurrency(statusSummary.balanceAfterPayments)}</td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div className="yearly-total">
-        Total Annual Expenses: {formatCurrency(getTotalAnnualExpenses())}/yr ({formatCurrency(getTotalAnnualExpenses() / 12)}/mo)
       </div>
 
       {/* Monthly Savings Plan */}
