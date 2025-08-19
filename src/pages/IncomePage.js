@@ -400,113 +400,109 @@ const IncomePage = () => {
     }));
   };
 
-  // Quick Entry Handlers - Fixed with stable keys
+  // Helpers for quick entry inputs
+  const sanitizeMoneyInput = (value) => {
+    if (typeof value !== 'string') return '';
+    let sanitized = value.replace(/,/g, '.').replace(/[^0-9.-]/g, '');
+    const negative = sanitized.startsWith('-');
+    sanitized = sanitized.replace(/-/g, '');
+    const parts = sanitized.split('.');
+    const intPart = parts[0] || '';
+    const decPart = parts[1] ? parts[1].slice(0, 2) : '';
+    let result = intPart;
+    if (decPart) result += '.' + decPart;
+    return negative && result ? '-' + result : result;
+  };
+
+  const parseMoneyInput = (s) => {
+    if (typeof s !== 'string') return 0;
+    const cleaned = sanitizeMoneyInput(s).replace(/\.$/, '');
+    const num = Number(cleaned);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Quick Entry Handlers - using stable keys and minimal state churn
   const handleQuickEntryDateChange = (incomeKey, dateIndex, value) => {
-    setQuickEntryData(prev => {
-      const newData = { ...prev };
-      
-      // Ensure this income source has its own isolated data
-      if (!newData[incomeKey]) {
-        newData[incomeKey] = { 
-          payDates: [...Array(10)].map(() => ''), 
-          payActuals: [...Array(10)].map(() => '') 
-        };
-      }
-      
-      // Create new arrays to prevent reference sharing
-      const newPayDates = [...newData[incomeKey].payDates];
-      const newPayActuals = [...newData[incomeKey].payActuals];
-      
-      // Ensure array is long enough
-      while (newPayDates.length <= dateIndex) {
-        newPayDates.push('');
-      }
-      
-      newPayDates[dateIndex] = value;
-      
-      newData[incomeKey] = {
-        payDates: newPayDates,
-        payActuals: newPayActuals
-      };
-      
-      return newData;
+    setQuickEntryData((prev) => {
+      const prevEntry = prev[incomeKey] || { payDates: [], payActuals: [] };
+      const payDates = [...prevEntry.payDates];
+      payDates[dateIndex] = value;
+      return { ...prev, [incomeKey]: { ...prevEntry, payDates } };
     });
   };
 
   const handleQuickEntryAmountChange = (incomeKey, amountIndex, value) => {
-    setQuickEntryData(prev => {
-      const newData = { ...prev };
-      
-      // Ensure this income source has its own isolated data
-      if (!newData[incomeKey]) {
-        newData[incomeKey] = { 
-          payDates: [...Array(10)].map(() => ''), 
-          payActuals: [...Array(10)].map(() => '') 
-        };
-      }
-      
-      // Create new arrays to prevent reference sharing
-      const newPayDates = [...newData[incomeKey].payDates];
-      const newPayActuals = [...newData[incomeKey].payActuals];
-      
-      // Ensure array is long enough
-      while (newPayActuals.length <= amountIndex) {
-        newPayActuals.push('');
-      }
-      
-      newPayActuals[amountIndex] = value;
-      
-      newData[incomeKey] = {
-        payDates: newPayDates,
-        payActuals: newPayActuals
-      };
-      
-      return newData;
+    const sanitized = sanitizeMoneyInput(value);
+    setQuickEntryData((prev) => {
+      const prevEntry = prev[incomeKey] || { payDates: [], payActuals: [] };
+      const payActuals = [...prevEntry.payActuals];
+      payActuals[amountIndex] = sanitized;
+      return { ...prev, [incomeKey]: { ...prevEntry, payActuals } };
     });
   };
 
-  const handleQuickEntryUpdate = (incomeKey) => {
+  const handleQuickEntryAmountBlur = (incomeKey, amountIndex) => {
+    setQuickEntryData((prev) => {
+      const entry = prev[incomeKey];
+      if (!entry) return prev;
+      const raw = entry.payActuals[amountIndex];
+      if (raw === '' || raw === undefined) return prev;
+      const num = parseMoneyInput(raw);
+      const payActuals = [...entry.payActuals];
+      payActuals[amountIndex] = num.toFixed(2);
+      return { ...prev, [incomeKey]: { ...entry, payActuals } };
+    });
+  };
+
+  const handleQuickEntryUpdate = (incomeKey, rowIndex) => {
     // Find income using the stable key
-    const income = incomeData.find(inc => 
-      (inc.id || `name:${inc.name}`) === incomeKey
+    const incomeIndex = incomeData.findIndex(
+      (inc) => (inc.id || `name:${inc.name}`) === incomeKey
     );
-    
+    const income = incomeData[incomeIndex];
+
     if (!income) {
       console.warn('Income source not found for key:', incomeKey);
       return;
     }
 
-    const quickData = quickEntryData[incomeKey];
-    if (!quickData) {
-      console.warn('Quick entry data not found for key:', incomeKey);
-      return;
+    const quickData = quickEntryData[incomeKey] || {};
+    const maxDates = getMaxPayDates(income.frequency);
+    if (rowIndex >= maxDates) return;
+
+    const payDates = Array.isArray(income.payDates)
+      ? [...income.payDates]
+      : [];
+    const payActuals = Array.isArray(income.payActuals)
+      ? [...income.payActuals]
+      : [];
+
+    while (payDates.length <= rowIndex) payDates.push('');
+    while (payActuals.length <= rowIndex) payActuals.push('');
+
+    const newDate = quickData.payDates?.[rowIndex];
+    const rawAmount = quickData.payActuals?.[rowIndex];
+    if (newDate) payDates[rowIndex] = newDate;
+    if (rawAmount !== undefined && rawAmount !== '') {
+      payActuals[rowIndex] = parseMoneyInput(rawAmount);
     }
 
-    // Clean up data shape - trim to proper length and coerce amounts
-    const maxDates = getMaxPayDates(income.frequency);
-    const updatedPayDates = (quickData.payDates || []).slice(0, maxDates);
-    const updatedPayActuals = (quickData.payActuals || [])
-      .slice(0, maxDates)
-      .map(v => v === '' ? '' : Number(v) || '');
-
-    // Update the income data with cleaned arrays
-    const updatedIncomeData = incomeData.map(inc => {
-      if ((inc.id || `name:${inc.name}`) === incomeKey) {
-        return {
-          ...inc,
-          payDates: updatedPayDates,
-          payActuals: updatedPayActuals
-        };
-      }
-      return inc;
-    });
+    const updatedIncome = {
+      ...income,
+      payDates,
+      payActuals,
+    };
+    const updatedIncomeData = incomeData.map((inc, idx) =>
+      idx === incomeIndex ? updatedIncome : inc
+    );
 
     actions.updateIncome(updatedIncomeData);
-    
-    // Show React-based feedback instead of DOM queries
-    setUpdateFeedback(prev => ({ ...prev, [incomeKey]: 'saved' }));
+
+    // Show React-based feedback for this specific row
+    const feedbackKey = `${incomeKey}:${rowIndex}`;
+    setUpdateFeedback((prev) => ({ ...prev, [feedbackKey]: 'saved' }));
     setTimeout(() => {
-      setUpdateFeedback(prev => ({ ...prev, [incomeKey]: 'idle' }));
+      setUpdateFeedback((prev) => ({ ...prev, [feedbackKey]: 'idle' }));
     }, 1500);
   };
 
@@ -705,10 +701,10 @@ const IncomePage = () => {
         </div>
         
         <div className="quick-entry-grid">
-          {incomeSources.map((income, sourceIndex) => {
+          {incomeSources.map((income) => {
             const maxDates = getMaxPayDates(income.frequency);
-            // Use stable key without sourceIndex
-            const incomeKey = income.id || `name:${income.name || sourceIndex}`;
+            // Use stable key based on id or name
+            const incomeKey = income.id || `name:${income.name}`;
             
             const projectedMonthly = getMonthAwareMonthlyAmount(income, 'projected');
             const actualMonthly = getMonthAwareMonthlyAmount(income, 'actual');
@@ -723,11 +719,16 @@ const IncomePage = () => {
                 <div className="quick-entry-pay-dates">
                   {Array.from({ length: maxDates }).map((_, index) => {
                     // Get current values with proper fallbacks using stable key
-                    const currentDate = quickEntryData[incomeKey]?.payDates?.[index] || income.payDates?.[index] || '';
-                    const currentAmount = quickEntryData[incomeKey]?.payActuals?.[index] || income.payActuals?.[index] || '';
-                    
+                    const currentDate = quickEntryData[incomeKey]?.payDates?.[index] ?? income.payDates?.[index] ?? '';
+                    const currentAmount =
+                      quickEntryData[incomeKey]?.payActuals?.[index] ??
+                      (income.payActuals?.[index] !== undefined
+                        ? String(income.payActuals[index])
+                        : '');
+
                     // Get button feedback state
-                    const buttonState = updateFeedback[incomeKey] || 'idle';
+                    const feedbackKey = `${incomeKey}:${index}`;
+                    const buttonState = updateFeedback[feedbackKey] || 'idle';
                     const isUpdated = buttonState === 'saved';
                     
                     return (
@@ -744,15 +745,16 @@ const IncomePage = () => {
                           inputMode="decimal"
                           pattern="[0-9]*[.,]?[0-9]*"
                           autoComplete="off"
-                          className={`quick-entry-amount-input ${income.payActuals?.[index] ? 'has-existing-data' : ''}`}
+                          className={`quick-entry-amount-input ${income.payActuals?.[index] !== undefined ? 'has-existing-data' : ''}`}
                           placeholder="Amount received"
                           value={currentAmount}
                           onChange={(e) => handleQuickEntryAmountChange(incomeKey, index, e.target.value)}
+                          onBlur={() => handleQuickEntryAmountBlur(incomeKey, index)}
                         />
                         <button
                           className={`quick-entry-update-btn ${isUpdated ? 'updated' : ''}`}
-                          onClick={() => handleQuickEntryUpdate(incomeKey)}
-                          disabled={!currentDate && !currentAmount}
+                          onClick={() => handleQuickEntryUpdate(incomeKey, index)}
+                          disabled={!currentDate || !currentAmount}
                           style={{
                             background: isUpdated ? 'rgba(16, 185, 129, 0.3)' : '',
                             color: isUpdated ? '#065f46' : ''
