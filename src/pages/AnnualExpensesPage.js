@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { AnnualExpensesPrint } from '../utils/printUtils';
+import { getStatusAmount } from '../utils/expenseUtils';
 
 const ANNUAL_CATEGORY_NAMES = {
   'yearly-subs': 'Yearly Subscriptions',
@@ -135,6 +136,42 @@ const AnnualExpensesPage = () => {
   const getTotalAnnualExpenses = () => {
     return calculations.getTotalAnnualExpenses();
   };
+
+  const calculateStatusSummary = () => {
+    const requiredTransfers = {};
+    const paidAmounts = {};
+
+    Object.values(state.data.annual || {}).forEach(expenses => {
+      if (Array.isArray(expenses)) {
+        expenses.forEach(expense => {
+          const amount = getStatusAmount(expense);
+          if (amount <= 0) return;
+          const accId = expense.accountId || 'unassigned';
+          if (expense.transferred) {
+            requiredTransfers[accId] = (requiredTransfers[accId] || 0) + amount;
+          }
+          if (expense.paid) {
+            paidAmounts[accId] = (paidAmounts[accId] || 0) + amount;
+          }
+        });
+      }
+    });
+
+    const accountIds = Array.from(new Set([...Object.keys(requiredTransfers), ...Object.keys(paidAmounts)]));
+    const rows = accountIds.map(id => {
+      const required = requiredTransfers[id] || 0;
+      const paid = paidAmounts[id] || 0;
+      return { id, required, paid, net: required - paid };
+    });
+
+    const totalRequired = rows.reduce((sum, r) => sum + r.required, 0);
+    const totalPaid = rows.reduce((sum, r) => sum + r.paid, 0);
+    const balanceAfterPayments = getTotalAnnualExpenses() - totalPaid;
+
+    return { rows, totalRequired, totalPaid, balanceAfterPayments };
+  };
+
+  const statusSummary = calculateStatusSummary();
 
   // Reset funding for all expenses
   const resetFunding = () => {
@@ -936,6 +973,7 @@ const AnnualExpensesPage = () => {
                           <option value="full">Full</option>
                           <option value="half">½</option>
                           <option value="quarter">¼</option>
+                          <option value="actual">Actual</option>
                         </select>
                       </div>
 
@@ -995,6 +1033,40 @@ const AnnualExpensesPage = () => {
         <button className="btn btn-primary">
           📁 Export Annual CSV
         </button>
+      </div>
+
+      <div className="status-summary-card">
+        <h3>Status Summary</h3>
+        <table className="status-summary-table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Required Transfers (Hold)</th>
+              <th>Paid</th>
+              <th>Net to Hold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {statusSummary.rows.map(row => {
+              const account = (Array.isArray(state.data.accounts) ? state.data.accounts : []).find(a => a.id === row.id);
+              const name = account ? account.name : 'Unassigned';
+              return (
+                <tr key={row.id}>
+                  <td>{name}</td>
+                  <td className="amount">{formatCurrency(row.required)}</td>
+                  <td className="amount">{formatCurrency(row.paid)}</td>
+                  <td className="amount">{formatCurrency(row.net)}</td>
+                </tr>
+              );
+            })}
+            <tr className="overall-row">
+              <td><strong>Overall</strong></td>
+              <td className="amount">{formatCurrency(statusSummary.totalRequired)}</td>
+              <td className="amount">{formatCurrency(statusSummary.totalPaid)}</td>
+              <td className="amount">{formatCurrency(statusSummary.balanceAfterPayments)}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="yearly-total">
