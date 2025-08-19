@@ -104,7 +104,7 @@ const QuickEntrySection = ({
                       <input
                         type="text"
                         inputMode="decimal"
-                        pattern="[0-9]*[.,]?[0-9]*"
+                        pattern="[-0-9.,]*"
                         autoComplete="off"
                         className={`quick-entry-amount-input ${
                           income.payActuals?.[index] !== undefined &&
