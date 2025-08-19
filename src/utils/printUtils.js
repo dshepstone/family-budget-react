@@ -1,4 +1,5 @@
 // src/utils/printUtils.js - Print Utilities for Budget Pages
+import { getStatusAmount } from './expenseUtils';
 export class PrintUtils {
     static formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
@@ -449,6 +450,67 @@ export class WeeklyPlannerPrint extends PrintUtils {
 
         return categoryNames[categoryKey] || categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
     }
+
+    static generateStatusSummary(expenseCollection, accounts, totalProjected, formatCurrency) {
+        const requiredTransfers = {};
+        const paidAmounts = {};
+
+        Object.values(expenseCollection || {}).forEach(expenses => {
+            if (Array.isArray(expenses)) {
+                expenses.forEach(expense => {
+                    const amt = getStatusAmount(expense);
+                    if (amt <= 0) return;
+                    const accId = expense.accountId || 'unassigned';
+                    if (expense.transferred) {
+                        requiredTransfers[accId] = (requiredTransfers[accId] || 0) + amt;
+                    }
+                    if (expense.paid) {
+                        paidAmounts[accId] = (paidAmounts[accId] || 0) + amt;
+                    }
+                });
+            }
+        });
+
+        const accountIds = Array.from(new Set([...Object.keys(requiredTransfers), ...Object.keys(paidAmounts)]));
+
+        const rowsHtml = accountIds.map(id => {
+            const account = (Array.isArray(accounts) ? accounts : []).find(a => a.id === id);
+            const name = account ? account.name : 'Unassigned';
+            const required = requiredTransfers[id] || 0;
+            const paid = paidAmounts[id] || 0;
+            const net = required - paid;
+            return `<tr><td>${name}</td><td class="amount">${formatCurrency(required)}</td><td class="amount">${formatCurrency(paid)}</td><td class="amount">${formatCurrency(net)}</td></tr>`;
+        }).join('');
+
+        const totalRequired = accountIds.reduce((sum, id) => sum + (requiredTransfers[id] || 0), 0);
+        const totalPaid = accountIds.reduce((sum, id) => sum + (paidAmounts[id] || 0), 0);
+        const balanceAfterPayments = totalProjected - totalPaid;
+
+        return `
+      <div class="summary-section">
+        <h3>Status Summary</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Required Transfers (Hold)</th>
+              <th>Paid</th>
+              <th>Net to Hold</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+            <tr class="total-row">
+              <td><strong>Overall</strong></td>
+              <td class="amount"><strong>${formatCurrency(totalRequired)}</strong></td>
+              <td class="amount"><strong>${formatCurrency(totalPaid)}</strong></td>
+              <td class="amount"><strong>${formatCurrency(balanceAfterPayments)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+    }
 }
 
 export class MonthlyExpensesPrint extends PrintUtils {
@@ -526,6 +588,7 @@ export class MonthlyExpensesPrint extends PrintUtils {
         </tbody>
       </table>
     `;
+        html += this.generateStatusSummary(data.monthly, data.accounts, totalExpenses, formatCurrency);
 
         return html;
     }
@@ -658,6 +721,7 @@ export class AnnualExpensesPrint extends PrintUtils {
         </tbody>
       </table>
     `;
+        html += this.generateStatusSummary(data.annual, data.accounts, totalAnnual, formatCurrency);
 
         return html;
     }

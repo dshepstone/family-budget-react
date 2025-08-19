@@ -1,11 +1,14 @@
 // src/components/UpcomingExpenses.js - Fixed with Working Actions
-import React from 'react';
+import React, { useState } from 'react';
 import { useBudget } from '../context/BudgetContext';
-import Button from './ui/Button';
 import { formatRelativeDate } from '../utils/formatters';
 
 const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
-  const { formatCurrency, state, actions } = useBudget();
+  const { formatCurrency, state, actions, calculations } = useBudget();
+  const [showNextTen, setShowNextTen] = useState(false);
+  const tenDayExpenses = calculations.getUpcomingExpenses
+    ? calculations.getUpcomingExpenses(10)
+    : [];
 
   if (!expenses || expenses.length === 0) {
     return (
@@ -503,6 +506,111 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
           letter-spacing: 0.025em;
         }
 
+        .ten-day-footer {
+          background: var(--bg-secondary, #f8fafc);
+          padding: 1rem;
+          border-top: 1px solid var(--border-light, #e5e7eb);
+          text-align: center;
+        }
+
+        .ten-day-footer button {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .ten-day-footer button:hover {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .ten-day-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+
+        .ten-day-modal {
+          background: #fff;
+          border-radius: 12px;
+          padding: 1.5rem;
+          width: 100%;
+          max-width: 500px;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        .ten-day-modal h3 {
+          margin-top: 0;
+          margin-bottom: 1rem;
+        }
+
+        .ten-day-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .ten-day-list li {
+          display: flex;
+          justify-content: space-between;
+          gap: 0.5rem;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid var(--border-light, #e5e7eb);
+        }
+
+        .ten-day-list li:last-child {
+          border-bottom: none;
+        }
+
+        .ten-day-name {
+          font-weight: 600;
+        }
+
+        .ten-day-amount {
+          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .ten-day-date {
+          font-size: 0.75rem;
+          color: var(--text-muted, #6b7280);
+        }
+
+        .modal-close {
+          margin-top: 1rem;
+          text-align: right;
+        }
+
+        .modal-close button {
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .modal-close button:hover {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
           .expense-header {
@@ -650,7 +758,46 @@ const UpcomingExpenses = ({ expenses = [], maxDisplay = 5 }) => {
             </div>
           </div>
         </div>
+        <div className="ten-day-footer">
+          <button onClick={() => setShowNextTen(true)}>
+            View Next 10 Days
+          </button>
+        </div>
       </div>
+      {showNextTen && (
+        <div
+          className="ten-day-overlay"
+          onClick={e => {
+            if (e.target === e.currentTarget) setShowNextTen(false);
+          }}
+        >
+          <div className="ten-day-modal">
+            <h3>Expenses Due in Next 10 Days</h3>
+            {tenDayExpenses.length === 0 ? (
+              <p>No expenses due in the next 10 days.</p>
+            ) : (
+              <ul className="ten-day-list">
+                {tenDayExpenses.map((expense, index) => (
+                  <li key={`${expense.name}-${index}`}>
+                    <span className="ten-day-name">{expense.name}</span>
+                    <span className="ten-day-amount">
+                      {formatCurrency(expense.actual || expense.amount || 0)}
+                    </span>
+                    {expense.date && (
+                      <span className="ten-day-date">
+                        {formatRelativeDate(expense.date)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="modal-close">
+              <button onClick={() => setShowNextTen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

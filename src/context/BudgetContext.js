@@ -548,7 +548,7 @@ export function BudgetProvider({ children }) {
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: newPlannerState });
     },
 
-    updateExpenseStatus: (expenseId, expenseName, weekIndex, statusType, checked, sourceModule) => {
+    updateExpenseStatus: (expenseId, expenseName, weekIndex, statusType, checked, _sourceModule) => {
       let updatedMonthly = { ...state.data.monthly };
       let updatedAnnual = { ...state.data.annual };
       let updatedPlanner = { ...state.data.plannerState };
@@ -564,27 +564,25 @@ export function BudgetProvider({ children }) {
         updatedPlanner[expenseName] = plannerExpense;
       }
 
-      // Update source data if needed
-      if (sourceModule === 'monthly' && expenseId) {
+      // Update matching monthly and annual expenses
+      if (expenseId) {
         Object.keys(updatedMonthly).forEach(categoryKey => {
           const categoryExpenses = updatedMonthly[categoryKey] || [];
           const expenseIndex = categoryExpenses.findIndex(exp => exp.id === expenseId);
           if (expenseIndex !== -1) {
             updatedMonthly[categoryKey][expenseIndex] = {
-              ...updatedMonthly[categoryKey][expenseIndex],
+              ...categoryExpenses[expenseIndex],
               [statusType]: checked
             };
           }
         });
-      }
 
-      if (sourceModule === 'annual' && expenseId) {
         Object.keys(updatedAnnual).forEach(categoryKey => {
           const categoryExpenses = updatedAnnual[categoryKey] || [];
           const expenseIndex = categoryExpenses.findIndex(exp => exp.id === expenseId);
           if (expenseIndex !== -1) {
             updatedAnnual[categoryKey][expenseIndex] = {
-              ...updatedAnnual[categoryKey][expenseIndex],
+              ...categoryExpenses[expenseIndex],
               [statusType]: checked
             };
           }
@@ -672,43 +670,33 @@ export function BudgetProvider({ children }) {
     getUpcomingExpenses: (daysAhead = 30) => {
       const upcoming = [];
       const today = new Date();
-      const cutoffDate = new Date(today.getTime() + (daysAhead * 24 * 60 * 60 * 1000));
 
-      // Check monthly expenses
-      Object.entries(state.data.monthly || {}).forEach(([categoryKey, expenses]) => {
-        expenses.forEach(expense => {
-          if (expense.date && expense.name) {
-            const dueDate = new Date(expense.date);
-            if (dueDate >= today && dueDate <= cutoffDate) {
-              upcoming.push({
-                ...expense,
-                category: categoryKey,
-                type: 'monthly',
-                daysUntilDue: Math.ceil((dueDate - today) / (24 * 60 * 60 * 1000))
-              });
-            }
+      const processExpenses = (collection, type) => {
+        Object.entries(collection || {}).forEach(([categoryKey, expenses]) => {
+          if (Array.isArray(expenses)) {
+            expenses.forEach(expense => {
+              if (expense.date && !expense.paid) {
+                const dueDate = new Date(expense.date);
+                const daysUntil = Math.ceil((dueDate - today) / (24 * 60 * 60 * 1000));
+                if (daysUntil >= 0 && daysUntil <= daysAhead) {
+                  upcoming.push({
+                    ...expense,
+                    category: categoryKey,
+                    type,
+                    daysUntil,
+                    amount: parseAmount(expense.actual || expense.amount || 0)
+                  });
+                }
+              }
+            });
           }
         });
-      });
+      };
 
-      // Check annual expenses
-      Object.entries(state.data.annual || {}).forEach(([categoryKey, expenses]) => {
-        expenses.forEach(expense => {
-          if (expense.date && expense.name) {
-            const dueDate = new Date(expense.date);
-            if (dueDate >= today && dueDate <= cutoffDate) {
-              upcoming.push({
-                ...expense,
-                category: categoryKey,
-                type: 'annual',
-                daysUntilDue: Math.ceil((dueDate - today) / (24 * 60 * 60 * 1000))
-              });
-            }
-          }
-        });
-      });
+      processExpenses(state.data.monthly, 'monthly');
+      processExpenses(state.data.annual, 'annual');
 
-      return upcoming.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+      return upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
     },
 
     getOverdueExpenses: () => {
