@@ -955,6 +955,9 @@ const WeeklyPlannerPage = () => {
           padding-left: 15px !important;
           font-size: 0.9rem !important;
           background: var(--category-section-bg) !important;
+          position: sticky;
+          left: 0;
+          z-index: 6;
         }
 
         .expense-name {
