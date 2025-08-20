@@ -4,7 +4,7 @@ import '../../styles/header.css';
 import { useBudget } from '../../context/BudgetContext';
 import { useBudgetCalculations } from '../../hooks/useBudgetCalculations';
 import { APP_NAME, APP_VERSION } from '../../utils/constants';
-import logo from '../../logo/FamilyBudgetLogo_ImageOnly.png';
+import logo from '../../logo/FamilyBudgetLogo_ImageOnly-02.png';
 
 
 const Header = () => {
