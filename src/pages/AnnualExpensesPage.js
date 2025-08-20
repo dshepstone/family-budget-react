@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { AnnualExpensesPrint } from '../utils/printUtils';
 import { getStatusAmount } from '../utils/expenseUtils';
+import { ALL_WEEKS } from '../utils/constants';
 
 const ANNUAL_CATEGORY_NAMES = {
   'yearly-subs': 'Yearly Subscriptions',
@@ -17,11 +18,15 @@ const ANNUAL_CATEGORY_NAMES = {
 
 const AnnualExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [currentWeek, setCurrentWeek] = useState(ALL_WEEKS);
 
   const getPlannerStatus = (expenseName, statusType) => {
     const entry = state.data.plannerState?.[expenseName];
-    return entry?.[statusType]?.[currentWeek - 1] || false;
+    const statuses = entry?.[statusType] || [];
+    if (currentWeek === ALL_WEEKS) {
+      return statuses.some(Boolean);
+    }
+    return statuses[currentWeek - 1] || false;
   };
 
   // Auto-populate planner when annual data changes
@@ -69,10 +74,11 @@ const AnnualExpensesPage = () => {
 
     // Sync with weekly planner for current week
     if (expense.name) {
+      const weekIndex = currentWeek === ALL_WEEKS ? null : currentWeek - 1;
       actions.updateExpenseStatus(
         updatedExpense.id,
         expense.name,
-        currentWeek - 1, // Convert to 0-based index
+        weekIndex,
         statusType,
         checked,
         'annual'
@@ -926,6 +932,7 @@ const AnnualExpensesPage = () => {
           onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
           className="week-select"
         >
+          <option value={ALL_WEEKS}>All Weeks (Month)</option>
           <option value={1}>Week 1</option>
           <option value={2}>Week 2</option>
           <option value={3}>Week 3</option>
@@ -933,7 +940,7 @@ const AnnualExpensesPage = () => {
           <option value={5}>Week 5</option>
         </select>
         <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Status changes will sync with this week in the weekly planner
+          Status changes will sync with {currentWeek === ALL_WEEKS ? 'all weeks' : `Week ${currentWeek}`} in the weekly planner
         </span>
       </div>
 
@@ -1194,7 +1201,7 @@ const AnnualExpensesPage = () => {
         <h4>📊 Weekly Planner Integration</h4>
         <div className="sync-info">
           • Annual expenses automatically populate the weekly planner as monthly equivalents (annual ÷ 12)<br />
-          • Status changes (Paid/Transferred) sync with Week {currentWeek} in the weekly planner<br />
+          • Status changes (Paid/Transferred) sync with {currentWeek === ALL_WEEKS ? 'All Weeks' : `Week ${currentWeek}`} in the weekly planner<br />
           • Due dates determine which week expenses are planned for<br />
           • Changes here update the weekly planner in real-time
         </div>
