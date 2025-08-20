@@ -3621,6 +3621,17 @@
   z-index: 11;
 }
 
+/* Keep expense names visible when horizontally scrolling */
+.planner-table tr:not(.category-row) td:first-child {
+  text-align: left;
+  width: 240px;
+  min-width: 240px;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--card-bg);
+}
+
 .planner-table th:nth-child(2) {
   width: 120px;
   min-width: 120px;

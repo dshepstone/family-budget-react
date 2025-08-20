@@ -27,7 +27,7 @@ const CATEGORY_NAMES = {
 const MonthlyExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [showZeroValues, setShowZeroValues] = useState(true);
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [currentWeek, setCurrentWeek] = useState(ALL_WEEKS);
 
   const getPlannerStatus = (expenseName, statusType) => {
     const entry = state.data.plannerState?.[expenseName];

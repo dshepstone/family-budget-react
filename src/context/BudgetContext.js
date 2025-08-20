@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { createDefaultData } from '../utils/validators';
 import { formatCurrency, parseAmount } from '../utils/formatters';
+import { ALL_WEEKS } from '../utils/constants';
 
 const BudgetContext = createContext();
 
@@ -50,7 +51,7 @@ const initialState = {
   isLoading: false,
   lastUpdated: new Date().toISOString(),
   plannerState: {},
-  currentWeek: 1,
+  currentWeek: ALL_WEEKS,
   isCalculatorOpen: false // Added calculator state
 };
 

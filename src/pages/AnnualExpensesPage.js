@@ -18,7 +18,7 @@ const ANNUAL_CATEGORY_NAMES = {
 
 const AnnualExpensesPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [currentWeek, setCurrentWeek] = useState(ALL_WEEKS);
 
   const getPlannerStatus = (expenseName, statusType) => {
     const entry = state.data.plannerState?.[expenseName];

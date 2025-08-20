@@ -966,7 +966,7 @@ const WeeklyPlannerPage = () => {
           max-width: 240px;
           position: sticky;
           left: 0;
-          z-index: 2;
+          z-index: 5;
           background-color: var(--card-bg);
         }
 
