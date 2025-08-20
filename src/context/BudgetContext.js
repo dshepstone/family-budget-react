@@ -560,7 +560,11 @@ export function BudgetProvider({ children }) {
           plannerExpense[statusType] = Array(5).fill(false);
         }
         plannerExpense[statusType] = [...plannerExpense[statusType]];
-        plannerExpense[statusType][weekIndex] = checked;
+        if (weekIndex === null || weekIndex === undefined || weekIndex < 0) {
+          plannerExpense[statusType] = plannerExpense[statusType].map(() => checked);
+        } else {
+          plannerExpense[statusType][weekIndex] = checked;
+        }
         updatedPlanner[expenseName] = plannerExpense;
       }
 
