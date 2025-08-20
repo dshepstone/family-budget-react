@@ -3,11 +3,18 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { WeeklyPlannerPrint } from '../utils/printUtils';
 
+function parseCurrencyInput(str) {
+  const cleaned = String(str).replace(/[^0-9.-]/g, '');
+  const num = parseFloat(cleaned);
+  return Number.isFinite(num) ? num : NaN;
+}
+
 
 const WeeklyPlannerPage = () => {
   const { state, actions, calculations, formatCurrency } = useBudget();
   const [weekVisibility, setWeekVisibility] = useState(Array(5).fill(true));
   const [hideZeroRows, setHideZeroRows] = useState(false);
+  const [editingValues, setEditingValues] = useState({});
 
   // Table horizontal scroll controls
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -523,6 +530,65 @@ const WeeklyPlannerPage = () => {
     }
 
     handleWeekAmountChange(expenseName, weekIndex, newValue);
+  };
+
+  const editingKey = (expenseName, weekIndex) => `${expenseName}:${weekIndex}`;
+
+  const getEditableValue = (expenseName, weekIndex, stored) => {
+    const key = editingKey(expenseName, weekIndex);
+    if (Object.prototype.hasOwnProperty.call(editingValues, key)) {
+      return editingValues[key];
+    }
+    return Number(stored || 0).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const handleEditableFocus = (expenseName, weekIndex, stored) => {
+    const key = editingKey(expenseName, weekIndex);
+    setEditingValues(prev => {
+      if (Object.prototype.hasOwnProperty.call(prev, key)) return prev;
+      return { ...prev, [key]: Number(stored || 0).toFixed(2) };
+    });
+  };
+
+  const handleEditableChange = (expenseName, weekIndex, raw) => {
+    const key = editingKey(expenseName, weekIndex);
+    setEditingValues(prev => ({ ...prev, [key]: raw }));
+
+    if (raw.trim() === '') {
+      handleWeekAmountChange(expenseName, weekIndex, 0);
+      return;
+    }
+
+    const parsed = parseCurrencyInput(raw);
+    if (Number.isFinite(parsed)) {
+      handleWeekAmountChange(expenseName, weekIndex, parsed);
+    }
+  };
+
+  const commitAndClearEditing = (expenseName, weekIndex) => {
+    const key = editingKey(expenseName, weekIndex);
+    const raw = editingValues[key];
+
+    if (raw !== undefined) {
+      if (raw.trim() === '') {
+        handleWeekAmountChange(expenseName, weekIndex, 0);
+      } else {
+        const parsed = parseCurrencyInput(raw);
+        if (Number.isFinite(parsed)) {
+          handleWeekAmountChange(expenseName, weekIndex, parsed);
+        }
+      }
+    }
+
+    setEditingValues(prev => {
+      if (!Object.prototype.hasOwnProperty.call(prev, key)) return prev;
+      const clone = { ...prev };
+      delete clone[key];
+      return clone;
+    });
   };
 
   // Calculate week totals - FIXED to only use planner week data
@@ -1992,11 +2058,18 @@ const WeeklyPlannerPage = () => {
                               <td className={`week-${weekIndex + 1}-col ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
                                 <div className="planner-input-group">
                                   <input
-                                    type="number"
+                                    type="text"
                                     className={`table-input ${Number(expenseData.weeks[weekIndex] || 0) > 0 ? 'has-value' : 'zero-value'}`}
-                                    value={Number(expenseData.weeks[weekIndex] || 0).toFixed(2)}
-                                    step="0.01"
-                                    onChange={(e) => handleWeekAmountChange(expense.name, weekIndex, e.target.value)}
+                                    value={getEditableValue(expense.name, weekIndex, expenseData.weeks[weekIndex])}
+                                    onFocus={() => handleEditableFocus(expense.name, weekIndex, expenseData.weeks[weekIndex])}
+                                    onChange={(e) => handleEditableChange(expense.name, weekIndex, e.target.value)}
+                                    onBlur={() => commitAndClearEditing(expense.name, weekIndex)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        commitAndClearEditing(expense.name, weekIndex);
+                                        e.target.blur();
+                                      }
+                                    }}
                                   />
                                   <select
                                     className="planner-action-select"
