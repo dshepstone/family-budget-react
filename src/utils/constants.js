@@ -129,6 +129,9 @@ export const CALCULATION_CONSTANTS = {
   DAYS_PER_YEAR: 365.25
 };
 
+// Week selection
+export const ALL_WEEKS = 0;
+
 // Notification types
 export const NOTIFICATION_TYPES = {
   SUCCESS: 'success',

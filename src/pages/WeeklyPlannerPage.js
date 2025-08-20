@@ -886,6 +886,9 @@ const WeeklyPlannerPage = () => {
           text-align: left;
           width: 240px;
           min-width: 240px;
+          position: sticky;
+          left: 0;
+          z-index: 11;
         }
 
         .planner-table th:nth-child(2) {
@@ -942,8 +945,8 @@ const WeeklyPlannerPage = () => {
         }
 
         .category-row {
-          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%) !important;
-          font-weight: bold;
+          background: var(--category-section-bg) !important;
+          font-weight: 700;
           color: var(--text-primary);
         }
 
@@ -951,7 +954,7 @@ const WeeklyPlannerPage = () => {
           text-align: left !important;
           padding-left: 15px !important;
           font-size: 0.9rem !important;
-          background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--hover-bg) 100%) !important;
+          background: var(--category-section-bg) !important;
         }
 
         .expense-name {
@@ -961,6 +964,14 @@ const WeeklyPlannerPage = () => {
           color: var(--text-primary);
           width: 240px;
           max-width: 240px;
+          position: sticky;
+          left: 0;
+          z-index: 5;
+          background-color: var(--card-bg);
+        }
+
+        .planner-table tr:hover .expense-name {
+          background-color: var(--hover-bg);
         }
 
         .annual-indicator {
