@@ -1037,10 +1037,22 @@ const WeeklyPlannerPage = () => {
 
         .status-checkboxes {
           display: flex;
-          flex-direction: column;
+          gap: 8px;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .status-checkbox-label {
+          display: flex;
           align-items: center;
           gap: 4px;
-          width: 100%;
+          font-size: 0.8rem;
+          cursor: pointer;
+          color: var(--text-primary);
+        }
+
+        .checkbox-label {
+          font-weight: bold;
         }
 
         .transferred-checkbox,
@@ -2088,21 +2100,26 @@ const WeeklyPlannerPage = () => {
                               </td>
                               <td className={`week-${weekIndex + 1}-status-col status-cell ${!weekVisibility[weekIndex] ? 'hidden' : ''}`}>
                                 <div className="status-checkboxes">
-                                  <input
-                                    type="checkbox"
-                                    className="transferred-checkbox"
-                                    title="Transferred"
-                                    checked={expenseData.transferred[weekIndex]}
-                                    onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
-                                  />
-                                  <br />
-                                  <input
-                                    type="checkbox"
-                                    className="paid-checkbox"
-                                    title="Paid"
-                                    checked={expenseData.paid[weekIndex]}
-                                    onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
-                                  />
+                                  <label className="status-checkbox-label">
+                                    <input
+                                      type="checkbox"
+                                      className="transferred-checkbox"
+                                      title="Transferred"
+                                      checked={expenseData.transferred[weekIndex]}
+                                      onChange={(e) => handleStatusChange(expense, weekIndex, 'transferred', e.target.checked)}
+                                    />
+                                    <span className="checkbox-label">T</span>
+                                  </label>
+                                  <label className="status-checkbox-label">
+                                    <input
+                                      type="checkbox"
+                                      className="paid-checkbox"
+                                      title="Paid"
+                                      checked={expenseData.paid[weekIndex]}
+                                      onChange={(e) => handleStatusChange(expense, weekIndex, 'paid', e.target.checked)}
+                                    />
+                                    <span className="checkbox-label">P</span>
+                                  </label>
                                 </div>
                               </td>
                             </React.Fragment>

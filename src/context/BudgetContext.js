@@ -548,7 +548,7 @@ export function BudgetProvider({ children }) {
       dispatch({ type: ACTIONS.UPDATE_PLANNER, payload: newPlannerState });
     },
 
-    updateExpenseStatus: (expenseId, expenseName, weekIndex, statusType, checked, sourceModule) => {
+    updateExpenseStatus: (expenseId, expenseName, weekIndex, statusType, checked, _sourceModule) => {
       let updatedMonthly = { ...state.data.monthly };
       let updatedAnnual = { ...state.data.annual };
       let updatedPlanner = { ...state.data.plannerState };
@@ -564,27 +564,25 @@ export function BudgetProvider({ children }) {
         updatedPlanner[expenseName] = plannerExpense;
       }
 
-      // Update source data if needed
-      if (sourceModule === 'monthly' && expenseId) {
+      // Update matching monthly and annual expenses
+      if (expenseId) {
         Object.keys(updatedMonthly).forEach(categoryKey => {
           const categoryExpenses = updatedMonthly[categoryKey] || [];
           const expenseIndex = categoryExpenses.findIndex(exp => exp.id === expenseId);
           if (expenseIndex !== -1) {
             updatedMonthly[categoryKey][expenseIndex] = {
-              ...updatedMonthly[categoryKey][expenseIndex],
+              ...categoryExpenses[expenseIndex],
               [statusType]: checked
             };
           }
         });
-      }
 
-      if (sourceModule === 'annual' && expenseId) {
         Object.keys(updatedAnnual).forEach(categoryKey => {
           const categoryExpenses = updatedAnnual[categoryKey] || [];
           const expenseIndex = categoryExpenses.findIndex(exp => exp.id === expenseId);
           if (expenseIndex !== -1) {
             updatedAnnual[categoryKey][expenseIndex] = {
-              ...updatedAnnual[categoryKey][expenseIndex],
+              ...categoryExpenses[expenseIndex],
               [statusType]: checked
             };
           }
