@@ -4911,3 +4911,21 @@ html { scrollbar-gutter: stable both-edges; }
 .main-content {
   min-height: calc(100vh - var(--header-height, 64px));
 }
+
+/* Payment source color coding */
+.payment-source-current { border-left: 4px solid #2ecc71; }
+.payment-source-previous { border-left: 4px solid #f39c12; }
+.payment-source-carryover { border-left: 4px solid #3498db; }
+.payment-source-mixed { border-left: 4px solid #9b59b6; }
+
+.fund-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.fund-indicator.current-month { background-color: #2ecc71; }
+.fund-indicator.previous-month { background-color: #f39c12; }
+.fund-indicator.carryover { background-color: #3498db; }

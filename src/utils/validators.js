@@ -144,6 +144,11 @@ export function createDefaultData() {
     monthly: defaultMonthly,
     annual: defaultAnnual,
     accounts: [],
+    crossMonthData: {
+      currentMonthCarryover: 0,
+      nextMonthAllocation: 0,
+      allocationDetails: []
+    },
     plannerState: {
       weeklyIncome: [0, 0, 0, 0],
       weeklyExpenses: [0, 0, 0, 0],
@@ -236,4 +241,32 @@ export function sanitizeExpenseName(name) {
 export function validateFrequency(frequency) {
   const validFrequencies = ['monthly', 'quarterly', 'semi-annual', 'annual', 'one-time'];
   return validFrequencies.includes(frequency);
+}
+
+// Validate payment origin data for expenses
+export function validatePaymentOrigin(paymentOrigin) {
+  if (!paymentOrigin) return true;
+  const validSources = ['currentMonth', 'previousMonth', 'carryover'];
+  if (paymentOrigin.sourceType && !validSources.includes(paymentOrigin.sourceType)) {
+    return false;
+  }
+  if (paymentOrigin.paychequeDate && !validateDate(paymentOrigin.paychequeDate)) {
+    return false;
+  }
+  if (paymentOrigin.allocatedAmount !== undefined) {
+    const amt = parseFloat(paymentOrigin.allocatedAmount);
+    if (isNaN(amt) || amt < 0) return false;
+  }
+  return true;
+}
+
+// Validate carryover allocation mapping for income items
+export function validateCarryoverAllocations(allocations) {
+  if (!allocations) return true;
+  return Object.entries(allocations).every(([month, amount]) => {
+    const monthPattern = /^\d{4}-\d{2}$/;
+    if (!monthPattern.test(month)) return false;
+    const amt = parseFloat(amount);
+    return !isNaN(amt) && amt >= 0;
+  });
 }
