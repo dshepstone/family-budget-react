@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useBudget } from '../context/BudgetContext';
 import { MonthlyExpensesPrint } from '../utils/printUtils';
 import { getStatusAmount } from '../utils/expenseUtils';
+import PaymentSourceIndicator from '../components/PaymentSourceIndicator';
 
 const CATEGORY_NAMES = {
   housing: 'Housing',
@@ -62,6 +63,14 @@ const MonthlyExpensesPage = () => {
     }
   };
 
+  const handlePaymentSourceChange = (categoryKey, expenseIndex, field, value) => {
+    const category = state.data.monthly[categoryKey] || [];
+    const expense = category[expenseIndex] || {};
+    const paymentOrigin = { ...(expense.paymentOrigin || { sourceType: 'currentMonth' }) };
+    paymentOrigin[field] = value;
+    actions.updatePaymentOrigin('monthly', categoryKey, expenseIndex, paymentOrigin);
+  };
+
   // Handle status changes (paid/transferred) with weekly sync
   const handleStatusChange = (categoryKey, expenseIndex, statusType, checked) => {
     const category = state.data.monthly[categoryKey] || [];
@@ -109,7 +118,8 @@ const MonthlyExpensesPage = () => {
       accountId: '',
       paid: false,
       transferred: false,
-      transferStatus: 'none'
+      transferStatus: 'none',
+      paymentOrigin: { sourceType: 'currentMonth' }
     };
 
     actions.updateMonthlyExpense(categoryKey, newExpense, category.length);
@@ -919,7 +929,7 @@ const MonthlyExpensesPage = () => {
                   return (
                     <div
                       key={index}
-                      className="subcategory"
+                      className={`subcategory payment-source-${expense.paymentOrigin?.sourceType || 'currentMonth'}`}
                       data-expense-id={expense.id}
                     >
                       <input
@@ -927,6 +937,12 @@ const MonthlyExpensesPage = () => {
                         className="date-input"
                         value={expense.date || ''}
                         onChange={(e) => handleExpenseChange(categoryKey, index, 'date', e.target.value)}
+                      />
+
+                      <PaymentSourceIndicator
+                        sourceType={expense.paymentOrigin?.sourceType}
+                        amount={expense.paymentOrigin?.allocatedAmount}
+                        paychequeDate={expense.paymentOrigin?.paychequeDate}
                       />
 
                       <input
@@ -946,6 +962,26 @@ const MonthlyExpensesPage = () => {
                           <option key={acc.id} value={acc.id}>{acc.name}</option>
                         ))}
                       </select>
+
+                      <div className="payment-source-section">
+                        <label>Payment Source:</label>
+                        <select
+                          value={expense.paymentOrigin?.sourceType || 'currentMonth'}
+                          onChange={(e) => handlePaymentSourceChange(categoryKey, index, 'sourceType', e.target.value)}
+                        >
+                          <option value="currentMonth">Current Month Income</option>
+                          <option value="previousMonth">Previous Month End-of-Month Pay</option>
+                          <option value="carryover">Carryover Funds</option>
+                        </select>
+                        {expense.paymentOrigin?.sourceType === 'previousMonth' && (
+                          <input
+                            type="date"
+                            value={expense.paymentOrigin?.paychequeDate || ''}
+                            onChange={(e) => handlePaymentSourceChange(categoryKey, index, 'paychequeDate', e.target.value)}
+                            placeholder="Paycheque Date"
+                          />
+                        )}
+                      </div>
 
                       <div className="status-control-group">
                         <select

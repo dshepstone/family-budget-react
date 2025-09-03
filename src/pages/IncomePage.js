@@ -5,6 +5,7 @@ import { sanitizeInput } from '../utils/validators';
 import { parseAmount } from '../utils/formatters';
 import AccountModal from '../components/AccountModal';
 import QuickEntrySection from '../components/QuickEntrySection';
+import CrossMonthAllocator from '../components/CrossMonthAllocator';
 import '../styles/incomePage.css';
 
 // Enhanced frequency options with weekly and bi-weekly
@@ -152,6 +153,7 @@ const IncomePage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // overview, sources, analytics
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [allocatorIncome, setAllocatorIncome] = useState(null);
 
   // Form state (supports per-pay-date actuals) - REMOVED actualAmount field
   const [formData, setFormData] = useState({
@@ -165,6 +167,8 @@ const IncomePage = () => {
     actualWeeks: Array(5).fill(0),
     payDates: [],
     payActuals: [],
+    isEndOfMonthPay: [],
+    carryOverAllocations: {},
     // How to interpret 'overall actual' when per-date actuals are not used
     actualMode: 'per-check' // 'per-check' | 'monthly-total'
   });
@@ -188,8 +192,13 @@ const IncomePage = () => {
       ? nextPayActualsBase.slice(0, max)
       : nextPayActualsBase;
 
-    if (nextPayDates !== formData.payDates || nextPayActuals !== formData.payActuals) {
-      setFormData(prev => ({ ...prev, payDates: nextPayDates, payActuals: nextPayActuals }));
+    const nextEndFlagsBase = Array.isArray(formData.isEndOfMonthPay) ? formData.isEndOfMonthPay : [];
+    const nextEndFlags = nextEndFlagsBase.length > max
+      ? nextEndFlagsBase.slice(0, max)
+      : nextEndFlagsBase;
+
+    if (nextPayDates !== formData.payDates || nextPayActuals !== formData.payActuals || nextEndFlags !== formData.isEndOfMonthPay) {
+      setFormData(prev => ({ ...prev, payDates: nextPayDates, payActuals: nextPayActuals, isEndOfMonthPay: nextEndFlags }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.frequency]);
@@ -609,6 +618,7 @@ const IncomePage = () => {
     }
 
     setFormData({
+      id: income.id,
       name: income.name || '',
       projectedAmount: income.projectedAmount?.toString() || '',
       frequency: income.frequency || 'monthly',
@@ -619,6 +629,8 @@ const IncomePage = () => {
       actualWeeks: Array.isArray(income.actualWeeks) ? income.actualWeeks : Array(5).fill(0),
       payDates: Array.isArray(income.payDates) ? income.payDates : [],
       payActuals: Array.isArray(income.payActuals) ? income.payActuals : [],
+      isEndOfMonthPay: Array.isArray(income.isEndOfMonthPay) ? income.isEndOfMonthPay : [],
+      carryOverAllocations: income.carryOverAllocations || {},
       actualMode: income.actualMode || 'per-check'
     });
     setEditingIndex(index);
@@ -654,11 +666,19 @@ const IncomePage = () => {
       actualWeeks: Array(5).fill(0),
       payDates: [],
       payActuals: [],
+      isEndOfMonthPay: [],
+      carryOverAllocations: {},
       actualMode: 'per-check'
     });
     setShowAddForm(false);
     setEditingIndex(null);
   };
+
+  const openAllocator = (income) => {
+    setAllocatorIncome(income);
+  };
+
+  const closeAllocator = () => setAllocatorIncome(null);
 
   const handlePrint = () => {
     const html = IncomePagePrint.generatePrintContent(state.data, formatCurrencyUtil);
@@ -713,6 +733,9 @@ const IncomePage = () => {
 
   return (
     <div className="income-page">
+      {allocatorIncome && (
+        <CrossMonthAllocator income={allocatorIncome} onClose={closeAllocator} />
+      )}
       <div className="page-header">
         <h1 className="page-title">💵 Income Management</h1>
         <p className="page-description">
@@ -969,6 +992,17 @@ const IncomePage = () => {
                                     setFormData(prev => ({ ...prev, payActuals: next }));
                                   }}
                                 />
+                                {/* End-of-month indicator */}
+                                <input
+                                  type="checkbox"
+                                  checked={formData.isEndOfMonthPay?.[i] || false}
+                                  onChange={(e) => {
+                                    const next = [...(formData.isEndOfMonthPay || [])];
+                                    next[i] = e.target.checked;
+                                    setFormData(prev => ({ ...prev, isEndOfMonthPay: next }));
+                                  }}
+                                  title="End of month pay"
+                                />
                               </React.Fragment>
                             ))}
                           </div>
@@ -976,6 +1010,19 @@ const IncomePage = () => {
                           <small style={{ color: '#6b7280' }}>
                             Track your actual income by entering the date and amount for each paycheck. This provides the most accurate monthly income calculation.
                           </small>
+                          {formData.isEndOfMonthPay?.some(Boolean) && (
+                            <div className="carryover-section">
+                              <h4>Next Month Allocations</h4>
+                              <button type="button" onClick={() => openAllocator(formData)}>Allocate Funds to Next Month</button>
+                              <div className="current-allocations">
+                                {Object.entries(formData.carryOverAllocations || {}).map(([month, amount]) => (
+                                  <div key={month} className="allocation-item">
+                                    {month}: {formatCurrencyUtil(amount)}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

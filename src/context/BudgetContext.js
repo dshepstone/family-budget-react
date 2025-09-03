@@ -5,6 +5,27 @@ import { formatCurrency, parseAmount } from '../utils/formatters';
 
 const BudgetContext = createContext();
 
+// Migrate existing stored data to include paymentOrigin and cross-month defaults
+const migrateExistingData = (data) => {
+  const migrated = { ...data };
+  ['monthly', 'annual'].forEach(type => {
+    if (migrated[type]) {
+      Object.keys(migrated[type]).forEach(cat => {
+        migrated[type][cat] = (migrated[type][cat] || []).map(expense => ({
+          ...expense,
+          paymentOrigin: expense.paymentOrigin || { sourceType: 'currentMonth' }
+        }));
+      });
+    }
+  });
+  migrated.crossMonthData = migrated.crossMonthData || {
+    currentMonthCarryover: 0,
+    nextMonthAllocation: 0,
+    allocationDetails: []
+  };
+  return migrated;
+};
+
 // Enhanced action types - Added TOGGLE_CALCULATOR
 export const ACTIONS = {
   LOAD_DATA: 'LOAD_DATA',
@@ -65,7 +86,8 @@ function budgetReducer(state, action) {
           ...action.payload,
           // Ensure linkCategories exists
           linkCategories: action.payload.linkCategories || state.data.linkCategories,
-          links: action.payload.links || {}
+          links: action.payload.links || {},
+          crossMonthData: action.payload.crossMonthData || state.data.crossMonthData
         },
         lastUpdated: new Date().toISOString()
       };
@@ -295,7 +317,8 @@ export function BudgetProvider({ children }) {
       if (savedData) {
         const parsedData = JSON.parse(savedData);
         if (parsedData && typeof parsedData === 'object') {
-          dispatch({ type: ACTIONS.LOAD_DATA, payload: parsedData });
+          const migrated = migrateExistingData(parsedData);
+          dispatch({ type: ACTIONS.LOAD_DATA, payload: migrated });
         }
       }
     } catch (error) {
@@ -599,6 +622,77 @@ export function BudgetProvider({ children }) {
         }
       });
     },
+
+    // ----- Cross-month specific actions -----
+    updatePaymentOrigin: (expenseType, categoryKey, expenseIndex, paymentOriginData) => {
+      const dataSet = expenseType === 'annual' ? state.data.annual : state.data.monthly;
+      const category = dataSet[categoryKey] || [];
+      const expense = category[expenseIndex] || {};
+      const updatedExpense = {
+        ...expense,
+        paymentOrigin: {
+          ...(expense.paymentOrigin || {}),
+          ...paymentOriginData
+        }
+      };
+      dispatch({
+        type: expenseType === 'annual' ? ACTIONS.UPDATE_ANNUAL_EXPENSE : ACTIONS.UPDATE_MONTHLY_EXPENSE,
+        payload: updatedExpense,
+        category: categoryKey,
+        index: expenseIndex
+      });
+    },
+
+    allocateEndOfMonthFunds: (incomeId, allocations) => {
+      const incomes = state.data.income.map(inc =>
+        inc.id === incomeId ? { ...inc, carryOverAllocations: allocations } : inc
+      );
+      const crossData = {
+        ...(state.data.crossMonthData || {}),
+        allocationDetails: Object.entries(allocations).map(([month, amount]) => ({
+          expenseName: '',
+          allocatedAmount: amount,
+          sourcePaycheque: month
+        }))
+      };
+      dispatch({
+        type: ACTIONS.UPDATE_DATA,
+        payload: { ...state.data, income: incomes, crossMonthData: crossData }
+      });
+    },
+
+    setCarryoverFunds: (amount, details = []) => {
+      const crossData = {
+        ...(state.data.crossMonthData || {}),
+        currentMonthCarryover: amount,
+        allocationDetails: details
+      };
+      dispatch({
+        type: ACTIONS.UPDATE_DATA,
+        payload: { ...state.data, crossMonthData: crossData }
+      });
+    },
+
+    getCrossMonthSummary: () => {
+      return state.data.crossMonthData || {
+        currentMonthCarryover: 0,
+        nextMonthAllocation: 0,
+        allocationDetails: []
+      };
+    },
+
+    validateCrossMonthAllocations: (incomeId) => {
+      const incomeItem = state.data.income.find(inc => inc.id === incomeId);
+      if (!incomeItem) return { valid: true };
+      const allocations = incomeItem.carryOverAllocations || {};
+      const totalAllocated = Object.values(allocations).reduce((a, b) => a + parseFloat(b || 0), 0);
+      const incomeAmount = parseFloat(incomeItem.actual || incomeItem.amount || 0);
+      return {
+        valid: totalAllocated <= incomeAmount,
+        totalAllocated,
+        incomeAmount
+      };
+    }
   };
 
   // Enhanced calculations

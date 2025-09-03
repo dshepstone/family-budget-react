@@ -880,6 +880,44 @@ export function useBudgetCalculations(budgetData) {
         .slice(0, limit);
     };
 
+    const getCurrentMonthCarryover = () => {
+      return budgetData.crossMonthData?.currentMonthCarryover || 0;
+    };
+
+    const getExpensesByPaymentSource = () => {
+      const result = { currentMonth: [], previousMonth: [], carryover: [] };
+      const process = (exp) => {
+        const source = exp.paymentOrigin?.sourceType || 'currentMonth';
+        if (result[source]) result[source].push(exp);
+      };
+      Object.values(budgetData.monthly || {}).forEach(list => Array.isArray(list) && list.forEach(process));
+      Object.values(budgetData.annual || {}).forEach(list => Array.isArray(list) && list.forEach(process));
+      return result;
+    };
+
+    const getCrossMonthCashFlow = () => {
+      const carryIn = budgetData.crossMonthData?.currentMonthCarryover || 0;
+      const carryOut = budgetData.crossMonthData?.nextMonthAllocation || 0;
+      return { carryIn, carryOut, net: carryIn - carryOut };
+    };
+
+    const getAvailableFundsByWeek = () => {
+      const carryover = budgetData.crossMonthData?.currentMonthCarryover || 0;
+      const weekly = Array(5).fill(0).map(() => ({ currentMonth: 0, previousMonth: carryover / 5, total: carryover / 5 }));
+      return weekly;
+    };
+
+    const validateWeeklyFundAvailability = () => {
+      return { valid: true };
+    };
+
+    const getCarryoverUtilization = () => {
+      const expenses = getExpensesByPaymentSource();
+      const used = expenses.previousMonth.concat(expenses.carryover).reduce((sum, e) => sum + (e.actual || e.projected || 0), 0);
+      const carry = budgetData.crossMonthData?.currentMonthCarryover || 0;
+      return { used, remaining: carry - used };
+    };
+
     return {
       // Income calculations (ENHANCED with actual vs projected)
       getTotalIncome, // Legacy - returns projected for compatibility
@@ -914,7 +952,15 @@ export function useBudgetCalculations(budgetData) {
       getMonthlyProjections,
       getCashFlowProjection, // ENHANCED with weekly planner data
       getVarianceAnalysis, // ENHANCED with income progress and weekly variance
-      getTopExpenseCategories
+      getTopExpenseCategories,
+
+      // Cross-month calculations
+      getCurrentMonthCarryover,
+      getExpensesByPaymentSource,
+      getCrossMonthCashFlow,
+      getAvailableFundsByWeek,
+      validateWeeklyFundAvailability,
+      getCarryoverUtilization
     };
   }, [budgetData, new Date().toDateString()]);
 
